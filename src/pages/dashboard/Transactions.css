@@ -1,0 +1,102 @@
+/* Fullscreen Transactions Section */
+.transactions-section--fullscreen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #f8fafc;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 220px; /* sidebar width */
+}
+
+.transactions-card-full {
+  width: 90vw;
+  max-width: 1200px;
+  min-height: 80vh;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+  background: #fff;
+  border-radius: 18px;
+  padding: 2rem;
+  overflow: auto;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+.transactions-table th, .transactions-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+.transactions-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+.transactions-table tr:nth-child(even) {
+  background: #f9fafb;
+}
+.summary-table {
+  margin-top: 1rem;
+  width: 350px;
+  border-collapse: collapse;
+}
+.summary-table td {
+  padding: 0.5rem 1rem;
+  border: none;
+}
+.more-details {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+  color: #64748b;
+}
+
+/* Responsive styles */
+@media (max-width: 900px) {
+  .transactions-section--fullscreen {
+    padding-left: 0;
+    align-items: flex-start;
+    height: auto;
+    min-height: 100vh;
+  }
+  .transactions-card-full {
+    width: 98vw;
+    min-height: 60vh;
+    padding: 1rem;
+  }
+  .summary-table {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .transactions-section--fullscreen {
+    flex-direction: column;
+    padding: 0.5rem 0;
+    min-height: 100vh;
+    height: auto;
+  }
+  .transactions-card-full {
+    width: 100vw;
+    min-width: 0;
+    padding: 0.5rem;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .transactions-table th, .transactions-table td {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.95rem;
+  }
+  .summary-table {
+    width: 100%;
+    font-size: 0.95rem;
+  }
+  .more-details {
+    font-size: 0.95rem;
+  }
+}
