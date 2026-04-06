@@ -1,6 +1,6 @@
 const MOCK_USERS_KEY = 'potense_admin_users';
 const MOCK_PROFILES_KEY = 'potense_admin_profiles';
-const API_BASE_URL = 'http://192.168.1.4:5001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.4:5001';
 
 const getUsers = () => {
   try {
