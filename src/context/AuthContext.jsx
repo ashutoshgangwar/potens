@@ -3,6 +3,8 @@ import { apiLogin, apiSignUp } from '../utils/api.js';
 
 const TOKEN_KEY = 'potense_admin_token';
 const USER_KEY = 'potense_admin_user';
+const ACCESS_TOKEN_KEY = 'potense_admin_access_token';
+const USER_ID_KEY = 'potense_admin_user_id';
 
 // ─── State shape ────────────────────────────────────────────────────────────
 const initialState = {
@@ -48,6 +50,13 @@ const AuthContext = createContext(undefined);
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  const persistSession = useCallback((user, token) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    localStorage.setItem(USER_ID_KEY, user?.id || '');
+  }, []);
+
   // Rehydrate session from localStorage on mount
   useEffect(() => {
     try {
@@ -65,11 +74,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async ({ email, password }) => {
     const { user, token } = await apiLogin({ email, password });
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    persistSession(user, token);
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
     return user;
-  }, []);
+  }, [persistSession]);
 
   const signUp = useCallback(async ({ fullName, email, phone, password, confirmPassword }) => {
     const { user, token } = await apiSignUp({
@@ -79,15 +87,16 @@ export const AuthProvider = ({ children }) => {
       password,
       confirmPassword,
     });
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    persistSession(user, token);
     dispatch({ type: 'SIGNUP_SUCCESS', payload: { user, token } });
     return user;
-  }, []);
+  }, [persistSession]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(USER_ID_KEY);
     dispatch({ type: 'LOGOUT' });
   }, []);
 

@@ -410,6 +410,13 @@
   color: #dc2626;
 }
 
+.profile-completion__file-status {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  word-break: break-word;
+}
+
 .profile-completion__radio-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

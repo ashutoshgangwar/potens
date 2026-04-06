@@ -22,14 +22,15 @@ const useForm = (initialValues = {}, validationRules = {}) => {
 
   const handleChange = useCallback(
     (e) => {
-      const { name, value } = e.target;
-      const updatedValues = { ...values, [name]: value };
+      const { name, type, value, files } = e.target;
+      const inputValue = type === 'file' ? files?.[0] : value;
+      const updatedValues = { ...values, [name]: inputValue };
       setValues(updatedValues);
       // Clear error on change if field was already touched
       if (touched[name]) {
         setErrors((prev) => ({
           ...prev,
-          [name]: validateField(name, value, updatedValues),
+          [name]: validateField(name, inputValue, updatedValues),
         }));
       }
     },
@@ -38,12 +39,13 @@ const useForm = (initialValues = {}, validationRules = {}) => {
 
   const handleBlur = useCallback(
     (e) => {
-      const { name, value } = e.target;
+      const { name, type, value, files } = e.target;
+      const inputValue = type === 'file' ? files?.[0] : value;
       setTouched((prev) => ({ ...prev, [name]: true }));
-      const updatedValues = { ...values, [name]: value };
+      const updatedValues = { ...values, [name]: inputValue };
       setErrors((prev) => ({
         ...prev,
-        [name]: validateField(name, value, updatedValues),
+        [name]: validateField(name, inputValue, updatedValues),
       }));
     },
     [validateField, values]

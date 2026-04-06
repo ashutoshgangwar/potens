@@ -20,40 +20,70 @@ const SIDEBAR_ITEMS = [
 const REQUIRED_PROFILE_FIELDS = [
 	'fullName',
 	'fatherName',
+	'dob',
 	'gender',
-	'phone',
 	'state',
 	'district',
 	'fieldOfficerName',
-	'permanentAddress',
-	'businessAddress',
-	'vehicleNumber',
 	'pinCode',
-	'oilSectorExperience',
+	'oilSectorExperienceYears',
 	'nearestFuelPumpDistance',
 	'investmentPlan',
-	'paymentPreference',
-	'panCard',
-	'aadhaarCard',
-	'vehicleRc',
-	'vehicleInsurance',
-	'passportPhoto',
-	'noc',
+	'permanentAddressLine1',
+	'permanentAddressLine2',
+	'permanentCity',
+	'permanentState',
+	'permanentDistrict',
+	'permanentPincode',
+	'permanentLatitude',
+	'permanentLongitude',
+	'businessAddressLine1',
+	'businessAddressLine2',
+	'businessCity',
+	'businessState',
+	'businessDistrict',
+	'businessPincode',
+	'businessLatitude',
+	'businessLongitude',
+	'vehicleNumber',
+	'paymentMode',
+	'panNumber',
+	'panFileUrl',
+	'aadhaarNumber',
+	'aadhaarFileUrl',
+	'drivingLicenseNumber',
+	'drivingLicenseFileUrl',
+	'vehicleRcNumber',
+	'vehicleRcFileUrl',
+	'passportPhotoFileUrl',
+	'nocFileUrl',
+	'combinedDocumentsPdfUrl',
 ];
 
 const REQUIRED_DOCUMENT_FIELDS = [
-	'panCard',
-	'aadhaarCard',
-	'vehicleRc',
-	'vehicleInsurance',
-	'passportPhoto',
-	'noc',
+	'panFileUrl',
+	'aadhaarFileUrl',
+	'drivingLicenseFileUrl',
+	'vehicleRcFileUrl',
+	'passportPhotoFileUrl',
+	'nocFileUrl',
+	'combinedDocumentsPdfUrl',
 ];
 
 const PAYMENT_LABELS = {
 	upi: 'UPI',
-	'bank-transfer': 'Bank Transfer',
-	other: 'Other',
+	bank: 'Bank Transfer',
+	both: 'UPI + Bank',
+};
+
+const DOCUMENT_LABELS = {
+	panFileUrl: 'PAN Card',
+	aadhaarFileUrl: 'Aadhaar Card',
+	drivingLicenseFileUrl: 'Driving License',
+	vehicleRcFileUrl: 'Vehicle RC',
+	passportPhotoFileUrl: 'Passport Photo',
+	nocFileUrl: 'NOC',
+	combinedDocumentsPdfUrl: 'Combined Documents PDF',
 };
 
 const PARTNER_KPI_BASE = {
@@ -74,17 +104,27 @@ const fallbackActivities = [
 const isFilled = (value) => Boolean(String(value ?? '').trim());
 
 const getPaymentHealth = (profileDetails) => {
-	const mode = profileDetails?.paymentPreference;
+	const mode = profileDetails?.paymentMode;
 	if (mode === 'upi') return isFilled(profileDetails?.upiId);
-	if (mode === 'bank-transfer') {
+	if (mode === 'bank') {
 		return (
 			isFilled(profileDetails?.bankAccountNumber) &&
 			isFilled(profileDetails?.ifscCode) &&
+			isFilled(profileDetails?.bankName) &&
 			isFilled(profileDetails?.accountHolderName) &&
 			isFilled(profileDetails?.bankBranch)
 		);
 	}
-	if (mode === 'other') return isFilled(profileDetails?.otherPaymentDetails);
+	if (mode === 'both') {
+		return (
+			isFilled(profileDetails?.upiId) &&
+			isFilled(profileDetails?.bankAccountNumber) &&
+			isFilled(profileDetails?.ifscCode) &&
+			isFilled(profileDetails?.bankName) &&
+			isFilled(profileDetails?.accountHolderName) &&
+			isFilled(profileDetails?.bankBranch)
+		);
+	}
 	return false;
 };
 
@@ -110,10 +150,10 @@ const getProfileActivities = (profileDetails) => {
 		},
 		{
 			user: 'Payment',
-			action: profileDetails.paymentPreference
-				? `Payment mode selected: ${PAYMENT_LABELS[profileDetails.paymentPreference] || profileDetails.paymentPreference}`
-				: 'Payment preference not selected',
-			time: profileDetails.paymentPreference ? 'Saved' : 'Pending',
+			action: profileDetails.paymentMode
+				? `Payment mode selected: ${PAYMENT_LABELS[profileDetails.paymentMode] || profileDetails.paymentMode}`
+				: 'Payment mode not selected',
+			time: profileDetails.paymentMode ? 'Saved' : 'Pending',
 			avatar: 'PM',
 		},
 		{
@@ -227,7 +267,7 @@ const DashboardPage = () => {
 
 	const profileSummary = [
 		{ label: 'Full Name', value: profileDetails?.fullName || user?.name || 'Not provided' },
-		{ label: 'Phone Number', value: profileDetails?.phone || 'Not provided' },
+		{ label: 'Date of Birth', value: profileDetails?.dob || 'Not provided' },
 		{ label: 'Field Officer', value: profileDetails?.fieldOfficerName || 'Not provided' },
 		{ label: 'Vehicle Number', value: profileDetails?.vehicleNumber || 'Not provided' },
 		{
@@ -236,7 +276,12 @@ const DashboardPage = () => {
 				? `${profileDetails.state} / ${profileDetails.district}`
 				: 'Not provided',
 		},
-		{ label: 'Fuel Experience', value: profileDetails?.oilSectorExperience || 'Not provided' },
+		{
+			label: 'Fuel Experience',
+			value: isFilled(profileDetails?.oilSectorExperienceYears)
+				? `${profileDetails.oilSectorExperienceYears} years`
+				: 'Not provided',
+		},
 	];
 
 	const completionMilestones = useMemo(
@@ -253,10 +298,7 @@ const DashboardPage = () => {
 		() =>
 			REQUIRED_DOCUMENT_FIELDS.map((field) => ({
 				key: field,
-				label: field
-					.replace(/([A-Z])/g, ' $1')
-					.replace(/^./, (text) => text.toUpperCase())
-					.trim(),
+				label: DOCUMENT_LABELS[field] || field,
 				uploaded: isFilled(profileDetails?.[field]),
 			})),
 		[profileDetails]
@@ -267,8 +309,7 @@ const DashboardPage = () => {
 		[profileDetails]
 	);
 
-	const paymentPreferenceLabel =
-		PAYMENT_LABELS[profileDetails?.paymentPreference] || 'Not selected';
+	const paymentPreferenceLabel = PAYMENT_LABELS[profileDetails?.paymentMode] || 'Not selected';
 
 	const handleLogout = () => {
 		logout();

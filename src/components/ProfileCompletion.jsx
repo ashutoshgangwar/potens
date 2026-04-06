@@ -2,10 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import useForm from '../hooks/useForm.js';
-import {
-  apiGetProfileDetails,
-  apiSaveProfileDetails,
-} from '../utils/api.js';
+import { apiGetProfileDetails, apiSaveProfileDetails } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
@@ -22,41 +19,43 @@ const GENDER_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
-const EXPERIENCE_OPTIONS = [
-  { value: 'fresher', label: 'Fresher' },
-  { value: '1-3-years', label: '1-3 years' },
-  { value: '3-5-years', label: '3-5 years' },
-  { value: '5-plus-years', label: '5+ years' },
-];
-
 const PAYMENT_OPTIONS = [
   {
     value: 'upi',
     label: 'UPI',
-    description: 'Collect payouts directly to a UPI ID.',
+    description: 'Send settlements directly to your UPI ID.',
   },
   {
-    value: 'bank-transfer',
+    value: 'bank',
     label: 'Bank Transfer',
-    description: 'Receive payments in your bank account.',
+    description: 'Receive settlements in your bank account.',
   },
   {
-    value: 'other',
-    label: 'Other',
-    description: 'Any alternate settlement preference.',
+    value: 'both',
+    label: 'UPI + Bank',
+    description: 'Keep both payout methods ready for backend review.',
   },
 ];
 
+const ALLOWED_DOCUMENT_FILE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'application/pdf',
+];
+const ALLOWED_DOCUMENT_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf'];
+const DOCUMENT_FILE_ACCEPT_VALUE = ALLOWED_DOCUMENT_FILE_EXTENSIONS.join(',');
+
 const PROFILE_STEPS = [
   {
-    id: 'basic',
-    label: 'Basic Information',
+    id: 'professional',
+    label: 'Professional Details',
     icon: '👤',
-    subtitle: 'Capture personal and field officer details.',
+    subtitle: 'Capture the identity and onboarding information required by the API.',
     sections: [
       {
         title: 'Personal Details',
-        description: 'Fill the applicant identity information exactly as per records.',
+        description: 'Fill the applicant identity information exactly as per official records.',
         fields: [
           {
             name: 'fullName',
@@ -73,17 +72,16 @@ const PROFILE_STEPS = [
             required: true,
           },
           {
+            name: 'dob',
+            label: 'Date of Birth',
+            type: 'date',
+            required: true,
+          },
+          {
             name: 'gender',
             label: 'Gender',
             type: 'select',
             options: GENDER_OPTIONS,
-            required: true,
-          },
-          {
-            name: 'phone',
-            label: 'Phone Number',
-            type: 'tel',
-            placeholder: '+91 98765 43210',
             required: true,
           },
           {
@@ -95,9 +93,10 @@ const PROFILE_STEPS = [
           },
           {
             name: 'district',
-            label: 'Related District',
+            label: 'District',
             type: 'select',
             options: [],
+            optionsSource: 'state',
             required: true,
           },
           {
@@ -107,88 +106,278 @@ const PROFILE_STEPS = [
             placeholder: 'Enter field officer name',
             required: true,
           },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'address_logistics',
-    label: 'Address & Logistics',
-    icon: '📍',
-    subtitle: 'Capture address and vehicle details for field operations.',
-    sections: [
-      {
-        title: 'Address Information',
-        description: 'Use complete and serviceable addresses for permanent and business locations.',
-        fields: [
-          {
-            name: 'permanentAddress',
-            label: 'Permanent Address',
-            type: 'textarea',
-            rows: 4,
-            placeholder: 'Enter permanent address',
-            required: true,
-            fullWidth: true,
-          },
-          {
-            name: 'businessAddress',
-            label: 'Business Address',
-            type: 'textarea',
-            rows: 4,
-            placeholder: 'Enter business address',
-            required: true,
-            fullWidth: true,
-          },
-          {
-            name: 'vehicleNumber',
-            label: 'Vehicle Number',
-            type: 'text',
-            placeholder: 'UP32 AB 1234',
-            required: true,
-          },
           {
             name: 'pinCode',
-            label: 'Pin Code',
+            label: 'Pincode',
             type: 'text',
-            placeholder: '226001',
+            placeholder: '243001',
             required: true,
           },
         ],
       },
-    ],
-  },
-  {
-    id: 'investment',
-    label: 'Investment Profile',
-    icon: '💰',
-    subtitle: 'Add your industry experience and intended investment plan.',
-    sections: [
       {
         title: 'Business Readiness',
-        description: 'These answers help evaluate viability and planning readiness.',
+        description: 'Share your fuel-sector background and investment intent.',
         fields: [
           {
-            name: 'oilSectorExperience',
-            label: 'Oil Sector Experience',
-            type: 'select',
-            options: EXPERIENCE_OPTIONS,
+            name: 'oilSectorExperienceYears',
+            label: 'Oil Sector Experience (Years)',
+            type: 'number',
+            placeholder: '3',
             required: true,
           },
           {
             name: 'nearestFuelPumpDistance',
-            label: 'Nearest Fuel Pump Distance (km)',
+            label: 'Distance to Nearest Petrol Pump (km)',
             type: 'number',
-            placeholder: 'Enter distance in km',
+            placeholder: '2.5',
             required: true,
           },
           {
             name: 'investmentPlan',
             label: 'Investment Plan',
             type: 'textarea',
-            rows: 5,
-            placeholder: 'Describe your investment plan, budget, and rollout approach',
+            rows: 4,
+            placeholder: 'Example: 5-10 lakh',
             required: true,
             fullWidth: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'address',
+    label: 'Address & Vehicle',
+    icon: '📍',
+    subtitle: 'Collect structured permanent, business, and vehicle details.',
+    sections: [
+      {
+        title: 'Permanent Address',
+        description: 'Provide a full structured permanent address with coordinates.',
+        fields: [
+          {
+            name: 'permanentAddressLine1',
+            label: 'Address Line 1',
+            type: 'text',
+            placeholder: 'House 101',
+            required: true,
+          },
+          {
+            name: 'permanentAddressLine2',
+            label: 'Address Line 2',
+            type: 'text',
+            placeholder: 'Civil Lines',
+            required: true,
+          },
+          {
+            name: 'permanentCity',
+            label: 'City',
+            type: 'text',
+            placeholder: 'Bareilly',
+            required: true,
+          },
+          {
+            name: 'permanentState',
+            label: 'State',
+            type: 'select',
+            options: STATE_OPTIONS.map((state) => ({ value: state, label: state })),
+            required: true,
+          },
+          {
+            name: 'permanentDistrict',
+            label: 'District',
+            type: 'select',
+            options: [],
+            optionsSource: 'permanentState',
+            required: true,
+          },
+          {
+            name: 'permanentPincode',
+            label: 'Pincode',
+            type: 'text',
+            placeholder: '243001',
+            required: true,
+          },
+          {
+            name: 'permanentLatitude',
+            label: 'Latitude',
+            type: 'number',
+            placeholder: '28.367',
+            required: true,
+          },
+          {
+            name: 'permanentLongitude',
+            label: 'Longitude',
+            type: 'number',
+            placeholder: '79.4304',
+            required: true,
+          },
+        ],
+      },
+      {
+        title: 'Business Address',
+        description: 'Provide the business location used for operations.',
+        fields: [
+          {
+            name: 'businessAddressLine1',
+            label: 'Address Line 1',
+            type: 'text',
+            placeholder: 'Shop 12',
+            required: true,
+          },
+          {
+            name: 'businessAddressLine2',
+            label: 'Address Line 2',
+            type: 'text',
+            placeholder: 'Main Market',
+            required: true,
+          },
+          {
+            name: 'businessCity',
+            label: 'City',
+            type: 'text',
+            placeholder: 'Bareilly',
+            required: true,
+          },
+          {
+            name: 'businessState',
+            label: 'State',
+            type: 'select',
+            options: STATE_OPTIONS.map((state) => ({ value: state, label: state })),
+            required: true,
+          },
+          {
+            name: 'businessDistrict',
+            label: 'District',
+            type: 'select',
+            options: [],
+            optionsSource: 'businessState',
+            required: true,
+          },
+          {
+            name: 'businessPincode',
+            label: 'Pincode',
+            type: 'text',
+            placeholder: '243001',
+            required: true,
+          },
+          {
+            name: 'businessLatitude',
+            label: 'Latitude',
+            type: 'number',
+            placeholder: '28.37',
+            required: true,
+          },
+          {
+            name: 'businessLongitude',
+            label: 'Longitude',
+            type: 'number',
+            placeholder: '79.42',
+            required: true,
+          },
+        ],
+      },
+      {
+        title: 'Vehicle Details',
+        description: 'Add the vehicle number used for partner operations.',
+        fields: [
+          {
+            name: 'vehicleNumber',
+            label: 'Vehicle Number',
+            type: 'text',
+            placeholder: 'UP25AB1234',
+            required: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'documents',
+    label: 'Document Details',
+    icon: '📄',
+    subtitle: 'Provide document numbers and uploaded file URLs for onboarding review.',
+    sections: [
+      {
+        title: 'Identity Documents',
+        description: 'Share the document numbers and hosted file URLs for each record.',
+        fields: [
+          {
+            name: 'panNumber',
+            label: 'PAN Number',
+            type: 'text',
+            placeholder: 'ABCDE1234F',
+            required: true,
+          },
+          {
+            name: 'panFile',
+            label: 'PAN Card Image',
+            type: 'file',
+            accept: DOCUMENT_FILE_ACCEPT_VALUE,
+            required: true,
+          },
+          {
+            name: 'aadhaarNumber',
+            label: 'Aadhaar Number',
+            type: 'text',
+            placeholder: '123412341234',
+            required: true,
+          },
+          {
+            name: 'aadhaarFile',
+            label: 'Aadhaar Card Image',
+            type: 'file',
+            accept: DOCUMENT_FILE_ACCEPT_VALUE,
+            required: true,
+          },
+          {
+            name: 'drivingLicenseNumber',
+            label: 'Driving License Number',
+            type: 'text',
+            placeholder: 'UP-2020-1234567',
+            required: true,
+          },
+          {
+            name: 'drivingLicenseFile',
+            label: 'Driving License Image',
+            type: 'file',
+            accept: DOCUMENT_FILE_ACCEPT_VALUE,
+            required: true,
+          },
+          {
+            name: 'vehicleRcNumber',
+            label: 'Vehicle RC Number',
+            type: 'text',
+            placeholder: 'RC123456',
+            required: true,
+          },
+          {
+            name: 'vehicleRcFile',
+            label: 'Vehicle RC Image',
+            type: 'file',
+            accept: DOCUMENT_FILE_ACCEPT_VALUE,
+            required: true,
+          },
+        ],
+      },
+      {
+        title: 'Supporting Files',
+        description: 'Add the remaining hosted file URLs shared with the backend.',
+        fields: [
+          {
+            name: 'passportPhotoFile',
+            label: 'Passport Size Photo',
+            type: 'file',
+            accept: DOCUMENT_FILE_ACCEPT_VALUE,
+            required: true,
+          },
+          {
+            name: 'nocFile',
+            label: 'NOC Document',
+            type: 'file',
+            accept: DOCUMENT_FILE_ACCEPT_VALUE,
+            required: true,
           },
         ],
       },
@@ -196,17 +385,17 @@ const PROFILE_STEPS = [
   },
   {
     id: 'payment',
-    label: 'Payment Preference',
+    label: 'Payment Details',
     icon: '💳',
-    subtitle: 'Choose how settlements or payouts should be handled.',
+    subtitle: 'Match the settlement details expected by the backend contract.',
     sections: [
       {
-        title: 'Preferred Payment Method',
-        description: 'Pick the settlement route that works best for you.',
+        title: 'Settlement Preference',
+        description: 'Choose the supported payout mode and fill the required account details.',
         fields: [
           {
-            name: 'paymentPreference',
-            label: 'Payment Preference',
+            name: 'paymentMode',
+            label: 'Payment Mode',
             type: 'radio',
             options: PAYMENT_OPTIONS,
             required: true,
@@ -216,18 +405,18 @@ const PROFILE_STEPS = [
             name: 'upiId',
             label: 'UPI ID',
             type: 'text',
-            placeholder: 'example@upi',
+            placeholder: 'ashu@upi',
             required: true,
             fullWidth: true,
-            paymentModes: ['upi'],
+            paymentModes: ['upi', 'both'],
           },
           {
             name: 'bankAccountNumber',
-            label: 'Bank Account Number',
+            label: 'Account Number',
             type: 'text',
-            placeholder: 'Enter account number',
+            placeholder: '123456789012',
             required: true,
-            paymentModes: ['bank-transfer'],
+            paymentModes: ['bank', 'both'],
           },
           {
             name: 'ifscCode',
@@ -235,99 +424,41 @@ const PROFILE_STEPS = [
             type: 'text',
             placeholder: 'SBIN0001234',
             required: true,
-            paymentModes: ['bank-transfer'],
+            paymentModes: ['bank', 'both'],
+          },
+          {
+            name: 'bankName',
+            label: 'Bank Name',
+            type: 'text',
+            placeholder: 'State Bank of India',
+            required: true,
+            paymentModes: ['bank', 'both'],
+          },
+          {
+            name: 'bankBranch',
+            label: 'Branch Name',
+            type: 'text',
+            placeholder: 'Bareilly Main',
+            required: true,
+            paymentModes: ['bank', 'both'],
           },
           {
             name: 'accountHolderName',
             label: 'Account Holder Name',
             type: 'text',
-            placeholder: 'Enter account holder name',
+            placeholder: 'Ashutosh Gangwar',
             required: true,
-            paymentModes: ['bank-transfer'],
+            paymentModes: ['bank', 'both'],
           },
           {
-            name: 'bankBranch',
-            label: 'Branch',
-            type: 'text',
-            placeholder: 'Enter bank branch',
-            required: true,
-            paymentModes: ['bank-transfer'],
-          },
-          {
-            name: 'bankOtherDetails',
-            label: 'Bank Details Notes',
+            name: 'paymentOtherDetails',
+            label: 'Other Details',
             type: 'textarea',
             rows: 4,
-            placeholder: 'Add any extra bank transfer details',
+            placeholder: 'Preferred settlement weekly',
             required: false,
             fullWidth: true,
-            paymentModes: ['bank-transfer'],
-          },
-          {
-            name: 'otherPaymentDetails',
-            label: 'Other Payment Details',
-            type: 'textarea',
-            rows: 4,
-            placeholder: 'Describe the alternate payment method and details',
-            required: true,
-            fullWidth: true,
-            paymentModes: ['other'],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'document',
-    label: 'Document Upload',
-    icon: '📄',
-    subtitle: 'Upload the required ID, vehicle, and compliance documents.',
-    sections: [
-      {
-        title: 'Mandatory Documents',
-        description: 'Upload clear files in PDF, JPG, JPEG, or PNG format.',
-        fields: [
-          {
-            name: 'panCard',
-            label: 'PAN Card',
-            type: 'file',
-            required: true,
-            accept: '.pdf,.png,.jpg,.jpeg',
-          },
-          {
-            name: 'aadhaarCard',
-            label: 'Aadhaar Card',
-            type: 'file',
-            required: true,
-            accept: '.pdf,.png,.jpg,.jpeg',
-          },
-          {
-            name: 'vehicleRc',
-            label: 'Vehicle RC',
-            type: 'file',
-            required: true,
-            accept: '.pdf,.png,.jpg,.jpeg',
-          },
-          {
-            name: 'vehicleInsurance',
-            label: 'Vehicle Insurance',
-            type: 'file',
-            required: true,
-            accept: '.pdf,.png,.jpg,.jpeg',
-          },
-          {
-            name: 'passportPhoto',
-            label: 'Passport Photo',
-            type: 'file',
-            required: true,
-            accept: '.png,.jpg,.jpeg',
-          },
-          {
-            name: 'noc',
-            label: 'NOC',
-            type: 'file',
-            required: true,
-            accept: '.pdf,.png,.jpg,.jpeg',
+            paymentModes: ['upi', 'bank', 'both'],
           },
         ],
       },
@@ -337,7 +468,7 @@ const PROFILE_STEPS = [
     id: 'review',
     label: 'Review & Submit',
     icon: '✅',
-    subtitle: 'Review all previously submitted details before final save.',
+    subtitle: 'Review all details before submitting them to the crew profile API.',
   },
 ];
 
@@ -364,6 +495,80 @@ const INITIAL_VALUES = PROFILE_FIELDS.reduce((accumulator, field) => {
   return accumulator;
 }, {});
 
+const DISTRICT_SOURCE_BY_FIELD = {
+  district: 'state',
+  permanentDistrict: 'permanentState',
+  businessDistrict: 'businessState',
+};
+
+const DISTRICT_FIELD_BY_STATE = {
+  state: 'district',
+  permanentState: 'permanentDistrict',
+  businessState: 'businessDistrict',
+};
+
+const PAYMENT_LABELS = {
+  upi: 'UPI',
+  bank: 'Bank Transfer',
+  both: 'UPI + Bank',
+};
+
+const URL_PATTERN = /^https?:\/\/.+/i;
+
+const isStoredFileReference = (value) => {
+  if (!value) {
+    return false;
+  }
+
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+
+  return typeof value === 'object' && typeof value.name === 'string' && value.name.trim().length > 0;
+};
+
+const getStoredFileLabel = (value) => {
+  if (value instanceof File) {
+    return value.name;
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'object' && typeof value?.name === 'string') {
+    return value.name;
+  }
+
+  return '';
+};
+
+const hasAllowedDocumentExtension = (fileName) => {
+  const normalizedName = `${fileName || ''}`.toLowerCase();
+  return ALLOWED_DOCUMENT_FILE_EXTENSIONS.some((extension) => normalizedName.endsWith(extension));
+};
+
+const isAllowedDocumentFile = (file) => {
+  if (!(file instanceof File)) {
+    return false;
+  }
+
+  const mimeType = `${file.type || ''}`.toLowerCase();
+  return ALLOWED_DOCUMENT_FILE_TYPES.includes(mimeType) || hasAllowedDocumentExtension(file.name);
+};
+
+const hasValidStoredDocumentFile = (value) => {
+  if (value instanceof File) {
+    return isAllowedDocumentFile(value);
+  }
+
+  if (!isStoredFileReference(value)) {
+    return false;
+  }
+
+  return hasAllowedDocumentExtension(getStoredFileLabel(value));
+};
+
 const normalizeValue = (value) => `${value ?? ''}`.trim();
 
 const shouldRenderField = (field, values) => {
@@ -371,7 +576,7 @@ const shouldRenderField = (field, values) => {
     return true;
   }
 
-  return field.paymentModes.includes(values.paymentPreference);
+  return field.paymentModes.includes(values.paymentMode);
 };
 
 const getDistrictOptions = (selectedState) =>
@@ -379,6 +584,11 @@ const getDistrictOptions = (selectedState) =>
     value: district,
     label: district,
   }));
+
+const isValidCoordinate = (value, min, max) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue >= min && numericValue <= max;
+};
 
 const validateProfileField = (field, value, allValues = {}) => {
   if (!shouldRenderField(field, allValues)) {
@@ -396,32 +606,40 @@ const validateProfileField = (field, value, allValues = {}) => {
   }
 
   switch (field.name) {
-    case 'phone':
-      return /^[0-9+\-()\s]{10,15}$/.test(trimmedValue)
-        ? ''
-        : 'Enter a valid phone number (10–15 characters).';
-    case 'pinCode':
-      return /^\d{6}$/.test(trimmedValue)
-        ? ''
-        : 'Pin code must be exactly 6 digits.';
-    case 'vehicleNumber':
-      return /^[A-Z]{2}\s?\d{1,2}\s?[A-Z]{1,3}\s?\d{4}$/i.test(trimmedValue)
-        ? ''
-        : 'Enter a valid vehicle number.';
-    case 'nearestFuelPumpDistance': {
-      const distance = Number(trimmedValue);
-      if (Number.isNaN(distance) || distance < 0) {
-        return 'Enter a valid distance in kilometers.';
+    case 'dob': {
+      const selectedDate = new Date(trimmedValue);
+      const today = new Date();
+      if (Number.isNaN(selectedDate.getTime())) {
+        return 'Enter a valid date of birth.';
+      }
+      if (selectedDate > today) {
+        return 'Date of birth cannot be in the future.';
       }
       return '';
     }
-    case 'state':
-      return DISTRICT_OPTIONS_BY_STATE[trimmedValue]
+    case 'pinCode':
+    case 'permanentPincode':
+    case 'businessPincode':
+      return /^\d{6}$/.test(trimmedValue) ? '' : 'Pincode must be exactly 6 digits.';
+    case 'vehicleNumber':
+      return /^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{4}$/i.test(trimmedValue.replace(/\s+/g, ''))
         ? ''
-        : 'Select a valid state.';
-    case 'district': {
-      const stateDistricts = DISTRICT_OPTIONS_BY_STATE[allValues.state] || [];
-      if (!allValues.state) {
+        : 'Enter a valid vehicle number.';
+    case 'oilSectorExperienceYears':
+      return Number(trimmedValue) >= 0 ? '' : 'Experience years must be 0 or more.';
+    case 'nearestFuelPumpDistance':
+      return Number(trimmedValue) >= 0 ? '' : 'Distance must be 0 or more.';
+    case 'state':
+    case 'permanentState':
+    case 'businessState':
+      return DISTRICT_OPTIONS_BY_STATE[trimmedValue] ? '' : 'Select a valid state.';
+    case 'district':
+    case 'permanentDistrict':
+    case 'businessDistrict': {
+      const parentStateField = DISTRICT_SOURCE_BY_FIELD[field.name];
+      const parentState = allValues[parentStateField];
+      const stateDistricts = DISTRICT_OPTIONS_BY_STATE[parentState] || [];
+      if (!parentState) {
         return 'Please select a state first.';
       }
       return stateDistricts.includes(trimmedValue)
@@ -429,9 +647,7 @@ const validateProfileField = (field, value, allValues = {}) => {
         : 'Select a district from the selected state.';
     }
     case 'investmentPlan':
-      return trimmedValue.length >= 20
-        ? ''
-        : 'Investment plan should be at least 20 characters.';
+      return trimmedValue.length >= 3 ? '' : 'Investment plan is required.';
     case 'upiId':
       return /^[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}$/.test(trimmedValue)
         ? ''
@@ -439,21 +655,59 @@ const validateProfileField = (field, value, allValues = {}) => {
     case 'bankAccountNumber':
       return /^\d{9,18}$/.test(trimmedValue)
         ? ''
-        : 'Bank account number must be 9 to 18 digits.';
+        : 'Account number must be 9 to 18 digits.';
     case 'ifscCode':
       return /^[A-Z]{4}0[A-Z0-9]{6}$/i.test(trimmedValue)
         ? ''
         : 'Enter a valid IFSC code.';
-    case 'accountHolderName':
-      return trimmedValue.length >= 2
-        ? ''
-        : 'Account holder name must be at least 2 characters.';
+    case 'bankName':
     case 'bankBranch':
-      return trimmedValue.length >= 2 ? '' : 'Branch name is required.';
-    case 'otherPaymentDetails':
-      return trimmedValue.length >= 8
+    case 'accountHolderName':
+    case 'fieldOfficerName':
+    case 'fullName':
+    case 'fatherName':
+    case 'permanentAddressLine1':
+    case 'permanentAddressLine2':
+    case 'permanentCity':
+    case 'businessAddressLine1':
+    case 'businessAddressLine2':
+    case 'businessCity':
+      return trimmedValue.length >= 2 ? '' : `${field.label} must be at least 2 characters.`;
+    case 'permanentLatitude':
+    case 'businessLatitude':
+      return isValidCoordinate(trimmedValue, -90, 90)
         ? ''
-        : 'Please provide additional details for the selected payment method.';
+        : 'Latitude must be between -90 and 90.';
+    case 'permanentLongitude':
+    case 'businessLongitude':
+      return isValidCoordinate(trimmedValue, -180, 180)
+        ? ''
+        : 'Longitude must be between -180 and 180.';
+    case 'panNumber':
+      return /^[A-Z]{5}\d{4}[A-Z]$/i.test(trimmedValue)
+        ? ''
+        : 'Enter a valid PAN number.';
+    case 'aadhaarNumber':
+      return /^\d{12}$/.test(trimmedValue)
+        ? ''
+        : 'Aadhaar number must be exactly 12 digits.';
+    case 'drivingLicenseNumber':
+      return trimmedValue.length >= 8 ? '' : 'Enter a valid driving license number.';
+    case 'vehicleRcNumber':
+      return trimmedValue.length >= 4 ? '' : 'Enter a valid vehicle RC number.';
+    case 'panFile':
+    case 'aadhaarFile':
+    case 'drivingLicenseFile':
+    case 'vehicleRcFile':
+    case 'passportPhotoFile':
+    case 'nocFile':
+      if (!value) {
+        return `${field.label} is required.`;
+      }
+
+      return hasValidStoredDocumentFile(value)
+        ? ''
+        : `${field.label} must be a JPG, JPEG, PNG, or PDF file.`;
     default:
       return '';
   }
@@ -469,8 +723,16 @@ const getDisplayValue = (field, value) => {
     return '—';
   }
 
+  if (field.type === 'file') {
+    return getStoredFileLabel(value) || '—';
+  }
+
   if (field.type === 'select' || field.type === 'radio') {
     return getOptionLabel(field, value);
+  }
+
+  if (field.name === 'paymentMode') {
+    return PAYMENT_LABELS[value] || value;
   }
 
   return value;
@@ -565,7 +827,9 @@ function Alert({ type, message, onClose }) {
         .join(' ')}
       role="alert"
     >
-      <span>{type === 'error' ? '⚠️' : '✅'} {message}</span>
+      <span>
+        {type === 'error' ? '⚠️' : '✅'} {message}
+      </span>
       <button type="button" className="profile-completion__alert-close" onClick={onClose}>
         ×
       </button>
@@ -593,13 +857,11 @@ function FieldGroup({ field, error, children }) {
   );
 }
 
-function FormField({ field, value, error, onChange, onBlur, onFileChange }) {
-  const baseClassName = [
-    'profile-completion__control',
-    error ? 'has-error' : '',
-  ]
+function FormField({ field, value, error, onChange, onBlur }) {
+  const baseClassName = ['profile-completion__control', error ? 'has-error' : '']
     .filter(Boolean)
     .join(' ');
+  const storedFileLabel = field.type === 'file' ? getStoredFileLabel(value) : '';
 
   if (field.type === 'textarea') {
     return (
@@ -671,30 +933,21 @@ function FormField({ field, value, error, onChange, onBlur, onFileChange }) {
 
   if (field.type === 'file') {
     return (
-      <label
-        className={[
-          'profile-completion__upload',
-          value ? 'has-value' : '',
-          error ? 'has-error' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        htmlFor={field.name}
-      >
+      <>
         <input
           id={field.name}
           name={field.name}
           type="file"
+          onChange={onChange}
+          onBlur={onBlur}
+          className={baseClassName}
+          disabled={field.disabled}
           accept={field.accept}
-          className="profile-completion__upload-input"
-          onChange={(event) => onFileChange(field.name, event)}
         />
-        <span className="profile-completion__upload-icon">⬆️</span>
-        <span className="profile-completion__upload-title">
-          {value ? 'File selected' : `Upload ${field.label}`}
-        </span>
-        <span className="profile-completion__upload-name">{value || 'Click to choose a file'}</span>
-      </label>
+        {storedFileLabel ? (
+          <p className="profile-completion__file-status">Saved file: {storedFileLabel}</p>
+        ) : null}
+      </>
     );
   }
 
@@ -709,6 +962,7 @@ function FormField({ field, value, error, onChange, onBlur, onFileChange }) {
       placeholder={field.placeholder}
       className={baseClassName}
       disabled={field.disabled}
+      step={field.type === 'number' ? 'any' : undefined}
     />
   );
 }
@@ -799,9 +1053,7 @@ const ProfileCompletion = () => {
 
         setValues(mergedValues);
         setCompletedSteps(completed);
-        setCurrentStep(
-          firstIncompleteStep === -1 ? PROFILE_STEPS.length - 1 : firstIncompleteStep
-        );
+        setCurrentStep(firstIncompleteStep === -1 ? PROFILE_STEPS.length - 1 : firstIncompleteStep);
       } catch (error) {
         if (isMounted) {
           setApiError(error.message || 'Could not load profile details.');
@@ -820,9 +1072,7 @@ const ProfileCompletion = () => {
     };
   }, [setValues, user?.id, user?.name]);
 
-  const progressCount = completedSteps.filter(
-    (stepIndex) => stepIndex < EDITABLE_STEPS.length
-  ).length;
+  const progressCount = completedSteps.filter((stepIndex) => stepIndex < EDITABLE_STEPS.length).length;
   const progressPercent = Math.round((progressCount / EDITABLE_STEPS.length) * 100);
   const activeStep = PROFILE_STEPS[currentStep];
   const currentFieldNames = STEP_FIELD_NAMES[activeStep.id] || [];
@@ -852,17 +1102,11 @@ const ProfileCompletion = () => {
     return isValid;
   };
 
-  const handleFileSelection = (fieldName, event) => {
-    const fileName = event.target.files?.[0]?.name || '';
-    const syntheticEvent = { target: { name: fieldName, value: fileName } };
-    handleChange(syntheticEvent);
-    handleBlur(syntheticEvent);
-  };
-
   const handleFieldChange = (event) => {
     const { name, value } = event.target;
+    const dependentDistrictField = DISTRICT_FIELD_BY_STATE[name];
 
-    if (name !== 'state') {
+    if (!dependentDistrictField) {
       handleChange(event);
       return;
     }
@@ -870,18 +1114,18 @@ const ProfileCompletion = () => {
     const availableDistricts = DISTRICT_OPTIONS_BY_STATE[value] || [];
 
     setValues((previousValues) => {
-      const districtStillValid = availableDistricts.includes(previousValues.district);
+      const districtStillValid = availableDistricts.includes(previousValues[dependentDistrictField]);
       return {
         ...previousValues,
-        state: value,
-        district: districtStillValid ? previousValues.district : '',
+        [name]: value,
+        [dependentDistrictField]: districtStillValid ? previousValues[dependentDistrictField] : '',
       };
     });
 
     setErrors((previousErrors) => ({
       ...previousErrors,
-      state: '',
-      district: '',
+      [name]: '',
+      [dependentDistrictField]: '',
     }));
   };
 
@@ -925,7 +1169,7 @@ const ProfileCompletion = () => {
         userId: user?.id,
         details: values,
       });
-      setCompletedSteps(PROFILE_STEPS.map((_, index) => index));
+      setCompletedSteps(getCompletedStepIndexes(values));
       setSuccessMessage('Profile saved successfully. All details have been submitted.');
       navigate('/dashboard', { replace: true });
     } catch (error) {
@@ -951,11 +1195,11 @@ const ProfileCompletion = () => {
       <div className="profile-completion__shell">
         <header className="profile-completion__header">
           <div>
-            <span className="profile-completion__eyebrow">Partner onboarding</span>
+            <span className="profile-completion__eyebrow">Crew onboarding</span>
             <h1>Complete Your Profile</h1>
             <p>
-              Capture personal, address, investment, payment, and document details in
-              one reusable step-based flow.
+              Submit professional, address, vehicle, payment, and document details in the exact
+              structure expected by the crew profile API.
             </p>
           </div>
 
@@ -973,8 +1217,7 @@ const ProfileCompletion = () => {
             <span className="profile-completion__summary-label">Progress</span>
             <strong>{progressPercent}% complete</strong>
             <p>
-              {progressCount} of {EDITABLE_STEPS.length} sections are ready for final
-              submission.
+              {progressCount} of {EDITABLE_STEPS.length} sections are ready for final submission.
             </p>
           </article>
           <article className="profile-completion__summary-card">
@@ -1018,28 +1261,31 @@ const ProfileCompletion = () => {
 
                 <div className="profile-completion__grid">
                   {section.fields.filter((field) => shouldRenderField(field, values)).map((field) => {
-                    const districtOptions = field.name === 'district' ? getDistrictOptions(values.state) : null;
-                    const fieldConfig = field.name === 'district'
+                    const districtOptions = field.optionsSource
+                      ? getDistrictOptions(values[field.optionsSource])
+                      : null;
+                    const fieldConfig = field.optionsSource
                       ? {
                           ...field,
                           options: districtOptions,
-                          disabled: !values.state,
-                          label: values.state ? 'Related District' : 'Related District (Select state first)',
+                          disabled: !values[field.optionsSource],
+                          label: values[field.optionsSource]
+                            ? field.label
+                            : `${field.label} (Select state first)`,
                         }
                       : field;
 
                     return (
-                    <FieldGroup key={field.name} field={fieldConfig} error={errors[field.name]}>
-                      <FormField
-                        field={fieldConfig}
-                        value={values[field.name]}
-                        error={errors[field.name]}
-                        onChange={handleFieldChange}
-                        onBlur={handleBlur}
-                        onFileChange={handleFileSelection}
-                      />
-                    </FieldGroup>
-                  );
+                      <FieldGroup key={field.name} field={fieldConfig} error={errors[field.name]}>
+                        <FormField
+                          field={fieldConfig}
+                          value={values[field.name]}
+                          error={errors[field.name]}
+                          onChange={handleFieldChange}
+                          onBlur={handleBlur}
+                        />
+                      </FieldGroup>
+                    );
                   })}
                 </div>
               </section>
