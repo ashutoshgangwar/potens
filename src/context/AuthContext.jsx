@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import { apiLogin, apiSignUp } from '../utils/api.js';
+import { apiLogin, apiSignUp, apiLogout, apiOnboard } from '../utils/api.js';
 
 const TOKEN_KEY = 'potense_admin_token';
 const USER_KEY = 'potense_admin_user';
@@ -60,7 +60,9 @@ export const AuthProvider = ({ children }) => {
   // Rehydrate session from localStorage on mount
   useEffect(() => {
     try {
-      const token = localStorage.getItem(TOKEN_KEY);
+      const token =
+        localStorage.getItem(ACCESS_TOKEN_KEY) ||
+        localStorage.getItem(TOKEN_KEY);
       const user = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
       if (token && user) {
         dispatch({ type: 'RESTORE_SESSION', payload: { token, user } });
@@ -72,33 +74,63 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = useCallback(async ({ email, password }) => {
-    const { user, token } = await apiLogin({ email, password });
+  const login = useCallback(async ({ email, phone, password }) => {
+    const { user, token } = await apiLogin({ email, phone, password });
     persistSession(user, token);
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
     return user;
   }, [persistSession]);
 
-  const signUp = useCallback(async ({ fullName, email, phone, password, confirmPassword }) => {
+  const signUp = useCallback(async ({ fullName, email, phone, password, confirmPassword, role = 'driver' }) => {
     const { user, token } = await apiSignUp({
       fullName,
       email,
       phone,
       password,
       confirmPassword,
+      role,
     });
-    persistSession(user, token);
-    dispatch({ type: 'SIGNUP_SUCCESS', payload: { user, token } });
+    // Signup now returns an access token; persist it for immediate onboarding calls.
+    if (token) {
+      persistSession(user, token);
+    } else {
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      localStorage.setItem(USER_ID_KEY, user?.id || '');
+    }
+    dispatch({ type: 'SIGNUP_SUCCESS', payload: { user, token: token || null } });
     return user;
   }, [persistSession]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const token =
+      localStorage.getItem(ACCESS_TOKEN_KEY) ||
+      localStorage.getItem(TOKEN_KEY);
+    // Call server logout (fire and forget — clear local state regardless)
+    if (token) {
+      await apiLogout(token).catch(() => {});
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(USER_ID_KEY);
     dispatch({ type: 'LOGOUT' });
   }, []);
+
+  const onboard = useCallback(async ({ payload, professional, address, documents, vehicle, payment } = {}) => {
+    const token =
+      localStorage.getItem(ACCESS_TOKEN_KEY) ||
+      localStorage.getItem(TOKEN_KEY) ||
+      state.token;
+    if (!token) throw new Error('Not authorized.');
+    const result = await apiOnboard({ token, payload, professional, address, documents, vehicle, payment });
+    // Update stored user with latest data from server
+    const updatedUser = result.user || {};
+    const currentUser = JSON.parse(localStorage.getItem(USER_KEY) || 'null') || {};
+    const mergedUser = { ...currentUser, ...updatedUser, is_onboarded: result.is_onboarded };
+    localStorage.setItem(USER_KEY, JSON.stringify(mergedUser));
+    dispatch({ type: 'LOGIN_SUCCESS', payload: { user: mergedUser, token } });
+    return result;
+  }, [state.token]);
 
   const value = {
     user: state.user,
@@ -108,6 +140,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signUp,
     logout,
+    onboard,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

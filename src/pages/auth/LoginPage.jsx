@@ -28,8 +28,13 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      await login({ email: values.email, password: values.password });
-      navigate('/dashboard', { replace: true });
+      const user = await login({ email: values.email, password: values.password });
+      // If user needs onboarding, redirect to profile-completion
+      if (user?.needs_onboarding || user?.is_onboarded === false) {
+        navigate('/profile-completion', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       setApiError(err.message || 'Login failed. Please try again.');
     } finally {

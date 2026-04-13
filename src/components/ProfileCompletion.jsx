@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import useForm from '../hooks/useForm.js';
-import { apiGetProfileDetails, apiSaveProfileDetails } from '../utils/api.js';
+import { apiGetProfileDetails, buildOnboardingPayload } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
@@ -297,11 +297,11 @@ const PROFILE_STEPS = [
     id: 'documents',
     label: 'Document Details',
     icon: '📄',
-    subtitle: 'Provide document numbers and uploaded file URLs for onboarding review.',
+    subtitle: 'Upload the required documents; the app converts them to URL strings for the API.',
     sections: [
       {
         title: 'Identity Documents',
-        description: 'Share the document numbers and hosted file URLs for each record.',
+        description: 'Upload the document files and share their reference numbers for onboarding review.',
         fields: [
           {
             name: 'panNumber',
@@ -1000,7 +1000,7 @@ function ReviewSection({ step, values, onEdit }) {
 
 const ProfileCompletion = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, onboard } = useAuth();
 
   const validationRules = useMemo(
     () =>
@@ -1165,15 +1165,13 @@ const ProfileCompletion = () => {
     setLoading(true);
 
     try {
-      await apiSaveProfileDetails({
-        userId: user?.id,
-        details: values,
-      });
+      const payload = await buildOnboardingPayload(values);
+      await onboard({ payload });
       setCompletedSteps(getCompletedStepIndexes(values));
-      setSuccessMessage('Profile saved successfully. All details have been submitted.');
+      setSuccessMessage('Onboarding completed successfully. Redirecting to dashboard...');
       navigate('/dashboard', { replace: true });
     } catch (error) {
-      setApiError(error.message || 'Could not save profile. Please try again.');
+      setApiError(error.message || 'Could not complete onboarding. Please try again.');
     } finally {
       setLoading(false);
     }

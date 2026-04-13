@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useForm from '../../hooks/useForm.js';
 import { validators } from '../../utils/validators.js';
-import { Button, Input, Alert } from '../../components/ui/index.js';
+import { Button, Input, Alert, Spinner } from '../../components/ui/index.js';
+import { apiGetRoles } from '../../utils/api.js';
 
 const validationRules = {
   fullName: validators.name,
   email: validators.email,
   phone: validators.phone,
+  role: (value) => (!value ? 'Please select a role.' : ''),
   password: (value) => {
     if (!value) return 'Password is required.';
-    if (value.length < 6) return 'Password must be at least 6 characters.';
+    if (value.length < 8) return 'Password must be at least 8 characters.';
     return '';
   },
   confirmPassword: (value, allValues) => {
@@ -20,16 +22,55 @@ const validationRules = {
   },
 };
 
+/**
+ * Group a flat roles array by their `category` field.
+ * Falls back gracefully if the API shape varies.
+ */
+const groupRolesByCategory = (roles) => {
+  const map = {};
+  for (const r of roles) {
+    const cat = r.category || r.role_category || 'Other';
+    if (!map[cat]) map[cat] = [];
+    map[cat].push(r);
+  }
+  return map;
+};
+
 const SignupPage = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesError, setRolesError] = useState('');
+  const [rolesByCategory, setRolesByCategory] = useState({});
 
   const { values, errors, handleChange, handleBlur, validateAll } = useForm(
-    { fullName: '', email: '', phone: '', password: '', confirmPassword: '' },
+    { fullName: '', email: '', phone: '', role: '', password: '', confirmPassword: '' },
     validationRules
   );
+
+  // Fetch roles from API — fires the moment this page mounts (i.e. when the
+  // user clicks "Create account" on the login screen and lands here).
+  const fetchRoles = () => {
+    setRolesLoading(true);
+    setRolesError('');
+    apiGetRoles()
+      .then((roles) => {
+        setRolesByCategory(groupRolesByCategory(roles));
+      })
+      .catch((err) => {
+        setRolesError(err.message || 'Could not load roles.');
+      })
+      .finally(() => {
+        setRolesLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchRoles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,14 +82,20 @@ const SignupPage = () => {
 
     setLoading(true);
     try {
-      await signUp({
+      const user = await signUp({
         fullName: values.fullName.trim(),
         email: values.email.trim(),
         phone: values.phone.trim(),
         password: values.password,
         confirmPassword: values.confirmPassword,
+        role: values.role,
       });
-      navigate('/dashboard', { replace: true });
+      // After signup, check if onboarding is needed
+      if (user?.needs_onboarding || user?.is_onboarded === false) {
+        navigate('/profile-completion', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       setApiError(err.message || 'Sign up failed. Please try again.');
     } finally {
@@ -164,6 +211,59 @@ const SignupPage = () => {
                 }
               />
 
+              <div className="flex flex-col gap-1">
+                <label htmlFor="role" className="text-sm font-medium text-gray-700">
+                  Role <span className="text-red-500 ml-0.5">*</span>
+                </label>
+                {rolesLoading ? (
+                  <div className="flex items-center gap-2 py-2.5 text-sm text-gray-500">
+                    <Spinner size="sm" />
+                    <span>Loading roles…</span>
+                  </div>
+                ) : rolesError ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-red-500">{rolesError}</p>
+                    <button
+                      type="button"
+                      onClick={fetchRoles}
+                      className="text-sm text-indigo-600 underline hover:text-indigo-800"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    id="role"
+                    name="role"
+                    value={values.role}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    required
+                    disabled={rolesLoading}
+                    className={[
+                      'w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-gray-900',
+                      'transition-colors duration-150 outline-none',
+                      'focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                      errors.role
+                        ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                        : 'border-gray-300',
+                    ].join(' ')}
+                  >
+                    <option value="">Select a role…</option>
+                    {Object.entries(rolesByCategory).map(([category, categoryRoles]) => (
+                      <optgroup key={category} label={category}>
+                        {categoryRoles.map((r) => (
+                          <option key={r._id || r.id || r.name} value={r._id || r.id || r.name}>
+                            {r.display_name || r.label || r.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                )}
+                {errors.role && <p className="text-xs text-red-500 mt-0.5">{errors.role}</p>}
+              </div>
+
               <Input
                 id="password"
                 name="password"
@@ -176,7 +276,7 @@ const SignupPage = () => {
                 error={errors.password}
                 required
                 autoComplete="new-password"
-                helperText={!errors.password && 'Use at least 6 characters.'}
+                helperText={!errors.password && 'Use at least 8 characters.'}
                 leftIcon={
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
