@@ -20,6 +20,10 @@ const Button = ({
       'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 active:bg-indigo-800',
     secondary:
       'bg-white text-indigo-600 border border-indigo-600 hover:bg-indigo-50 focus:ring-indigo-500',
+    success:
+      'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 active:bg-green-800',
+    warning:
+      'bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-500 active:bg-yellow-700',
     danger:
       'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 active:bg-red-800',
     ghost:

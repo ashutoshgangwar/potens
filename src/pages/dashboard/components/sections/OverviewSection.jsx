@@ -10,6 +10,9 @@ const OverviewSection = ({
   recentActivity,
   profileSummary,
 }) => {
+  const completionButtonVariant =
+    profileCompletion >= 100 ? 'success' : profileCompletion >= 50 ? 'warning' : 'danger';
+
   return (
     <>
       <header className="dashboard-header">
@@ -21,11 +24,18 @@ const OverviewSection = ({
         </div>
         <div className="header-actions-wrap">
           <div className="header-actions">
-            <Button size="sm" onClick={() => navigate('/profile-completion')}>
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Complete Pending Details
+            <Button
+              variant={completionButtonVariant}
+              size="sm"
+              onClick={() => navigate('/profile-completion')}
+              disabled={profileCompletion >= 100}
+            >
+              {profileCompletion < 100 ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              ) : null}
+              {profileCompletion >= 100 ? 'Profile Completed' : 'Complete Pending Details'}
             </Button>
           </div>
         </div>
@@ -36,6 +46,9 @@ const OverviewSection = ({
           <div>
             <p className="theme-progress-kicker">Theme Screen Progress</p>
             <h2 className="card-section-title">Your onboarding completion journey</h2>
+            <p className="dashboard-subtitle">
+              {profileCompletion >= 100 ? 'Profile Completed' : 'Profile In Progress'}
+            </p>
           </div>
           <span className="theme-progress-value">{profileCompletion}%</span>
         </div>

@@ -451,6 +451,38 @@ export const apiOnboard = async ({ token, payload, professional, address, docume
 };
 
 /**
+ * Fetch onboarding progress for logged-in crew user
+ * @param {string} [token]
+ * @returns {Promise<{ onboardingProgressPercentage: number, isProfileCompleted: boolean, sections: object, pendingDetails: object }>}
+ */
+export const apiGetOnboardingProgress = async (token) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY);
+
+  if (!authToken) {
+    throw new Error('Not authorized.');
+  }
+
+  let data;
+  try {
+    const response = await apiClient.get('/crew/onboarding-progress', {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    data = response.data?.data || response.data || {};
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Could not fetch onboarding progress.'));
+  }
+
+  const percentValue = Number(data?.onboarding_progress_percentage);
+
+  return {
+    onboardingProgressPercentage: Number.isFinite(percentValue) ? percentValue : 0,
+    isProfileCompleted: Boolean(data?.is_profile_completed),
+    sections: data?.sections || {},
+    pendingDetails: data?.pending_details || {},
+  };
+};
+
+/**
  * Simulate profile details fetch
  * @param {string} userId
  * @returns {Promise<object | null>}

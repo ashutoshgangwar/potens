@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
-import { apiGetProfileDetails } from '../../utils/api.js';
+import { apiGetOnboardingProgress, apiGetProfileDetails } from '../../utils/api.js';
 import DashboardSidebar from './components/DashboardSidebar.jsx';
 import OverviewSection from './components/sections/OverviewSection.jsx';
 import TransactionSection from './components/sections/TransactionSection.jsx';
@@ -176,6 +176,7 @@ const DashboardPage = () => {
 	const { user, logout } = useAuth();
 	const navigate = useNavigate();
 	const [profileDetails, setProfileDetails] = useState(null);
+	const [onboardingProgress, setOnboardingProgress] = useState(null);
 	const [loadingProfile, setLoadingProfile] = useState(true);
 	const [activeSection, setActiveSection] = useState('dashboard');
 
@@ -183,8 +184,15 @@ const DashboardPage = () => {
 		let mounted = true;
 		const fetchPartnerProfile = async () => {
 			try {
-				const details = await apiGetProfileDetails(user?.id);
-				if (mounted) setProfileDetails(details);
+				const [details, progress] = await Promise.all([
+					apiGetProfileDetails(user?.id),
+					apiGetOnboardingProgress().catch(() => null),
+				]);
+
+				if (mounted) {
+					setProfileDetails(details);
+					setOnboardingProgress(progress);
+				}
 			} finally {
 				if (mounted) setLoadingProfile(false);
 			}
@@ -193,13 +201,21 @@ const DashboardPage = () => {
 		return () => { mounted = false; };
 	}, [user?.id]);
 
-	const profileCompletion = useMemo(() => {
+	const localProfileCompletion = useMemo(() => {
 		if (!profileDetails) return 0;
 		const completedCount = REQUIRED_PROFILE_FIELDS.filter((field) =>
 			isFilled(profileDetails[field])
 		).length;
 		return Math.round((completedCount / REQUIRED_PROFILE_FIELDS.length) * 100);
 	}, [profileDetails]);
+
+	const profileCompletion = useMemo(() => {
+		if (typeof onboardingProgress?.onboardingProgressPercentage === 'number') {
+			return onboardingProgress.onboardingProgressPercentage;
+		}
+
+		return localProfileCompletion;
+	}, [localProfileCompletion, onboardingProgress]);
 
 	const uploadedDocuments = useMemo(
 		() => REQUIRED_DOCUMENT_FIELDS.filter((field) => isFilled(profileDetails?.[field])).length,
@@ -258,10 +274,10 @@ const DashboardPage = () => {
 		},
 		{
 			label: 'Partner Verification',
-			value: profileCompletion === 100 && paymentReady ? 'In Review' : 'Incomplete',
-			tone: profileCompletion === 100 && paymentReady ? 'success' : 'warning',
+			value: (onboardingProgress?.isProfileCompleted || (profileCompletion === 100 && paymentReady)) ? 'In Review' : 'Incomplete',
+			tone: (onboardingProgress?.isProfileCompleted || (profileCompletion === 100 && paymentReady)) ? 'success' : 'warning',
 		},
-	], [paymentReady, profileCompletion, uploadedDocuments]);
+	], [onboardingProgress?.isProfileCompleted, paymentReady, profileCompletion, uploadedDocuments]);
 
 	const recentActivity = useMemo(() => getProfileActivities(profileDetails), [profileDetails]);
 
