@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import { apiLogin, apiSignUp, apiLogout, apiOnboard } from '../utils/api.js';
+import { apiLogin, apiSignUp, apiLogout, apiOnboard, apiGetAuthProfile } from '../utils/api.js';
 
 const TOKEN_KEY = 'potense_admin_token';
 const USER_KEY = 'potense_admin_user';
@@ -91,38 +91,90 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem(USER_ROLE_KEY, normalizedRole);
   }, []);
 
+  const clearSessionStorage = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(USER_ID_KEY);
+    localStorage.removeItem(USER_ROLE_KEY);
+  }, []);
+
+  const fetchAndPersistProfile = useCallback(async ({ token, fallbackUser }) => {
+    const profileUser = await apiGetAuthProfile(token);
+    const normalizedRole = normalizeRoleValue(profileUser?.role || fallbackUser?.role);
+    const mergedUser = normalizedRole
+      ? { ...fallbackUser, ...profileUser, role: normalizedRole }
+      : { ...fallbackUser, ...profileUser };
+
+    persistSession(mergedUser, token, normalizedRole);
+    return mergedUser;
+  }, [persistSession]);
+
   // Rehydrate session from localStorage on mount
   useEffect(() => {
-    try {
-      const token =
-        localStorage.getItem(ACCESS_TOKEN_KEY) ||
-        localStorage.getItem(TOKEN_KEY);
-      const user = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
-      const storedRole = normalizeRoleValue(localStorage.getItem(USER_ROLE_KEY));
-      const hydratedUser = user
-        ? {
-            ...user,
-            role: normalizeRoleValue(user?.role) || storedRole || '',
+    let mounted = true;
+
+    const restoreSession = async () => {
+      try {
+        const token =
+          localStorage.getItem(ACCESS_TOKEN_KEY) ||
+          localStorage.getItem(TOKEN_KEY);
+        const user = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+        const storedRole = normalizeRoleValue(localStorage.getItem(USER_ROLE_KEY));
+        const hydratedUser = user
+          ? {
+              ...user,
+              role: normalizeRoleValue(user?.role) || storedRole || '',
+            }
+          : null;
+
+        if (!token) {
+          if (mounted) dispatch({ type: 'LOADING_DONE' });
+          return;
+        }
+
+        let restoredUser = hydratedUser;
+
+        try {
+          restoredUser = await fetchAndPersistProfile({ token, fallbackUser: hydratedUser || {} });
+        } catch {
+          if (!hydratedUser) {
+            clearSessionStorage();
+            if (mounted) dispatch({ type: 'LOADING_DONE' });
+            return;
           }
-        : null;
-      if (token && user) {
-        dispatch({ type: 'RESTORE_SESSION', payload: { token, user: hydratedUser } });
-      } else {
-        dispatch({ type: 'LOADING_DONE' });
+        }
+
+        if (mounted) {
+          dispatch({ type: 'RESTORE_SESSION', payload: { token, user: restoredUser } });
+        }
+      } catch {
+        if (mounted) dispatch({ type: 'LOADING_DONE' });
       }
-    } catch {
-      dispatch({ type: 'LOADING_DONE' });
-    }
-  }, []);
+    };
+
+    restoreSession();
+
+    return () => {
+      mounted = false;
+    };
+  }, [clearSessionStorage, fetchAndPersistProfile]);
 
   const login = useCallback(async ({ email, phone, password }) => {
     const { user, token } = await apiLogin({ email, phone, password });
     const normalizedRole = normalizeRoleValue(user?.role);
     const userWithRole = normalizedRole ? { ...user, role: normalizedRole } : user;
-    persistSession(userWithRole, token, normalizedRole);
-    dispatch({ type: 'LOGIN_SUCCESS', payload: { user: userWithRole, token } });
-    return userWithRole;
-  }, [persistSession]);
+
+    let profileUser = userWithRole;
+    try {
+      profileUser = await fetchAndPersistProfile({ token, fallbackUser: userWithRole });
+    } catch {
+      persistSession(userWithRole, token, normalizedRole);
+    }
+
+    dispatch({ type: 'LOGIN_SUCCESS', payload: { user: profileUser, token } });
+    return profileUser;
+  }, [fetchAndPersistProfile, persistSession]);
 
   const signUp = useCallback(async ({ fullName, email, phone, password, confirmPassword, role = 'driver' }) => {
     const { user, token } = await apiSignUp({
@@ -137,7 +189,13 @@ export const AuthProvider = ({ children }) => {
     const userWithRole = normalizedRole ? { ...user, role: normalizedRole } : user;
     // Signup now returns an access token; persist it for immediate onboarding calls.
     if (token) {
-      persistSession(userWithRole, token, normalizedRole);
+      try {
+        const profileUser = await fetchAndPersistProfile({ token, fallbackUser: userWithRole });
+        dispatch({ type: 'SIGNUP_SUCCESS', payload: { user: profileUser, token } });
+        return profileUser;
+      } catch {
+        persistSession(userWithRole, token, normalizedRole);
+      }
     } else {
       localStorage.setItem(USER_KEY, JSON.stringify(userWithRole));
       localStorage.setItem(USER_ID_KEY, userWithRole?.id || '');
@@ -145,7 +203,7 @@ export const AuthProvider = ({ children }) => {
     }
     dispatch({ type: 'SIGNUP_SUCCESS', payload: { user: userWithRole, token: token || null } });
     return userWithRole;
-  }, [persistSession]);
+  }, [fetchAndPersistProfile, persistSession]);
 
   const logout = useCallback(async () => {
     const token =
@@ -155,13 +213,9 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       await apiLogout(token).catch(() => {});
     }
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(USER_ID_KEY);
-    localStorage.removeItem(USER_ROLE_KEY);
+    clearSessionStorage();
     dispatch({ type: 'LOGOUT' });
-  }, []);
+  }, [clearSessionStorage]);
 
   const onboard = useCallback(async ({ payload, professional, address, documents, vehicle, payment } = {}) => {
     const token =

@@ -5,13 +5,15 @@ import { apiGetOnboardingProgress, apiGetProfileDetails } from '../../utils/api.
 import DashboardSidebar from './components/DashboardSidebar.jsx';
 import OverviewSection from './components/sections/OverviewSection.jsx';
 import TransactionSection from './components/sections/TransactionSection.jsx';
+import ProfileSection from './components/sections/ProfileSection.jsx';
 import InvestmentSection from './components/sections/InvestmentSection.jsx';
 import PaymentSection from './components/sections/PaymentSection.jsx';
 import DocumentsSection from './components/sections/DocumentsSection.jsx';
 
 const SIDEBAR_ITEMS = [
 	{ icon: '🏠', label: 'Overview', key: 'dashboard' },
-	{ icon: '👤', label: 'Transaction', key: 'profile' },
+	{ icon: '👤', label: 'Profile', key: 'profile' },
+	{ icon: '🧾', label: 'Transaction', key: 'transaction' },
 	{ icon: '⛽', label: 'Investment', key: 'investment' },
 	{ icon: '💳', label: 'Payment Status', key: 'payment' },
 	{ icon: '📄', label: 'Documents', key: 'documents' },
@@ -283,6 +285,9 @@ const DashboardPage = () => {
 
 	const profileSummary = [
 		{ label: 'Full Name', value: profileDetails?.fullName || user?.name || 'Not provided' },
+		{ label: 'Email', value: user?.email || 'Not provided' },
+		{ label: 'Phone', value: user?.phone || 'Not provided' },
+		{ label: 'Role', value: user?.role || 'Not provided' },
 		{ label: 'Date of Birth', value: profileDetails?.dob || 'Not provided' },
 		{ label: 'Field Officer', value: profileDetails?.fieldOfficerName || 'Not provided' },
 		{ label: 'Vehicle Number', value: profileDetails?.vehicleNumber || 'Not provided' },
@@ -348,7 +353,21 @@ const DashboardPage = () => {
 				profileSummary={profileSummary}
 			/>
 		),
-		profile: <TransactionSection transactions={MOCK_TRANSACTIONS} />,
+		profile: (
+			<ProfileSection
+				user={user}
+				profileDetails={profileDetails}
+				profileCompletion={profileCompletion}
+				completedProfileFieldsCount={completedProfileFieldsCount}
+				totalProfileFields={REQUIRED_PROFILE_FIELDS.length}
+				uploadedDocuments={uploadedDocuments}
+				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+				paymentReady={paymentReady}
+				paymentPreferenceLabel={paymentPreferenceLabel}
+				navigate={navigate}
+			/>
+		),
+		transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />,
 		investment: (
 			<InvestmentSection
 				profileDetails={profileDetails}

@@ -8,7 +8,6 @@ const OverviewSection = ({
   profileCompletion,
   stats,
   recentActivity,
-  profileSummary,
 }) => {
   const completionButtonVariant =
     profileCompletion >= 100 ? 'success' : profileCompletion >= 50 ? 'warning' : 'danger';
@@ -109,19 +108,6 @@ const OverviewSection = ({
                   </li>
                 ))}
               </ul>
-            </Card>
-
-            <Card padding="md" shadow="sm" className="quick-stats-card">
-              <h2 className="card-section-title card-section-title--spaced">My Partner Details</h2>
-              {profileSummary.map(({ label, value }) => (
-                <div key={label} className="status-row">
-                  <span className="status-label">{label}</span>
-                  <span className="status-value">{value}</span>
-                </div>
-              ))}
-              <Button variant="secondary" size="sm" onClick={() => navigate('/profile-completion')}>
-                Edit My Details
-              </Button>
             </Card>
           </div>
         </>

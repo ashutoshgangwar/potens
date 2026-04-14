@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const MOCK_USERS_KEY = 'potense_admin_users';
 const MOCK_PROFILES_KEY = 'potense_admin_profiles';
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = 'http://192.168.1.12:5001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_URL = 'http://192.168.1.12:5001';
 const ACCESS_TOKEN_KEY = 'potense_admin_access_token';
 
 const apiClient = axios.create({
@@ -37,9 +37,17 @@ const saveProfiles = (profiles) => {
   localStorage.setItem(MOCK_PROFILES_KEY, JSON.stringify(profiles));
 };
 
+const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const pickFirstDefined = (...values) => values.find((value) => value !== undefined && value !== null);
+
 const normalizeAuthUser = (user = {}) => ({
   ...user,
-  name: user.name || user.full_name || '',
+  id: user.id || user._id || user.user_id || '',
+  name: user.name || user.full_name || user.fullName || '',
+  email: user.email || user.email_address || '',
+  phone: user.phone || user.mobile || user.mobile_number || user.phone_number || '',
+  status: user.status || user.user_status || '',
 });
 
 const normalizeRoleValue = (roleValue) => {
@@ -341,6 +349,217 @@ const getApiErrorMessage = (error, fallbackMessage) => {
 const extractAuthToken = (data = {}) =>
   data?.token || data?.access_token || data?.accessToken || null;
 
+const getRoleFromApiUser = (user = {}, data = {}) => {
+  if (user?.role) {
+    return user.role;
+  }
+
+  if (Array.isArray(user?.roles) && user.roles.length > 0) {
+    return user.roles[0];
+  }
+
+  if (data?.role) {
+    return data.role;
+  }
+
+  if (Array.isArray(data?.roles) && data.roles.length > 0) {
+    return data.roles[0];
+  }
+
+  return '';
+};
+
+const normalizePaymentModeForUi = (paymentMode) => {
+  if (paymentMode === 'bank_transfer') {
+    return 'bank';
+  }
+
+  return paymentMode;
+};
+
+const normalizeDobValue = (dobValue) => {
+  if (!dobValue) {
+    return '';
+  }
+
+  if (typeof dobValue === 'string') {
+    return dobValue;
+  }
+
+  return '';
+};
+
+const getCandidatePayloads = (responseData = {}) => {
+  const queue = [responseData];
+  const candidates = [];
+  const seen = new Set();
+
+  while (queue.length > 0) {
+    const candidate = queue.shift();
+
+    if (!isPlainObject(candidate) || seen.has(candidate)) {
+      continue;
+    }
+
+    seen.add(candidate);
+    candidates.push(candidate);
+
+    ['data', 'profile', 'details', 'result', 'payload'].forEach((key) => {
+      if (isPlainObject(candidate[key])) {
+        queue.push(candidate[key]);
+      }
+    });
+  }
+
+  return candidates;
+};
+
+const findFirstObjectByKeys = (candidates = [], keys = []) => {
+  for (const candidate of candidates) {
+    for (const key of keys) {
+      if (isPlainObject(candidate?.[key])) {
+        return candidate[key];
+      }
+    }
+  }
+
+  return {};
+};
+
+const resolveProfilePayload = (responseData = {}) => {
+  const candidates = getCandidatePayloads(responseData);
+
+  for (const candidate of candidates) {
+    if (
+      isPlainObject(candidate?.user) ||
+      isPlainObject(candidate?.professional) ||
+      isPlainObject(candidate?.professional_details) ||
+      isPlainObject(candidate?.address) ||
+      isPlainObject(candidate?.address_details) ||
+      isPlainObject(candidate?.documents) ||
+      isPlainObject(candidate?.document_details) ||
+      isPlainObject(candidate?.payment) ||
+      isPlainObject(candidate?.payment_details) ||
+      isPlainObject(candidate?.vehicle) ||
+      isPlainObject(candidate?.vehicle_details)
+    ) {
+      return candidate;
+    }
+  }
+
+  return candidates[0] || {};
+};
+
+const normalizeProfileResponse = (responseData = {}) => {
+  const candidates = getCandidatePayloads(responseData);
+  const payload = resolveProfilePayload(responseData);
+
+  const user = findFirstObjectByKeys(candidates, ['user', 'user_details', 'account', 'account_details']);
+  const professional = findFirstObjectByKeys(candidates, ['professional', 'professional_details']);
+  const address = findFirstObjectByKeys(candidates, ['address', 'address_details']);
+  const documents = findFirstObjectByKeys(candidates, ['documents', 'document_details']);
+  const payment = findFirstObjectByKeys(candidates, ['payment', 'payment_details']);
+  const vehicle = findFirstObjectByKeys(candidates, ['vehicle', 'vehicle_details']);
+
+  const permanentAddress = address?.permanent_address || {};
+  const businessAddress = address?.business_address || {};
+
+  const normalizedUser = {
+    ...normalizeAuthUser(user),
+    role: normalizeRoleValue(getRoleFromApiUser(user, payload)),
+  };
+
+  return {
+    user: normalizedUser,
+    professional,
+    address,
+    documents,
+    payment,
+    vehicle,
+    updatedAt: normalizedUser?.updatedAt || new Date().toISOString(),
+    fullName: professional?.full_name || normalizedUser?.name || '',
+    fatherName: professional?.father_name || '',
+    dob: normalizeDobValue(professional?.dob),
+    gender: professional?.gender || '',
+    state: professional?.state || '',
+    district: professional?.district || '',
+    fieldOfficerName: professional?.field_officer_name || '',
+    pinCode: professional?.pincode || '',
+    oilSectorExperienceYears: professional?.oil_sector_experience_years ?? '',
+    nearestFuelPumpDistance: professional?.distance_to_nearest_petrol_pump_km ?? '',
+    investmentPlan: professional?.investment_plan || '',
+    bowserCapacity: professional?.bowser_capacity ?? '',
+    areaInAcres: pickFirstDefined(professional?.land_area_acres, professional?.area_in_acres) ?? '',
+    permanentAddressLine1: permanentAddress?.address_line1 || '',
+    permanentAddressLine2: permanentAddress?.address_line2 || '',
+    permanentCity: permanentAddress?.city || '',
+    permanentDistrict: permanentAddress?.district || '',
+    permanentState: permanentAddress?.state || '',
+    permanentPincode: permanentAddress?.pincode || '',
+    permanentLatitude: permanentAddress?.latitude ?? '',
+    permanentLongitude: permanentAddress?.longitude ?? '',
+    businessAddressLine1: businessAddress?.address_line1 || '',
+    businessAddressLine2: businessAddress?.address_line2 || '',
+    businessCity: businessAddress?.city || '',
+    businessDistrict: businessAddress?.district || '',
+    businessState: businessAddress?.state || '',
+    businessPincode: businessAddress?.pincode || '',
+    businessLatitude: businessAddress?.latitude ?? '',
+    businessLongitude: businessAddress?.longitude ?? '',
+    vehicleNumber: vehicle?.vehicle_number || '',
+    paymentMode: normalizePaymentModeForUi(payment?.payment_mode || ''),
+    upiId: payment?.upi_id || '',
+    bankName: payment?.bank_name || '',
+    accountHolderName: payment?.account_holder_name || '',
+    bankAccountNumber: payment?.account_number || '',
+    ifscCode: payment?.ifsc_code || '',
+    bankBranch: payment?.branch_name || '',
+    paymentOtherDetails: payment?.other_details || '',
+    panNumber: documents?.pan_card?.number || '',
+    aadhaarNumber: documents?.aadhaar_card?.number || '',
+    drivingLicenseNumber: documents?.driving_license?.number || '',
+    vehicleRcNumber: documents?.vehicle_rc?.number || '',
+    panFileUrl: documents?.pan_card?.file_url || documents?.pan_card?.url || '',
+    aadhaarFileUrl: documents?.aadhaar_card?.file_url || documents?.aadhaar_card?.url || '',
+    drivingLicenseFileUrl: documents?.driving_license?.file_url || documents?.driving_license?.url || '',
+    vehicleRcFileUrl: documents?.vehicle_rc?.file_url || documents?.vehicle_rc?.url || '',
+    passportPhotoFileUrl: documents?.passport_size_photo?.file_url || documents?.passport_size_photo?.url || '',
+    nocFileUrl: documents?.noc?.file_url || documents?.noc?.url || '',
+    combinedDocumentsPdfUrl:
+      documents?.combined_documents_pdf?.file_url ||
+      documents?.combined_documents_pdf?.url ||
+      documents?.combined_document_pdf?.file_url ||
+      documents?.combined_document_pdf?.url ||
+      '',
+  };
+};
+
+const fetchAuthProfilePayload = async (authToken) => {
+  const response = await apiClient.get('/auth/profile', {
+    headers: { Authorization: `Bearer ${authToken}` },
+  });
+
+  return response.data || {};
+};
+
+const resolveAuthProfileData = (data = {}) => {
+  const candidates = getCandidatePayloads(data);
+
+  for (const candidate of candidates) {
+    if (isPlainObject(candidate?.user)) {
+      return candidate.user;
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (isPlainObject(candidate) && (candidate.name || candidate.full_name || candidate.email || candidate.phone || candidate.mobile)) {
+      return candidate;
+    }
+  }
+
+  return {};
+};
+
 const persistProfileDetails = ({ userId, details }) => {
   const profiles = getProfiles();
   const existing = profiles[userId] || {};
@@ -475,6 +694,35 @@ export const apiLogout = async (token) => {
 };
 
 /**
+ * Fetch authenticated user profile
+ * @param {string} [token] - Bearer token
+ * @returns {Promise<object>}
+ */
+export const apiGetAuthProfile = async (token) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY);
+
+  if (!authToken) {
+    throw new Error('Not authorized.');
+  }
+
+  let data;
+  try {
+    data = await fetchAuthProfilePayload(authToken);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Could not fetch user profile.'));
+  }
+
+  const normalizedProfile = normalizeProfileResponse(data);
+  const profileUser = resolveAuthProfileData(data);
+
+  return {
+    ...normalizedProfile.user,
+    ...normalizeAuthUser(profileUser),
+    role: normalizeRoleValue(getRoleFromApiUser(profileUser, data) || normalizedProfile.user?.role),
+  };
+};
+
+/**
  * Onboarding API call
  * @param {{ token: string, payload?: object, professional?: object, address?: object, documents?: object, vehicle?: object, payment?: object }} payload
  * @returns {Promise<{ message: string, is_onboarded: boolean, user: object }>}
@@ -525,6 +773,8 @@ export const apiGetOnboardingProgress = async (token) => {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     data = response.data?.data || response.data || {};
+    console.log('datta', data);
+    
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Could not fetch onboarding progress.'));
   }
@@ -544,8 +794,29 @@ export const apiGetOnboardingProgress = async (token) => {
  * @param {string} userId
  * @returns {Promise<object | null>}
  */
-export const apiGetProfileDetails = (userId) =>
-  new Promise((resolve) => {
+export const apiGetProfileDetails = async (userId) => {
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+
+  if (API_BASE_URL && token) {
+    try {
+      const profileData = await fetchAuthProfilePayload(token);
+      const normalizedProfile = normalizeProfileResponse(profileData);
+
+      const profileUserId = normalizedProfile?.user?.id || userId;
+
+      if (profileUserId) {
+        persistProfileDetails({ userId: profileUserId, details: normalizedProfile });
+      }
+
+      return normalizedProfile;
+    } catch (error) {
+      if (!userId) {
+        throw new Error(getApiErrorMessage(error, 'Could not fetch profile details.'));
+      }
+    }
+  }
+
+  return new Promise((resolve) => {
     setTimeout(() => {
       if (!userId) {
         resolve(null);
@@ -555,6 +826,7 @@ export const apiGetProfileDetails = (userId) =>
       resolve(profiles[userId] || null);
     }, 500);
   });
+};
 
 /**
  * Simulate profile details save

@@ -1609,6 +1609,171 @@ img, svg { display: block; max-width: 100%; }
   color: #64748b;
 }
 
+/* Profile dashboard section */
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profile-section-hero {
+  background: linear-gradient(140deg, #eef2ff 0%, #f8fafc 58%, #f0fdf4 100%);
+  border: 1px solid #dbeafe !important;
+}
+
+.profile-section-hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.95rem;
+}
+
+.profile-health-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.7rem;
+}
+
+.profile-health-metric {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #dbeafe;
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.profile-health-metric-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.profile-health-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  color: #475569;
+}
+
+.profile-health-value {
+  font-size: 1.06rem;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.profile-health-status {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.profile-health-progress {
+  width: 100%;
+  height: 0.55rem;
+  border: none;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.profile-health-progress::-webkit-progress-bar {
+  background: #dbeafe;
+  border-radius: 999px;
+}
+
+.profile-health-progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #2563eb 0%, #22c55e 100%);
+  border-radius: 999px;
+}
+
+.profile-health-progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #2563eb 0%, #22c55e 100%);
+  border-radius: 999px;
+}
+
+.profile-health-copy,
+.profile-health-meta dd,
+.profile-health-meta dt {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.profile-health-meta {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+}
+
+.profile-health-meta dt {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.profile-health-meta dd,
+.profile-health-copy {
+  margin: 0;
+}
+
+.profile-health-ok {
+  color: #166534 !important;
+}
+
+.profile-health-pending {
+  color: #92400e !important;
+}
+
+.profile-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile-details-card {
+  border: 1px solid #e2e8f0 !important;
+  background: #fff;
+}
+
+.profile-details-card--wide {
+  grid-column: 1 / -1;
+}
+
+.profile-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.profile-details-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  padding: 0.58rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.profile-details-item span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.profile-details-item strong {
+  font-size: 0.86rem;
+  color: #0f172a;
+  font-weight: 600;
+  word-break: break-word;
+}
+
 /* ─── Profile completion ─────────────────────────────────────────────────── */
 .profile-page {
   min-height: 100vh;
@@ -1738,6 +1903,7 @@ img, svg { display: block; max-width: 100%; }
 
   .dashboard-hero-grid,
   .dashboard-grid,
+  .profile-cards-grid,
   .orders-combined-grid,
   .screen-kpi-grid {
     grid-template-columns: 1fr;
@@ -1866,6 +2032,10 @@ img, svg { display: block; max-width: 100%; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .profile-details-grid {
+    grid-template-columns: 1fr;
+  }
+
   .auth-form-container {
     max-width: 100%;
   }
@@ -1935,6 +2105,10 @@ img, svg { display: block; max-width: 100%; }
 
   .dashboard-grid {
     gap: 0.95rem;
+  }
+
+  .profile-health-panel {
+    grid-template-columns: 1fr;
   }
 
   .stats-grid {

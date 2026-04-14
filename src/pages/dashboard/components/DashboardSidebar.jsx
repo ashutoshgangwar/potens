@@ -32,7 +32,7 @@ const DashboardSidebar = ({ items, activeSection, onSectionChange, user, onLogou
           <div className="avatar avatar--sm">{user?.name?.slice(0, 2).toUpperCase() || 'AD'}</div>
           <div className="sidebar-user-info">
             <p className="sidebar-user-name">{user?.name || 'Admin'}</p>
-            <p className="sidebar-user-role">Fuel Delivery Partner</p>
+            <p className="sidebar-user-role">{user?.role || 'Fuel Delivery Partner'}</p>
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={onLogout} className="logout-btn">
