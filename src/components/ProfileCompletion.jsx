@@ -6,6 +6,8 @@ import { apiGetProfileDetails, buildOnboardingPayload } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
+const USER_ROLE_KEY = 'potense_admin_user_role';
+
 const STATE_OPTIONS = STATE_DISTRICT_DATA.map((entry) => entry.state);
 
 const DISTRICT_OPTIONS_BY_STATE = STATE_DISTRICT_DATA.reduce((accumulator, entry) => {
@@ -132,6 +134,22 @@ const PROFILE_STEPS = [
             type: 'number',
             placeholder: '2.5',
             required: true,
+          },
+          {
+            name: 'bowserCapacity',
+            label: 'Bowser Capacity (Liters)',
+            type: 'number',
+            placeholder: '12000',
+            required: true,
+            visibleRoles: ['bowser'],
+          },
+          {
+            name: 'areaInAcres',
+            label: 'Area (Acres)',
+            type: 'number',
+            placeholder: '2.5',
+            required: true,
+            visibleRoles: ['mini-pump', 'minipump'],
           },
           {
             name: 'investmentPlan',
@@ -571,12 +589,43 @@ const hasValidStoredDocumentFile = (value) => {
 
 const normalizeValue = (value) => `${value ?? ''}`.trim();
 
-const shouldRenderField = (field, values) => {
+const normalizeRoleForComparison = (roleValue = '') =>
+  `${roleValue}`
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-');
+
+const roleMatchesTag = (currentRole, roleTag) => {
+  const normalizedRole = normalizeRoleForComparison(currentRole);
+  const normalizedTag = normalizeRoleForComparison(roleTag);
+
+  if (!normalizedRole || !normalizedTag) {
+    return false;
+  }
+
+  return normalizedRole.includes(normalizedTag) || normalizedTag.includes(normalizedRole);
+};
+
+const shouldRenderField = (field, values, currentRole = '') => {
   if (!field.paymentModes) {
+    if (!field.visibleRoles?.length) {
+      return true;
+    }
+
+    return field.visibleRoles.some((roleTag) => roleMatchesTag(currentRole, roleTag));
+  }
+
+  const matchesPaymentMode = field.paymentModes.includes(values.paymentMode);
+
+  if (!matchesPaymentMode) {
+    return false;
+  }
+
+  if (!field.visibleRoles?.length) {
     return true;
   }
 
-  return field.paymentModes.includes(values.paymentMode);
+  return field.visibleRoles.some((roleTag) => roleMatchesTag(currentRole, roleTag));
 };
 
 const getDistrictOptions = (selectedState) =>
@@ -590,8 +639,8 @@ const isValidCoordinate = (value, min, max) => {
   return Number.isFinite(numericValue) && numericValue >= min && numericValue <= max;
 };
 
-const validateProfileField = (field, value, allValues = {}) => {
-  if (!shouldRenderField(field, allValues)) {
+const validateProfileField = (field, value, allValues = {}, currentRole = '') => {
+  if (!shouldRenderField(field, allValues, currentRole)) {
     return '';
   }
 
@@ -629,6 +678,10 @@ const validateProfileField = (field, value, allValues = {}) => {
       return Number(trimmedValue) >= 0 ? '' : 'Experience years must be 0 or more.';
     case 'nearestFuelPumpDistance':
       return Number(trimmedValue) >= 0 ? '' : 'Distance must be 0 or more.';
+    case 'bowserCapacity':
+      return Number(trimmedValue) > 0 ? '' : 'Bowser capacity must be greater than 0.';
+    case 'areaInAcres':
+      return Number(trimmedValue) > 0 ? '' : 'Area in acres must be greater than 0.';
     case 'state':
     case 'permanentState':
     case 'businessState':
@@ -738,11 +791,11 @@ const getDisplayValue = (field, value) => {
   return value;
 };
 
-const getCompletedStepIndexes = (values) =>
+const getCompletedStepIndexes = (values, currentRole = '') =>
   EDITABLE_STEPS.reduce((completed, step, index) => {
     const isComplete = STEP_FIELD_NAMES[step.id].every((fieldName) => {
       const field = FIELD_MAP[fieldName];
-      return !validateProfileField(field, values[fieldName], values);
+      return !validateProfileField(field, values[fieldName], values, currentRole);
     });
 
     if (isComplete) {
@@ -967,7 +1020,7 @@ function FormField({ field, value, error, onChange, onBlur }) {
   );
 }
 
-function ReviewSection({ step, values, onEdit }) {
+function ReviewSection({ step, values, onEdit, currentRole }) {
   return (
     <section className="profile-completion__review-card">
       <div className="profile-completion__review-head">
@@ -986,7 +1039,7 @@ function ReviewSection({ step, values, onEdit }) {
       {step.sections.map((section) => (
         <div key={section.title} className="profile-completion__review-section">
           <h4>{section.title}</h4>
-          {section.fields.filter((field) => shouldRenderField(field, values)).map((field) => (
+          {section.fields.filter((field) => shouldRenderField(field, values, currentRole)).map((field) => (
             <div key={field.name} className="profile-completion__review-row">
               <span>{field.label}</span>
               <strong>{getDisplayValue(field, values[field.name])}</strong>
@@ -1001,15 +1054,23 @@ function ReviewSection({ step, values, onEdit }) {
 const ProfileCompletion = () => {
   const navigate = useNavigate();
   const { user, onboard } = useAuth();
+  const currentUserRole = useMemo(() => {
+    const directUserRole = user?.role;
+    if (directUserRole) {
+      return directUserRole;
+    }
+
+    return localStorage.getItem(USER_ROLE_KEY) || '';
+  }, [user?.role]);
 
   const validationRules = useMemo(
     () =>
       PROFILE_FIELDS.reduce((accumulator, field) => {
         accumulator[field.name] = (value, allValues) =>
-          validateProfileField(field, value, allValues);
+          validateProfileField(field, value, allValues, currentUserRole);
         return accumulator;
       }, {}),
-    []
+    [currentUserRole]
   );
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -1046,7 +1107,7 @@ const ProfileCompletion = () => {
           ...existingProfile,
         };
 
-        const completed = getCompletedStepIndexes(mergedValues);
+        const completed = getCompletedStepIndexes(mergedValues, currentUserRole);
         const firstIncompleteStep = EDITABLE_STEPS.findIndex(
           (_, index) => !completed.includes(index)
         );
@@ -1070,7 +1131,7 @@ const ProfileCompletion = () => {
     return () => {
       isMounted = false;
     };
-  }, [setValues, user?.id, user?.name]);
+  }, [currentUserRole, setValues, user?.id, user?.name]);
 
   const progressCount = completedSteps.filter((stepIndex) => stepIndex < EDITABLE_STEPS.length).length;
   const progressPercent = Math.round((progressCount / EDITABLE_STEPS.length) * 100);
@@ -1143,7 +1204,7 @@ const ProfileCompletion = () => {
       return;
     }
 
-    const recalculated = getCompletedStepIndexes(values);
+    const recalculated = getCompletedStepIndexes(values, currentUserRole);
     setCompletedSteps(recalculated);
     setCurrentStep((previous) => Math.min(previous + 1, PROFILE_STEPS.length - 1));
   };
@@ -1165,9 +1226,9 @@ const ProfileCompletion = () => {
     setLoading(true);
 
     try {
-      const payload = await buildOnboardingPayload(values);
+      const payload = await buildOnboardingPayload(values, currentUserRole);
       await onboard({ payload });
-      setCompletedSteps(getCompletedStepIndexes(values));
+      setCompletedSteps(getCompletedStepIndexes(values, currentUserRole));
       setSuccessMessage('Onboarding completed successfully. Redirecting to dashboard...');
       navigate('/dashboard', { replace: true });
     } catch (error) {
@@ -1258,7 +1319,7 @@ const ProfileCompletion = () => {
                 </div>
 
                 <div className="profile-completion__grid">
-                  {section.fields.filter((field) => shouldRenderField(field, values)).map((field) => {
+                  {section.fields.filter((field) => shouldRenderField(field, values, currentUserRole)).map((field) => {
                     const districtOptions = field.optionsSource
                       ? getDistrictOptions(values[field.optionsSource])
                       : null;
@@ -1295,6 +1356,7 @@ const ProfileCompletion = () => {
                   key={step.id}
                   step={step}
                   values={values}
+                  currentRole={currentUserRole}
                   onEdit={() => goToStep(index)}
                 />
               ))}

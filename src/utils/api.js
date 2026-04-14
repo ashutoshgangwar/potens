@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const MOCK_USERS_KEY = 'potense_admin_users';
 const MOCK_PROFILES_KEY = 'potense_admin_profiles';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = 'http://192.168.1.12:5001';
 const ACCESS_TOKEN_KEY = 'potense_admin_access_token';
 
 const apiClient = axios.create({
@@ -40,6 +41,33 @@ const normalizeAuthUser = (user = {}) => ({
   ...user,
   name: user.name || user.full_name || '',
 });
+
+const normalizeRoleValue = (roleValue) => {
+  if (!roleValue) {
+    return '';
+  }
+
+  if (typeof roleValue === 'string') {
+    return roleValue.trim();
+  }
+
+  if (typeof roleValue === 'object') {
+    return (
+      roleValue.name ||
+      roleValue.code ||
+      roleValue.slug ||
+      roleValue.display_name ||
+      roleValue.label ||
+      roleValue._id ||
+      roleValue.id ||
+      ''
+    )
+      .toString()
+      .trim();
+  }
+
+  return `${roleValue}`.trim();
+};
 
 const normalizeNumericValue = (value) => {
   if (value === '' || value === null || value === undefined) {
@@ -80,6 +108,26 @@ const getPaymentOtherDetailsForApi = (details = {}) => {
   }
 
   return details.paymentOtherDetails;
+};
+
+const normalizeRoleForComparison = (roleValue = '') =>
+  `${roleValue}`
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-');
+
+const getRegisterAsByRole = (roleValue = '') => {
+  const normalizedRole = normalizeRoleForComparison(roleValue);
+
+  if (normalizedRole.includes('bowser')) {
+    return 'Bowser';
+  }
+
+  if (normalizedRole.includes('mini-pump') || normalizedRole.includes('minipump')) {
+    return 'Mini Pump';
+  }
+
+  return 'FDP Driver';
 };
 
 const isBrowserFile = (value) =>
@@ -193,9 +241,9 @@ export const buildCrewProfilePayload = (details = {}) => ({
   },
 });
 
-export const buildOnboardingPayload = async (details = {}) => ({
+export const buildOnboardingPayload = async (details = {}, role = '') => ({
   professional_details: {
-    register_as: 'FDP Driver',
+    register_as: getRegisterAsByRole(role),
     full_name: details.fullName,
     father_name: details.fatherName,
     dob: details.dob,
@@ -207,6 +255,8 @@ export const buildOnboardingPayload = async (details = {}) => ({
     oil_sector_experience_years: normalizeNumericValue(details.oilSectorExperienceYears),
     distance_to_nearest_petrol_pump_km: normalizeNumericValue(details.nearestFuelPumpDistance),
     investment_plan: details.investmentPlan,
+    bowser_capacity: normalizeNumericValue(details.bowserCapacity),
+    land_area_acres: normalizeNumericValue(details.areaInAcres),
   },
   address: {
     permanent_address: buildAddressPayload('permanent', details),
@@ -364,7 +414,11 @@ export const apiSignUp = async ({ fullName, email, phone, password, confirmPassw
     throw new Error(getApiErrorMessage(error, 'Sign up failed. Please try again.'));
   }
 
-  const user = normalizeAuthUser(data?.user);
+  const normalizedRole = normalizeRoleValue(data?.user?.role || data?.role || role);
+  const user = {
+    ...normalizeAuthUser(data?.user),
+    role: normalizedRole,
+  };
 
   return {
     message: data?.message || 'User registered successfully.',
@@ -393,7 +447,10 @@ export const apiLogin = async ({ email, phone, password }) => {
   return {
     message: data?.message || 'Login successful.',
     token: extractAuthToken(data),
-    user: normalizeAuthUser(data?.user),
+    user: {
+      ...normalizeAuthUser(data?.user),
+      role: normalizeRoleValue(data?.user?.role || data?.role),
+    },
   };
 };
 
