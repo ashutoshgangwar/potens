@@ -6,11 +6,47 @@ const OverviewSection = ({
   navigate,
   loadingProfile,
   profileCompletion,
-  stats,
-  recentActivity,
 }) => {
-  const completionButtonVariant =
-    profileCompletion >= 100 ? 'success' : profileCompletion >= 50 ? 'warning' : 'danger';
+  const accountStatus = profileCompletion >= 100 ? 'Ready to Use' : 'In Progress';
+
+  const quickActions = [
+    {
+      key: 'add-funds',
+      title: 'Add Funds',
+      subtitle: 'Top up your wallet',
+      cta: 'Add Funds',
+      tone: 'green',
+      icon: '＋',
+      onClick: () => navigate('/profile-completion'),
+    },
+    {
+      key: 'fuel-cards',
+      title: 'Fuel Cards',
+      subtitle: 'Manage your fuel cards',
+      cta: 'View Cards',
+      tone: 'blue',
+      icon: '💳',
+      onClick: () => navigate('/profile-completion'),
+    },
+    {
+      key: 'certificate',
+      title: 'Certificate',
+      subtitle: 'View your partner certificate',
+      cta: 'View Certificate',
+      tone: 'indigo',
+      icon: '🎖',
+      onClick: () => navigate('/profile-completion'),
+    },
+    {
+      key: 'agreements',
+      title: 'Agreements',
+      subtitle: 'View your signed agreements',
+      cta: 'View Agreements',
+      tone: 'violet',
+      icon: '📄',
+      onClick: () => navigate('/profile-completion'),
+    },
+  ];
 
   return (
     <>
@@ -18,50 +54,10 @@ const OverviewSection = ({
         <div className="dashboard-header-copy">
           <h1 className="dashboard-title">Dashboard</h1>
           <p className="dashboard-subtitle">
-            Welcome back, <strong>{user?.name || 'Partner'}</strong>! Track your profile here.
+            Welcome to your POTENSE delivery partner portal.
           </p>
         </div>
-        <div className="header-actions-wrap">
-          <div className="header-actions">
-            <Button
-              variant={completionButtonVariant}
-              size="sm"
-              onClick={() => navigate('/profile-completion')}
-              disabled={profileCompletion >= 100}
-            >
-              {profileCompletion < 100 ? (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              ) : null}
-              {profileCompletion >= 100 ? 'Profile Completed' : 'Complete Pending Details'}
-            </Button>
-          </div>
-        </div>
       </header>
-
-      <Card padding="md" shadow="sm" className="theme-progress-card">
-        <div className="theme-progress-head">
-          <div>
-            <p className="theme-progress-kicker">Theme Screen Progress</p>
-            <h2 className="card-section-title">Your onboarding completion journey</h2>
-            <p className="dashboard-subtitle">
-              {profileCompletion >= 100 ? 'Profile Completed' : 'Profile In Progress'}
-            </p>
-          </div>
-          <span className="theme-progress-value">{profileCompletion}%</span>
-        </div>
-        <div
-          className="theme-progress-track"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={profileCompletion}
-          aria-label="Theme completion progress"
-        >
-          <div className="theme-progress-fill" style={{ width: `${profileCompletion}%` }} />
-        </div>
-      </Card>
 
       {loadingProfile ? (
         <Card padding="md" shadow="sm">
@@ -69,46 +65,53 @@ const OverviewSection = ({
         </Card>
       ) : (
         <>
-          <div className="stats-grid">
-            {stats.map(({ label, value, change, up, icon }) => (
-              <Card key={label} padding="md" shadow="sm" className="stat-card">
-                <div className="stat-icon">{icon}</div>
-                <p className="stat-label">{label}</p>
-                <p className="stat-value">{value}</p>
-                <p className={`stat-change ${up ? 'stat-change--up' : 'stat-change--down'}`}>
-                  {up ? '▲' : '▼'} {change}
-                </p>
-              </Card>
-            ))}
+          <div className="overview-top-grid">
+            <Card padding="md" shadow="sm" className="overview-portal-card">
+              <div className="overview-portal-card-head">
+                <span className="overview-portal-icon" aria-hidden="true">📄</span>
+                <div>
+                  <h2 className="overview-portal-title">Applications</h2>
+                  <p className="overview-portal-subtitle">1 application</p>
+                </div>
+              </div>
+              <div className="overview-portal-meta-row">
+                <span>Total Applications</span>
+                <strong>{profileCompletion > 0 ? 1 : 0}</strong>
+              </div>
+              <Button variant="secondary" size="sm" fullWidth onClick={() => navigate('/profile-completion')}>
+                Manage Applications
+              </Button>
+            </Card>
+
+            <Card padding="md" shadow="sm" className="overview-portal-card overview-portal-card--wallet">
+              <div className="overview-portal-card-head">
+                <span className="overview-portal-icon" aria-hidden="true">👜</span>
+                <div>
+                  <h2 className="overview-portal-title">iFUEL Wallet</h2>
+                  <p className="overview-portal-subtitle">Digital fuel payments</p>
+                </div>
+              </div>
+              <div className="overview-portal-meta-row overview-portal-meta-row--wallet">
+                <span>Account Status</span>
+                <strong>{accountStatus}</strong>
+              </div>
+              <Button variant="secondary" size="sm" fullWidth onClick={() => navigate('/profile-completion')}>
+                View Account
+              </Button>
+            </Card>
           </div>
 
-          <div className="dashboard-grid">
-            <Card
-              padding="none"
-              shadow="sm"
-              header={
-                <div className="card-header-row">
-                  <h2 className="card-section-title">Profile Activity</h2>
-                  <button className="view-all-btn" onClick={() => navigate('/profile-completion')}>
-                    Manage profile
-                  </button>
-                </div>
-              }
-              className="activity-card"
-            >
-              <ul className="activity-list">
-                {recentActivity.map(({ user: profileUser, action, time, avatar }) => (
-                  <li key={`${profileUser}-${time}`} className="activity-item">
-                    <div className="avatar">{avatar}</div>
-                    <div className="activity-info">
-                      <p className="activity-user">{profileUser}</p>
-                      <p className="activity-action">{action}</p>
-                    </div>
-                    <span className="activity-time">{time}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+          <div className="overview-actions-grid">
+            {quickActions.map(({ key, title, subtitle, cta, tone, icon, onClick }) => (
+              <Card key={key} padding="md" shadow="sm" className={`overview-action-card overview-action-card--${tone}`}>
+                <span className="overview-action-icon" aria-hidden="true">{icon}</span>
+                <h3 className="overview-action-title">{title}</h3>
+                <p className="overview-action-subtitle">{subtitle}</p>
+                <button type="button" className="overview-action-btn" onClick={onClick}>
+                  {cta}
+                </button>
+              </Card>
+            ))}
           </div>
         </>
       )}

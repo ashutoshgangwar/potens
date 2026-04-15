@@ -675,6 +675,187 @@ img, svg { display: block; max-width: 100%; }
   justify-content: flex-end;
 }
 
+.overview-top-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+
+.overview-portal-card {
+  background: #ffffff;
+  border: 1px solid #e6eaf2 !important;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.overview-portal-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.overview-portal-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.overview-portal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.overview-portal-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.overview-portal-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eff4fb;
+  border-radius: 0.65rem;
+  padding: 0.62rem 0.78rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.overview-portal-meta-row strong {
+  color: #4f46e5;
+  font-size: 0.86rem;
+}
+
+.overview-portal-card--wallet .overview-portal-meta-row {
+  background: #f6f0ff;
+}
+
+.overview-portal-meta-row--wallet strong {
+  color: #7c3aed;
+}
+
+.overview-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.overview-action-card {
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.45rem;
+  padding: 1rem 0.9rem !important;
+}
+
+.overview-action-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.overview-action-title {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.overview-action-subtitle {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #6b7280;
+  line-height: 1.4;
+  min-height: 2rem;
+}
+
+.overview-action-btn {
+  margin-top: 0.15rem;
+  border: 1px solid #c7d2fe;
+  background: #fff;
+  color: #4338ca;
+  border-radius: 0.5rem;
+  padding: 0.24rem 0.58rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.overview-action-btn:hover {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
+
+.overview-action-card--green {
+  background: #edfdf3;
+  border-color: #ccf5df !important;
+}
+
+.overview-action-card--green .overview-action-icon {
+  background: #22c55e;
+  color: #fff;
+}
+
+.overview-action-card--blue {
+  background: #eef6ff;
+  border-color: #d4e7ff !important;
+}
+
+.overview-action-card--blue .overview-action-icon {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.overview-action-card--amber {
+  background: #fff6e9;
+  border-color: #ffe2b7 !important;
+}
+
+.overview-action-card--amber .overview-action-icon {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.overview-action-card--indigo {
+  background: #eef2ff;
+  border-color: #d8e2ff !important;
+}
+
+.overview-action-card--indigo .overview-action-icon {
+  background: #6366f1;
+  color: #fff;
+}
+
+.overview-action-card--violet {
+  background: #f7f0ff;
+  border-color: #ebdaff !important;
+}
+
+.overview-action-card--violet .overview-action-icon {
+  background: #a855f7;
+  color: #fff;
+}
+
 .dashboard-hero-card {
   background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 52%, #f0fdf4 100%);
   border: 1px solid #dbeafe !important;
@@ -995,12 +1176,36 @@ img, svg { display: block; max-width: 100%; }
 @media (max-width: 1200px) {
   .dashboard-grid { grid-template-columns: 1fr; }
 
+  .overview-actions-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .orders-combined-grid {
     grid-template-columns: 1fr;
   }
 
   .screen-kpi-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .overview-top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .overview-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-action-subtitle {
+    min-height: 0;
   }
 }
 
