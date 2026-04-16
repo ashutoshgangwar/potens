@@ -18,11 +18,11 @@ const FUEL_COMPANIES = [
   },
 ];
 
-const FuelIcon = () => (
+const FuelIcon = ({ iconColor = '#7c3aed', bgColor = '#e9e0f7' }) => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="24" height="24" rx="6" fill="#e9e0f7" />
-    <path d="M7 20V6a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3l2-2v8a2 2 0 0 1-2 2H8a1 1 0 0 1-1-1z" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-    <path d="M10 10h3M10 13h3" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round"/>
+    <rect width="24" height="24" rx="6" fill={bgColor} />
+    <path d="M7 20V6a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3l2-2v8a2 2 0 0 1-2 2H8a1 1 0 0 1-1-1z" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M10 10h3M10 13h3" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
 
@@ -47,9 +47,9 @@ const TruckIcon = () => (
 );
 
 const COMPANY_COLORS = {
-  iocl: { from: '#c0392b', to: '#7b241c', accent: '#e74c3c' },
-  bpcl: { from: '#1a5276', to: '#0e2f4e', accent: '#2e86c1' },
-  hpcl: { from: '#1e3a5f', to: '#0d1f36', accent: '#2980b9' },
+  iocl: { from: '#c0392b', to: '#7b241c', accent: '#e74c3c', soft: '#fde8e6', text: '#a93226' },
+  bpcl: { from: '#1a5276', to: '#0e2f4e', accent: '#2e86c1', soft: '#e7f2fb', text: '#1f618d' },
+  hpcl: { from: '#1e3a5f', to: '#0d1f36', accent: '#2980b9', soft: '#e8eef8', text: '#1f3a5f' },
 };
 
 const WalletCard = ({ company, vehicleNumber, mobileNumber, vehicleMake, vehicleType, yearOfReg, onReset }) => {
@@ -124,6 +124,45 @@ const WalletCard = ({ company, vehicleNumber, mobileNumber, vehicleMake, vehicle
 
 const VEHICLE_TYPES = ['Select an option', '2-Wheeler', '3-Wheeler', '4-Wheeler', 'Heavy Vehicle', 'Others'];
 
+const DummyCard = ({ company }) => {
+  const colors = COMPANY_COLORS[company?.id] || COMPANY_COLORS.iocl;
+  return (
+    <div className="fuel-card fuel-card--dummy" style={{ background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)` }}>
+      <div className="fuel-card__circle fuel-card__circle--1" style={{ background: colors.accent }} />
+      <div className="fuel-card__circle fuel-card__circle--2" style={{ background: colors.accent }} />
+      <div className="fuel-card__top">
+        <div className="fuel-card__brand">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.18)" />
+            <path d="M7 20V6a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3l2-2v8a2 2 0 0 1-2 2H8a1 1 0 0 1-1-1z" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <path d="M10 10h3M10 13h3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <span className="fuel-card__brand-name">{company?.name || 'Fuel'} Card</span>
+        </div>
+        <span className="fuel-card__status-badge fuel-card__status-badge--pending">Not Issued</span>
+      </div>
+      <div className="fuel-card__number fuel-card__number--dummy">•••• •••• •••• ••••</div>
+      <div className="fuel-card__bottom">
+        <div className="fuel-card__field">
+          <span className="fuel-card__field-label">Vehicle No.</span>
+          <span className="fuel-card__field-value fuel-card__field-value--dummy">––––––</span>
+        </div>
+        <div className="fuel-card__field">
+          <span className="fuel-card__field-label">Vehicle Type</span>
+          <span className="fuel-card__field-value fuel-card__field-value--dummy">––––</span>
+        </div>
+        <div className="fuel-card__field">
+          <span className="fuel-card__field-label">Issued</span>
+          <span className="fuel-card__field-value fuel-card__field-value--dummy">––/––</span>
+        </div>
+      </div>
+      <div className="fuel-card__dummy-overlay">
+        <span className="fuel-card__dummy-label">Complete the form to generate your card</span>
+      </div>
+    </div>
+  );
+};
+
 const PaymentSection = () => {
   const [selectedCompany, setSelectedCompany] = useState('iocl');
   const [vehicleNumber, setVehicleNumber] = useState('');
@@ -137,6 +176,15 @@ const PaymentSection = () => {
 
   const selected = FUEL_COMPANIES.find(c => c.id === selectedCompany);
   const allValidated = vehicleValidated && mobileValidated;
+
+  const getCompanyTileStyle = (companyId, isSelected) => {
+    const colors = COMPANY_COLORS[companyId] || COMPANY_COLORS.iocl;
+    return {
+      background: colors.soft,
+      borderColor: isSelected ? colors.accent : `${colors.accent}66`,
+      boxShadow: isSelected ? `0 0 0 3px ${colors.accent}1a` : 'none',
+    };
+  };
 
   const handleReset = () => {
     setCardGenerated(false);
@@ -168,6 +216,9 @@ const PaymentSection = () => {
   return (
     <div className="wallet-section-wrap">
       {/* Fuel Company Selection */}
+        {/* Dummy card preview */}
+        <DummyCard company={selected} />
+
       <div className="wallet-company-grid">
         {FUEL_COMPANIES.map(company => (
           <button
@@ -175,10 +226,19 @@ const PaymentSection = () => {
             className={`wallet-company-card ${selectedCompany === company.id ? 'wallet-company-card--selected' : ''}`}
             onClick={() => setSelectedCompany(company.id)}
             type="button"
+            style={getCompanyTileStyle(company.id, selectedCompany === company.id)}
           >
             <div className="wallet-company-header">
-              <FuelIcon />
-              <span className="wallet-company-name">{company.name}</span>
+              <FuelIcon
+                iconColor={(COMPANY_COLORS[company.id] || COMPANY_COLORS.iocl).text}
+                bgColor="#ffffff"
+              />
+              <span
+                className="wallet-company-name"
+                style={{ color: (COMPANY_COLORS[company.id] || COMPANY_COLORS.iocl).text }}
+              >
+                {company.name}
+              </span>
             </div>
           </button>
         ))}

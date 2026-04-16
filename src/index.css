@@ -1749,6 +1749,48 @@ img, svg { display: block; max-width: 100%; }
   border: 1px solid rgba(255,255,255,0.35);
   border-radius: 999px;
   padding: 0.22rem 0.65rem;
+
+  .fuel-card__status-badge--pending {
+    background: rgba(0,0,0,0.2);
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+  }
+
+  .fuel-card__number--dummy {
+    opacity: 0.45;
+    letter-spacing: 0.25em;
+  }
+
+  .fuel-card__field-value--dummy {
+    opacity: 0.4;
+  }
+
+  .fuel-card--dummy {
+    position: relative;
+  }
+
+  .fuel-card__dummy-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.22);
+    border-radius: 1.1rem;
+    backdrop-filter: blur(1px);
+  }
+
+  .fuel-card__dummy-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.88);
+    text-align: center;
+    padding: 0.5rem 1rem;
+    background: rgba(0,0,0,0.3);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255,255,255,0.18);
+    letter-spacing: 0.02em;
+  }
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.05em;
