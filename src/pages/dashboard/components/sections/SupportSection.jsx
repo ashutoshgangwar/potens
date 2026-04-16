@@ -15,7 +15,7 @@ const SupportSection = () => {
     >
       <div className="status-row">
         <span className="status-label">Support Email</span>
-        <span className="status-value">support@potensenergy.com</span>
+        <span className="status-value">support@POTENSnergy.com</span>
       </div>
       <div className="status-row">
         <span className="status-label">Support Phone</span>
@@ -28,7 +28,7 @@ const SupportSection = () => {
       <Button
         variant="secondary"
         size="sm"
-        onClick={() => window.open('mailto:support@potensenergy.com', '_blank')}
+        onClick={() => window.open('mailto:support@POTENSnergy.com', '_blank')}
       >
         Contact Support
       </Button>

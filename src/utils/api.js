@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const MOCK_USERS_KEY = 'potense_admin_users';
-const MOCK_PROFILES_KEY = 'potense_admin_profiles';
+const MOCK_USERS_KEY = 'POTENS_admin_users';
+const MOCK_PROFILES_KEY = 'POTENS_admin_profiles';
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_BASE_URL = 'http://192.168.1.13:5001';
-const ACCESS_TOKEN_KEY = 'potense_admin_access_token';
+const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
 
 const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api`,

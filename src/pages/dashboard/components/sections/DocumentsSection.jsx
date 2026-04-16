@@ -71,7 +71,7 @@ const DocumentsSection = ({ certificatePdfUrl }) => {
       <div className="certificate-detail-grid">
         <div className="certificate-detail-item">
           <span>Certificate Number</span>
-          <strong>IFUEL202666635847</strong>
+          <strong>POTENS202666635847</strong>
         </div>
         <div className="certificate-detail-item">
           <span>Issued Date</span>

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { apiLogin, apiSignUp, apiLogout, apiOnboard, apiGetAuthProfile } from '../utils/api.js';
 
-const TOKEN_KEY = 'potense_admin_token';
-const USER_KEY = 'potense_admin_user';
-const ACCESS_TOKEN_KEY = 'potense_admin_access_token';
-const USER_ID_KEY = 'potense_admin_user_id';
-const USER_ROLE_KEY = 'potense_admin_user_role';
+const TOKEN_KEY = 'POTENS_admin_token';
+const USER_KEY = 'POTENS_admin_user';
+const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
+const USER_ID_KEY = 'POTENS_admin_user_id';
+const USER_ROLE_KEY = 'POTENS_admin_user_role';
 
 const normalizeRoleValue = (roleValue) => {
   if (!roleValue) {

@@ -6,7 +6,7 @@ import { apiGetProfileDetails, buildOnboardingPayload } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
-const USER_ROLE_KEY = 'potense_admin_user_role';
+const USER_ROLE_KEY = 'POTENS_admin_user_role';
 
 const STATE_OPTIONS = STATE_DISTRICT_DATA.map((entry) => entry.state);
 

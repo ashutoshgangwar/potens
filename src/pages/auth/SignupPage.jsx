@@ -115,7 +115,7 @@ const SignupPage = () => {
               <rect x="8" y="8" width="10" height="10" rx="3" fill="white" fillOpacity="0.8" />
               <rect x="22" y="22" width="10" height="10" rx="3" fill="white" fillOpacity="0.8" />
             </svg>
-            <span className="logo-text">potense Admin</span>
+            <span className="logo-text">POTENS Admin</span>
           </div>
           <h1 className="brand-headline">Start managing your platform today.</h1>
           <p className="brand-sub">Create your admin account and get instant access to all features.</p>

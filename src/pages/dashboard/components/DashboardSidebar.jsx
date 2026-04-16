@@ -7,7 +7,7 @@ const DashboardSidebar = ({ items, activeSection, onSectionChange, user, onLogou
       <div className="sidebar-logo">
         <img
           src="/logos/Potens_Energy_Logo.png"
-          alt="Potense logo"
+          alt="POTENS logo"
           className="sidebar-logo-image"
           onError={(event) => {
             event.currentTarget.onerror = null;
