@@ -3,8 +3,8 @@
   padding: 2rem 1.25rem 4rem;
   position: relative;
   background:
-    radial-gradient(circle at top left, rgb(99 102 241 / 0.12), transparent 28%),
-    linear-gradient(180deg, #f8f9fc 0%, #eef2ff 100%);
+    radial-gradient(circle at top left, rgb(31 58 95 / 0.12), transparent 28%),
+    linear-gradient(180deg, #f8f9fc 0%, #e8f3f9 100%);
 }
 
 .profile-completion--loading {
@@ -35,7 +35,7 @@
   padding: 0.3rem 0.65rem;
   margin-bottom: 0.75rem;
   border-radius: 999px;
-  background: rgb(79 70 229 / 0.1);
+  background: rgb(31 58 95 / 0.1);
   color: var(--color-primary);
   font-size: 0.75rem;
   font-weight: 700;
@@ -91,9 +91,9 @@
 
 .profile-completion__primary-btn {
   border: 1px solid transparent;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #2E86C1 100%);
   color: #fff;
-  box-shadow: 0 14px 24px rgb(79 70 229 / 0.22);
+  box-shadow: 0 14px 24px rgb(31 58 95 / 0.22);
 }
 
 .profile-completion__ghost-btn:hover,
@@ -117,7 +117,7 @@
 .profile-completion__upload:focus-within,
 .profile-completion__radio-card:focus-within {
   outline: none;
-  box-shadow: 0 0 0 4px rgb(79 70 229 / 0.14);
+  box-shadow: 0 0 0 4px rgb(31 58 95 / 0.14);
 }
 
 .profile-completion__summary-grid {
@@ -151,7 +151,7 @@
   border-radius: 999px;
   right: -30px;
   top: -30px;
-  background: radial-gradient(circle, rgb(99 102 241 / 0.12), transparent 62%);
+  background: radial-gradient(circle, rgb(31 58 95 / 0.12), transparent 62%);
   pointer-events: none;
 }
 
@@ -214,7 +214,7 @@
 .profile-completion__step-circle.is-active {
   background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 0 0 6px rgb(79 70 229 / 0.14);
+  box-shadow: 0 0 0 6px rgb(31 58 95 / 0.14);
 }
 
 .profile-completion__step-circle.is-completed {
@@ -234,7 +234,7 @@
 }
 
 .profile-completion__step-label.is-completed {
-  color: #15803d;
+  color: #3d9140;
 }
 
 .profile-completion__step-line {
@@ -278,7 +278,7 @@
   display: grid;
   place-items: center;
   border-radius: 1rem;
-  background: linear-gradient(135deg, rgb(79 70 229 / 0.18), rgb(124 58 237 / 0.12));
+  background: linear-gradient(135deg, rgb(31 58 95 / 0.18), rgb(46 134 193 / 0.12));
   font-size: 1.6rem;
 }
 
@@ -302,7 +302,7 @@
 
 .profile-completion__alert.is-success {
   background: #f0fdf4;
-  color: #166534;
+  color: #2e7031;
   border: 1px solid #bbf7d0;
 }
 
@@ -390,7 +390,7 @@
 .profile-completion__control:focus,
 .profile-completion__textarea:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgb(79 70 229 / 0.14);
+  box-shadow: 0 0 0 4px rgb(31 58 95 / 0.14);
 }
 
 .profile-completion__control.has-error,
@@ -454,7 +454,7 @@
 
 .profile-completion__radio-card.is-selected {
   border-color: var(--color-primary);
-  box-shadow: 0 10px 24px rgb(79 70 229 / 0.12);
+  box-shadow: 0 10px 24px rgb(31 58 95 / 0.12);
 }
 
 .profile-completion__radio-title {
@@ -559,7 +559,7 @@
   display: grid;
   place-items: center;
   border-radius: 0.9rem;
-  background: rgb(79 70 229 / 0.1);
+  background: rgb(31 58 95 / 0.1);
   font-size: 1.3rem;
 }
 
@@ -581,7 +581,7 @@
 .profile-completion__edit-btn:hover {
   transform: translateY(-1px);
   border-color: var(--color-primary);
-  box-shadow: 0 8px 18px rgb(79 70 229 / 0.18);
+  box-shadow: 0 8px 18px rgb(31 58 95 / 0.18);
 }
 
 .profile-completion__review-section + .profile-completion__review-section {
@@ -603,7 +603,7 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 0.7rem 0;
-  border-bottom: 1px solid #eef2ff;
+  border-bottom: 1px solid #e8f3f9;
 }
 
 .profile-completion__review-row:last-child {
@@ -628,7 +628,7 @@
   gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1.25rem;
-  border-top: 1px solid #eef2ff;
+  border-top: 1px solid #e8f3f9;
 }
 
 @media (max-width: 1200px) {
@@ -659,7 +659,7 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 999px;
-  border: 3px solid #dbe3f0;
+  border: 3px solid #d0e8f5;
   border-top-color: var(--color-primary);
   animation: profile-completion-spin 0.8s linear infinite;
 }

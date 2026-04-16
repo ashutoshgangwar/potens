@@ -9,14 +9,24 @@ import ProfileSection from './components/sections/ProfileSection.jsx';
 import InvestmentSection from './components/sections/InvestmentSection.jsx';
 import PaymentSection from './components/sections/PaymentSection.jsx';
 import DocumentsSection from './components/sections/DocumentsSection.jsx';
+import SupportSection from './components/sections/SupportSection.jsx';
+
+const createSidebarIcon = (src, alt) => (
+	<img
+		src={src}
+		alt={alt}
+		style={{ width: '1.1rem', height: '1.1rem', filter: 'brightness(0) invert(1)' }}
+	/>
+);
 
 const SIDEBAR_ITEMS = [
-	{ icon: '🏠', label: 'Overview', key: 'dashboard' },
-	{ icon: '👤', label: 'Profile', key: 'profile' },
-	{ icon: '🧾', label: 'Transaction', key: 'transaction' },
-	{ icon: '⛽', label: 'Investment', key: 'investment' },
-	{ icon: '💳', label: 'Payment Status', key: 'payment' },
-	{ icon: '📄', label: 'Documents', key: 'documents' },
+	{ icon: createSidebarIcon('/overview.svg', 'Overview'), label: 'Overview', key: 'dashboard' },
+	{ icon: createSidebarIcon('/trasaction.svg', 'Transaction'), label: 'Transaction', key: 'transaction' },
+	{ icon: createSidebarIcon('/wallet.svg', 'Wallet'), label: 'Wallet', key: 'payment' },
+	{ icon: createSidebarIcon('/agreement.svg', 'Agreement'), label: 'Agreement', key: 'investment' },
+	{ icon: createSidebarIcon('/certificate.svg', 'Certificate'), label: 'Certificate', key: 'documents' },
+	{ icon: createSidebarIcon('/support.svg', 'Support'), label: 'Support', key: 'support' },
+	{ icon: createSidebarIcon('/profile.svg', 'Profile'), label: 'Profile', key: 'profile' },
 ];
 
 const REQUIRED_PROFILE_FIELDS = [
@@ -390,6 +400,7 @@ const DashboardPage = () => {
 				onOpenProfile={() => navigate('/profile-completion')}
 			/>
 		),
+		support: <SupportSection />,
 	};
 
 	return (
