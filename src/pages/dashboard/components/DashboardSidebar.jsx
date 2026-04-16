@@ -5,13 +5,15 @@ const DashboardSidebar = ({ items, activeSection, onSectionChange, user, onLogou
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <svg viewBox="0 0 40 40" fill="none" className="sidebar-logo-svg">
-          <rect width="40" height="40" rx="10" fill="#4f46e5" />
-          <path d="M12 20h16M20 12v16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-          <rect x="8" y="8" width="10" height="10" rx="3" fill="white" fillOpacity="0.8" />
-          <rect x="22" y="22" width="10" height="10" rx="3" fill="white" fillOpacity="0.8" />
-        </svg>
-        <span className="sidebar-logo-text">Potense</span>
+        <img
+          src="/logos/Potens_Energy_Logo.png"
+          alt="Potense logo"
+          className="sidebar-logo-image"
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = '/favicon.svg';
+          }}
+        />
       </div>
 
       <nav className="sidebar-nav">
