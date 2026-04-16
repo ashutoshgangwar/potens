@@ -397,6 +397,7 @@ const DashboardPage = () => {
 				uploadedDocuments={uploadedDocuments}
 				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
 				documentStatusRows={documentStatusRows}
+				certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
 				onOpenProfile={() => navigate('/profile-completion')}
 			/>
 		),
