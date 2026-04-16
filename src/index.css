@@ -3602,3 +3602,128 @@ img, svg { display: block; max-width: 100%; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ──────── Support Section Styles ────────── */
+
+.support-actions {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.support-email-btn,
+.support-contact-btn {
+  flex: 1;
+  min-width: 140px;
+  background: var(--color-primary-dark);
+  color: var(--color-surface);
+}
+
+.support-btn-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.support-btn-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.support-email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.support-form-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1F3A5F;
+  margin-bottom: 0.5rem;
+}
+
+.support-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.support-form-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.support-form-input,
+.support-form-textarea {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  background: #fff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.support-form-input:focus,
+.support-form-textarea:focus {
+  border-color: #2E86C1;
+  box-shadow: 0 0 0 3px rgba(46, 134, 193, 0.08);
+}
+
+.support-form-input::placeholder,
+.support-form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.support-form-textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.support-status-message {
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.support-status-loading {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.support-status-success {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #2e7031;
+}
+
+.support-status-error {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.support-form-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.support-form-actions button {
+  min-width: 100px;
+}
