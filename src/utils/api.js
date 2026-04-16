@@ -3,7 +3,8 @@ import axios from 'axios';
 const MOCK_USERS_KEY = 'POTENS_admin_users';
 const MOCK_PROFILES_KEY = 'POTENS_admin_profiles';
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = 'http://192.168.1.13:5001';
+const API_BASE_URL = 'http://192.168.1.12:5001';
+const PDF_API_BASE_URL = import.meta.env.VITE_PDF_API_BASE_URL || 'http://192.168.1.12:5001';
 const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
 
 const apiClient = axios.create({
@@ -826,6 +827,185 @@ export const apiGetProfileDetails = async (userId) => {
       resolve(profiles[userId] || null);
     }, 500);
   });
+};
+
+const getPdfApiError = (error, fallbackMessage) => {
+  const status = error?.response?.status;
+
+  if (status === 404) return 'Requested PDF resource was not found.';
+  if (status === 500) return 'PDF service error. Please try again later.';
+  if (error?.code === 'ECONNABORTED') return 'PDF API timeout. Please check server and try again.';
+
+  return getApiErrorMessage(error, fallbackMessage);
+};
+
+/**
+ * Step 1: Generate agreement PDF
+ * Endpoint: POST /api/pdf/generate-agreement
+ * @param {string} userId
+ * @returns {Promise<object>}
+ */
+export const apiGenerateAgreementPdf = async (userId) => {
+  if (!userId) {
+    throw new Error('User ID is required to generate agreement PDF.');
+  }
+
+  try {
+    const response = await axios.post(
+      `${PDF_API_BASE_URL}/api/pdf/generate-agreement`,
+      { userId },
+      { timeout: 10000 }
+    );
+    return response.data?.data || response.data || {};
+  } catch (error) {
+    throw new Error(getPdfApiError(error, 'Failed to generate agreement PDF.'));
+  }
+};
+
+/**
+ * Step 2: Get agreement PDF details (URL + agreement info)
+ * Endpoint: GET /api/pdf/agreement/:userId
+ * @param {string} userId
+ * @returns {Promise<object>}
+ */
+export const apiGetAgreementPdfDetails = async ({ userId, token }) => {
+  if (!userId) {
+    throw new Error('User ID is required to fetch agreement details.');
+  }
+  try {
+    const response = await axios.get(
+      `${PDF_API_BASE_URL}/api/pdf/agreement/${encodeURIComponent(userId)}`,
+      {
+        timeout: 8000,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
+    return response.data?.data || response.data || {};
+  } catch (error) {
+    throw new Error(getPdfApiError(error, 'Failed to fetch agreement details.'));
+  }
+};
+
+/**
+ * Step 3: Download agreement PDF file
+ * Endpoint: GET /api/pdf/agreement/:userId?download=true
+ * @param {string} userId
+ * @returns {Promise<{ blob: Blob, fileName: string, downloadUrl: string }>} 
+ */
+export const apiDownloadAgreementPdfFile = async (userId) => {
+  if (!userId) {
+    throw new Error('User ID is required to download agreement PDF.');
+  }
+
+  const downloadUrl = `${PDF_API_BASE_URL}/api/pdf/agreement/${encodeURIComponent(userId)}?download=true`;
+
+  try {
+    const response = await axios.get(downloadUrl, {
+      responseType: 'blob',
+      timeout: 15000,
+    });
+
+    const disposition = response?.headers?.['content-disposition'] || '';
+    const fileNameMatch = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    const fileName = decodeURIComponent(fileNameMatch?.[1] || `agreement-${userId}.pdf`);
+
+    return {
+      blob: response.data,
+      fileName,
+      downloadUrl,
+    };
+  } catch (error) {
+    throw new Error(getPdfApiError(error, 'Failed to download agreement PDF.'));
+  }
+};
+
+/**
+ * Optional certificate flow
+ * POST /api/pdf/generate-certificate
+ */
+export const apiGenerateCertificatePdf = async (userId) => {
+  if (!userId) {
+    throw new Error('User ID is required to generate certificate PDF.');
+  }
+
+  try {
+    const response = await axios.post(
+      `${PDF_API_BASE_URL}/api/pdf/generate-certificate`,
+      { userId },
+      { timeout: 10000 }
+    );
+    return response.data?.data || response.data || {};
+  } catch (error) {
+    throw new Error(getPdfApiError(error, 'Failed to generate certificate PDF.'));
+  }
+};
+
+/**
+ * Optional certificate details flow
+ * GET /api/pdf/:userId?pdfType=certificate
+ */
+export const apiGetCertificatePdfDetails = async ({ userId, token }) => {
+  if (!userId) {
+    throw new Error('User ID is required to fetch certificate details.');
+  }
+
+  try {
+    const response = await axios.get(
+      `${PDF_API_BASE_URL}/api/pdf/${encodeURIComponent(userId)}?pdfType=certificate`,
+      {
+        timeout: 8000,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
+    console.log('apiGetCertificatePdfDetails: raw response', response.data);
+    // Unwrap if needed
+    if (response.data && typeof response.data === 'object') {
+      if (response.data.data && typeof response.data.data === 'object') {
+        return response.data.data;
+      }
+      return response.data;
+    }
+    return {};
+  } catch (error) {
+    throw new Error(getPdfApiError(error, 'Failed to fetch certificate details.'));
+  }
+};
+
+// Backward-compatible exports
+export const apiGetAgreementPdfMetadata = apiGetAgreementPdfDetails;
+export const getAgreementPdfDownloadUrl = (userId) => `${PDF_API_BASE_URL}/api/pdf/agreement/${encodeURIComponent(userId)}?download=true`;
+
+/**
+ * Download certificate PDF file
+ * Endpoint: GET /api/pdf/certificate/:userId?download=true
+ * @param {string} userId
+ * @returns {Promise<{ blob: Blob, fileName: string, downloadUrl: string }>}
+ */
+export const apiDownloadCertificatePdfFile = async (userId) => {
+  if (!userId) {
+    throw new Error('User ID is required to download certificate PDF.');
+  }
+
+  const downloadUrl = `${PDF_API_BASE_URL}/api/pdf/certificate/${encodeURIComponent(userId)}?download=true`;
+
+  try {
+    const response = await axios.get(downloadUrl, {
+      responseType: 'blob',
+      timeout: 15000,
+    });
+
+    const disposition = response?.headers?.['content-disposition'] || '';
+    const fileNameMatch = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    const fileName = decodeURIComponent(fileNameMatch?.[1] || `certificate-${userId}.pdf`);
+
+    return {
+      blob: response.data,
+      fileName,
+      downloadUrl,
+    };
+  } catch (error) {
+    throw new Error(getPdfApiError(error, 'Failed to download certificate PDF.'));
+  }
 };
 
 /**

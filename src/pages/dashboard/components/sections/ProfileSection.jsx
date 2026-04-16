@@ -52,10 +52,27 @@ const ProfileSection = ({
     { label: 'Onboarded', value: apiUser?.is_onboarded ? 'Yes' : 'No' },
   ];
 
+  const formatDate = (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return '';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    // Format as DD-MM-YYYY
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const getDOBValue = () => {
+    if (typeof professional?.dob === 'string' && professional.dob) return formatDate(professional.dob);
+    if (typeof profileDetails?.dob === 'string' && profileDetails.dob) return formatDate(profileDetails.dob);
+    return undefined;
+  };
+
   const profileRows = [
     { label: 'Register As', value: getDisplayValue(professional?.register_as || user?.role) },
     { label: 'Father Name', value: getDisplayValue(professional?.father_name || profileDetails?.fatherName) },
-    { label: 'Date of Birth', value: getDisplayValue(profileDetails?.dob) },
+    { label: 'Date of Birth', value: getDisplayValue(getDOBValue()) },
     { label: 'Gender', value: getDisplayValue(professional?.gender || profileDetails?.gender) },
     { label: 'Field Officer', value: getDisplayValue(professional?.field_officer_name || profileDetails?.fieldOfficerName) },
     { label: 'State / District', value: getDisplayValue(`${professional?.state || profileDetails?.state || ''} ${professional?.district || profileDetails?.district || ''}`.trim()) },

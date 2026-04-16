@@ -1,3 +1,217 @@
+.investment-section-title,
+.document-section-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1F3A5F;
+  margin-bottom: 1.25rem;
+  letter-spacing: 0.01em;
+  text-align: left;
+}
+
+.investment-section-card,
+.document-section-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px rgba(31,58,95,0.08);
+  border: 1px solid #e5e7eb;
+  padding: 2rem 2rem 1.5rem 2rem;
+  margin-bottom: 2.5rem;
+  max-width: 900px;
+  min-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.investment-detail-grid,
+.document-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem 2rem;
+  margin-bottom: 1.25rem;
+}
+
+.investment-detail-item,
+.document-detail-item {
+  background: #f8f9fc;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(31,58,95,0.06);
+  border: 1px solid #e5e7eb;
+  padding: 1.1rem 1.25rem;
+  font-size: 1rem;
+  color: #1A1A1A;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.investment-sidebar-section,
+.document-sidebar-section {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 16px rgba(31,58,95,0.10);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 540px;
+  min-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.investment-status-panel,
+.document-status-panel {
+  background: #f9fafb;
+  border-radius: 1.1rem;
+  box-shadow: 0 2px 8px rgba(31,58,95,0.06);
+  border: 1px solid #e5e7eb;
+  padding: 1.1rem 1.25rem;
+  margin: 1.5rem auto 1rem auto;
+  max-width: 540px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+/* Certificate/Agreement/Document/Investment Section Styles */
+.certificate-content-wrap {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.certificate-preview-wrap {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px rgba(31,58,95,0.08);
+  border: 1px solid #e5e7eb;
+  padding: 1rem 1rem 0.75rem 1rem;
+  margin-bottom: 2rem;
+  max-width: 540px;
+  min-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.certificate-image-preview {
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 4/3;
+  border-radius: 1rem;
+  background: #f8f9fc;
+  object-fit: contain;
+  margin-bottom: 0;
+  display: block;
+  border: none;
+  box-shadow: none;
+}
+.certificate-section-card,
+.investment-section-card,
+.document-section-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px rgba(31,58,95,0.08);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  max-width: 900px;
+  min-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.certificate-sidebar-section,
+.investment-sidebar-section,
+.document-sidebar-section {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 16px rgba(31,58,95,0.10);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 540px;
+  min-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.certificate-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1F3A5F;
+  margin-bottom: 1rem;
+  letter-spacing: 0.01em;
+}
+.certificate-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem 2rem;
+  margin-bottom: 0.5rem;
+}
+.certificate-detail-item,
+.investment-detail-item,
+.document-detail-item {
+  background: #f8f9fc;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(31,58,95,0.06);
+  border: 1px solid #e5e7eb;
+  padding: 1.1rem 1.25rem;
+  font-size: 1rem;
+  color: #1A1A1A;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.certificate-detail-item .certificate-detail-value,
+.investment-detail-item .investment-detail-value,
+.document-detail-item .document-detail-value {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  font-size: 1.01rem;
+  line-height: 1.4;
+}
+.certificate-status-panel,
+.investment-status-panel,
+.document-status-panel {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 16px rgba(31,58,95,0.10);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+  margin: 1.5rem auto 1rem auto;
+  max-width: 540px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+.certificate-status-label {
+  font-size: 0.95rem;
+  color: #6C7A89;
+}
+.certificate-status-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1F3A5F;
+}
+.certificate-status-copy {
+  font-size: 0.98rem;
+  color: #374151;
+}
+.certificate-cta-row {
+  margin: 1.5rem auto 0 auto;
+  max-width: 540px;
+  display: flex;
+  justify-content: flex-end;
+}
 /* ─── Reset & Base ──────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1981,9 +2195,6 @@ img, svg { display: block; max-width: 100%; }
   color: #64748b;
 }
 
-.certificate-section-card {
-  background: rgba(255, 255, 255, 0.97);
-}
 
 .certificate-status-panel {
   border: 1px solid #b8eac3;

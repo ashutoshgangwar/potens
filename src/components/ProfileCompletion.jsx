@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import useForm from '../hooks/useForm.js';
 import { apiGetProfileDetails, buildOnboardingPayload } from '../utils/api.js';
+import { apiGenerateAgreementPdf, apiGenerateCertificatePdf } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
@@ -1227,9 +1228,22 @@ const ProfileCompletion = () => {
 
     try {
       const payload = await buildOnboardingPayload(values, currentUserRole);
-      await onboard({ payload });
+      const onboardResult = await onboard({ payload });
       setCompletedSteps(getCompletedStepIndexes(values, currentUserRole));
       setSuccessMessage('Onboarding completed successfully. Redirecting to dashboard...');
+
+      // Generate agreement and certificate PDFs after successful onboarding
+      const userId = onboardResult?.user?.id || onboardResult?.user?._id || onboardResult?.user?.user_id;
+      if (userId) {
+        try {
+          await apiGenerateAgreementPdf(userId);
+          await apiGenerateCertificatePdf(userId);
+        } catch (pdfError) {
+          // Optionally show a warning, but don't block navigation
+          console.warn('PDF generation failed:', pdfError);
+        }
+      }
+
       navigate('/dashboard', { replace: true });
     } catch (error) {
       setApiError(error.message || 'Could not complete onboarding. Please try again.');

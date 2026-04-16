@@ -381,6 +381,7 @@ const DashboardPage = () => {
 		investment: (
 			<InvestmentSection
 				profileDetails={profileDetails}
+				userId={user?.id}
 				partnerKpis={partnerKpis}
 				onOpenProfile={() => navigate('/profile-completion')}
 			/>
@@ -392,15 +393,16 @@ const DashboardPage = () => {
 				onOpenProfile={() => navigate('/profile-completion')}
 			/>
 		),
-		documents: (
-			<DocumentsSection
-				uploadedDocuments={uploadedDocuments}
-				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
-				documentStatusRows={documentStatusRows}
-				certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
-				onOpenProfile={() => navigate('/profile-completion')}
-			/>
-		),
+		   documents: (
+			   <DocumentsSection
+				   user={user}
+				   uploadedDocuments={uploadedDocuments}
+				   totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+				   documentStatusRows={documentStatusRows}
+				   certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
+				   onOpenProfile={() => navigate('/profile-completion')}
+			   />
+		   ),
 		support: <SupportSection />,
 	};
 
