@@ -3,7 +3,7 @@ import axios from 'axios';
 const MOCK_USERS_KEY = 'POTENS_admin_users';
 const MOCK_PROFILES_KEY = 'POTENS_admin_profiles';
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = 'http://192.168.1.12:5001';
+const API_BASE_URL = 'http://192.168.1.7:5001';
 const PDF_API_BASE_URL = import.meta.env.VITE_PDF_API_BASE_URL || 'http://192.168.1.12:5001';
 const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
 
@@ -94,8 +94,6 @@ const buildAddressPayload = (prefix, details) => ({
   district: details[`${prefix}District`],
   state: details[`${prefix}State`],
   pincode: details[`${prefix}Pincode`],
-  latitude: normalizeNumericValue(details[`${prefix}Latitude`]),
-  longitude: normalizeNumericValue(details[`${prefix}Longitude`]),
 });
 
 const mapPaymentModeForApi = (paymentMode) => {
@@ -497,16 +495,12 @@ const normalizeProfileResponse = (responseData = {}) => {
     permanentDistrict: permanentAddress?.district || '',
     permanentState: permanentAddress?.state || '',
     permanentPincode: permanentAddress?.pincode || '',
-    permanentLatitude: permanentAddress?.latitude ?? '',
-    permanentLongitude: permanentAddress?.longitude ?? '',
     businessAddressLine1: businessAddress?.address_line1 || '',
     businessAddressLine2: businessAddress?.address_line2 || '',
     businessCity: businessAddress?.city || '',
     businessDistrict: businessAddress?.district || '',
     businessState: businessAddress?.state || '',
     businessPincode: businessAddress?.pincode || '',
-    businessLatitude: businessAddress?.latitude ?? '',
-    businessLongitude: businessAddress?.longitude ?? '',
     vehicleNumber: vehicle?.vehicle_number || '',
     paymentMode: normalizePaymentModeForUi(payment?.payment_mode || ''),
     upiId: payment?.upi_id || '',

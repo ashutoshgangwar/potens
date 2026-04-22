@@ -218,20 +218,6 @@ const PROFILE_STEPS = [
             placeholder: '243001',
             required: true,
           },
-          {
-            name: 'permanentLatitude',
-            label: 'Latitude',
-            type: 'number',
-            placeholder: '28.367',
-            required: true,
-          },
-          {
-            name: 'permanentLongitude',
-            label: 'Longitude',
-            type: 'number',
-            placeholder: '79.4304',
-            required: true,
-          },
         ],
       },
       {
@@ -279,20 +265,6 @@ const PROFILE_STEPS = [
             label: 'Pincode',
             type: 'text',
             placeholder: '243001',
-            required: true,
-          },
-          {
-            name: 'businessLatitude',
-            label: 'Latitude',
-            type: 'number',
-            placeholder: '28.37',
-            required: true,
-          },
-          {
-            name: 'businessLongitude',
-            label: 'Longitude',
-            type: 'number',
-            placeholder: '79.42',
             required: true,
           },
         ],
@@ -727,16 +699,6 @@ const validateProfileField = (field, value, allValues = {}, currentRole = '') =>
     case 'businessAddressLine2':
     case 'businessCity':
       return trimmedValue.length >= 2 ? '' : `${field.label} must be at least 2 characters.`;
-    case 'permanentLatitude':
-    case 'businessLatitude':
-      return isValidCoordinate(trimmedValue, -90, 90)
-        ? ''
-        : 'Latitude must be between -90 and 90.';
-    case 'permanentLongitude':
-    case 'businessLongitude':
-      return isValidCoordinate(trimmedValue, -180, 180)
-        ? ''
-        : 'Longitude must be between -180 and 180.';
     case 'panNumber':
       return /^[A-Z]{5}\d{4}[A-Z]$/i.test(trimmedValue)
         ? ''
