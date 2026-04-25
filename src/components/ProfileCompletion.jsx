@@ -8,7 +8,7 @@ import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
 const USER_ROLE_KEY = 'POTENS_admin_user_role';
-const API_BASE_URL = 'https://partner.potensenergy.in';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const STATE_OPTIONS = STATE_DISTRICT_DATA.map((entry) => entry.state);
 

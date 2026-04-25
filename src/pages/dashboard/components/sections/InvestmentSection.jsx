@@ -56,7 +56,7 @@ const InvestmentSection = ({ profileDetails, userId }) => {
 
     // Debug: log resolvedUserId and API URL
     console.log('InvestmentSection: resolvedUserId', resolvedUserId);
-    const agreementApiUrl = `${import.meta.env.VITE_PDF_API_BASE_URL || 'http://192.168.1.12:5001'}/api/pdf/agreement/${encodeURIComponent(resolvedUserId)}`;
+    const agreementApiUrl = `${import.meta.env.VITE_PDF_API_BASE_URL}/api/pdf/agreement/${encodeURIComponent(resolvedUserId)}`;
     console.log('InvestmentSection: agreementApiUrl', agreementApiUrl);
 
     const loadAgreementMetadata = async () => {

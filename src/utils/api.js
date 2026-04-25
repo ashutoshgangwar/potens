@@ -3,9 +3,8 @@ import axios from 'axios';
 const MOCK_USERS_KEY = 'POTENS_admin_users';
 const MOCK_PROFILES_KEY = 'POTENS_admin_profiles';
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = 'https://partner.potensenergy.in';
-// const API_BASE_URL = 'http://192.168.1.7:5001';
-const PDF_API_BASE_URL = import.meta.env.VITE_PDF_API_BASE_URL || 'http://192.168.1.12:5001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const PDF_API_BASE_URL = import.meta.env.VITE_PDF_API_BASE_URL;
 const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
 
 const apiClient = axios.create({
@@ -147,6 +146,7 @@ const readFileAsDataUrl = (file) =>
     reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : undefined);
     reader.onerror = () => reject(new Error(`Could not read file: ${file?.name || 'document'}`));
     reader.readAsDataURL(file);
+
   });
 
 const getDocumentFileUrl = async (value) => {
