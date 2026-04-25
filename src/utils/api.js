@@ -24,6 +24,7 @@ const getUsers = () => {
 
 const saveUsers = (users) => {
   localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
+  
 };
 
 const getProfiles = () => {
