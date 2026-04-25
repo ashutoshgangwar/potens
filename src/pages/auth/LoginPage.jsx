@@ -44,35 +44,66 @@ const LoginPage = () => {
 
   return (
     <div className="auth-page">
-      {/* Left branding panel */}
-      <div className="auth-brand">
-        <div className="auth-brand-inner">
-          <div className="auth-logo">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="logo-svg">
-              <rect width="40" height="40" rx="10" fill="white" fillOpacity="0.15" />
-              <path d="M12 20h16M20 12v16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-              <rect x="8" y="8" width="10" height="10" rx="3" fill="white" fillOpacity="0.8" />
-              <rect x="22" y="22" width="10" height="10" rx="3" fill="white" fillOpacity="0.8" />
-            </svg>
-            <span className="logo-text">Potens Portal</span>
+      {/* Left branding panel with full-screen logo */}
+      <div
+        className="auth-brand"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '50vw',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(-45deg, var(--color-primary), var(--color-primary-dark), var(--color-primary-light), #0072ff)',
+          backgroundSize: '400% 400%',
+          animation: 'gradientBG 12s ease infinite',
+          color: 'var(--color-surface)',
+          zIndex: 1,
+        }}
+      >
+        <style>{`
+          @keyframes gradientBG {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+          }
+        `}</style>
+        <div style={{
+          background: 'rgba(255,255,255,0.18)',
+          borderRadius: '32px',
+          padding: '2.8rem 2.2rem 2.2rem 2.2rem',
+          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          maxWidth: '95%',
+          width: '440px',
+            background: 'rgba(255,255,255,0.95)',
+          border: '1.5px solid var(--color-primary-light)',
+        }}>
+          <img src="/logos/Potens_Energy_Logo.png" alt="Potens Energy Logo" style={{ maxHeight: '140px', width: 'auto', display: 'block', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 16px var(--color-primary-light))' }} />
+          <h1 style={{ color: '#000', fontWeight: 800, fontSize: '2.3rem', marginBottom: '0.7rem', textAlign: 'center', letterSpacing: '-1px' }}>Welcome to <span style={{ color: '#000' }}>Potens Portal</span></h1>
+          <p style={{ color: '#000', fontSize: '1.18rem', marginBottom: '1.7rem', textAlign: 'center', fontWeight: 500 }}>
+            Manage your energy journey with confidence.<br />
+            <span style={{ fontWeight: 700, color: '#000' }}>Secure, unified, and built for scale.</span>
+          </p>
+          <div style={{ width: '100%', textAlign: 'center', marginBottom: '1.4rem', display: 'flex', justifyContent: 'center', gap: '1.2rem', flexWrap: 'wrap' }}>
+            <a href="#" style={{ color: '#000', textDecoration: 'underline', fontWeight: 600, fontSize: '1.05rem' }}>YouTube</a>
+            <a href="#" style={{ color: '#000', textDecoration: 'underline', fontWeight: 600, fontSize: '1.05rem' }}>Privacy Policy</a>
+            <a href="#" style={{ color: '#000', textDecoration: 'underline', fontWeight: 600, fontSize: '1.05rem' }}>Other Info</a>
           </div>
-          <h1 className="brand-headline">Manage your profile journey with confidence.</h1>
-          <p className="brand-sub">A secure, unified partner portal built for speed and scale.</p>
-          <ul className="brand-features">
-            {['Step-by-step onboarding', 'Secure account access', 'Profile progress tracking', 'Fast dashboard access'].map((f) => (
-              <li key={f} className="brand-feature-item">
-                <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                {f}
-              </li>
-            ))}
-          </ul>
+          <p style={{ color: '#000', fontSize: '1.02rem', textAlign: 'center', fontWeight: 500 }}>
+            {/* Add more links or info here as needed */}
+            For help, contact <a href="mailto:support@potensenergy.in" style={{ color: '#000', textDecoration: 'underline', fontWeight: 600 }}>support@potensenergy.in</a>
+          </p>
         </div>
       </div>
 
       {/* Right form panel */}
-      <div className="auth-form-panel">
+      <div className="auth-form-panel" style={{ marginLeft: '50vw', width: '50vw', minHeight: '100vh', position: 'relative', zIndex: 2, background: 'var(--color-bg)' }}>
         <div className="auth-form-shell">
           <div className="auth-form-container auth-form-card">
             <div className="auth-form-header">
