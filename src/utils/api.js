@@ -28,7 +28,6 @@ const saveUsers = (users) => {
 
 const getProfiles = () => {
   try {
-    
     return JSON.parse(localStorage.getItem(MOCK_PROFILES_KEY) || '{}');
   } catch {
     return {};
