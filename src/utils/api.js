@@ -3,7 +3,8 @@ import axios from 'axios';
 const MOCK_USERS_KEY = 'POTENS_admin_users';
 const MOCK_PROFILES_KEY = 'POTENS_admin_profiles';
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = 'http://192.168.1.7:5001';
+const API_BASE_URL = 'https://partner.potensenergy.in';
+// const API_BASE_URL = 'http://192.168.1.7:5001';
 const PDF_API_BASE_URL = import.meta.env.VITE_PDF_API_BASE_URL || 'http://192.168.1.12:5001';
 const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
 
@@ -272,25 +273,25 @@ export const buildOnboardingPayload = async (details = {}, role = '') => ({
   document_details: {
     pan_card: {
       number: details.panNumber,
-      file_url: await getDocumentFileUrl(details.panFile),
+      file: details.panFile,
     },
     aadhaar_card: {
       number: details.aadhaarNumber,
-      file_url: await getDocumentFileUrl(details.aadhaarFile),
+      file: details.aadhaarFile,
     },
     driving_license: {
       number: details.drivingLicenseNumber,
-      file_url: await getDocumentFileUrl(details.drivingLicenseFile),
+      file: details.drivingLicenseFile,
     },
     vehicle_rc: {
       number: details.vehicleRcNumber,
-      file_url: await getDocumentFileUrl(details.vehicleRcFile),
+      file: details.vehicleRcFile,
     },
     passport_size_photo: {
-      file_url: await getDocumentFileUrl(details.passportPhotoFile),
+      file: details.passportPhotoFile,
     },
     noc: {
-      file_url: await getDocumentFileUrl(details.nocFile),
+      file: details.nocFile,
     },
   },
   vehicle_details: {
@@ -723,21 +724,46 @@ export const apiGetAuthProfile = async (token) => {
  * @returns {Promise<{ message: string, is_onboarded: boolean, user: object }>}
  */
 export const apiOnboard = async ({ token, payload, professional, address, documents, vehicle, payment }) => {
+
   let data;
   try {
-    const body = payload || {};
+    // Build FormData for multipart/form-data
+    const formData = new FormData();
+    const src = payload || {};
 
-    if (!payload) {
-      if (professional) body.professional_details = professional;
-      if (address) body.address = address;
-      if (documents) body.document_details = documents;
-      if (vehicle) body.vehicle_details = vehicle;
-      if (payment) body.payment = payment;
-    }
+    // Helper to append files if present
+    const appendFile = (field, file) => {
+      if (file) formData.append(field, file);
+    };
 
-    const response = await apiClient.post('/auth/onboard', body, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // Append files with correct field names
+    appendFile('pan_card_file', src.panCardFile || src.pan_card_file);
+    appendFile('aadhaar_card_file', src.aadhaarCardFile || src.aadhaar_card_file);
+    appendFile('driving_license_file', src.drivingLicenseFile || src.driving_license_file);
+    appendFile('vehicle_rc_file', src.vehicleRcFile || src.vehicle_rc_file);
+    appendFile('passport_size_photo_file', src.passportPhotoFile || src.passport_size_photo_file);
+    appendFile('noc_file', src.nocFile || src.noc_file);
+
+    // Append other fields (as JSON string or regular fields)
+    if (src.professional_details) formData.append('professional_details', JSON.stringify(src.professional_details));
+    if (src.address) formData.append('address', JSON.stringify(src.address));
+    if (src.vehicle_details) formData.append('vehicle_details', JSON.stringify(src.vehicle_details));
+    if (src.payment) formData.append('payment', JSON.stringify(src.payment));
+    if (src.document_details) formData.append('document_details', JSON.stringify(src.document_details));
+
+    // Log the onboarding API call details
+    console.log('[apiOnboard] POST', `${API_BASE_URL}/api/auth/onboard`, formData);
+
+    const response = await axios.post(
+      `${API_BASE_URL}/api/auth/onboard`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Do NOT set Content-Type, let browser/axios handle it
+        },
+      }
+    );
     data = response.data;
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Onboarding failed. Please try again.'));

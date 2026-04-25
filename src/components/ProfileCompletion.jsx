@@ -8,6 +8,7 @@ import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
 const USER_ROLE_KEY = 'POTENS_admin_user_role';
+const API_BASE_URL = 'https://partner.potensenergy.in';
 
 const STATE_OPTIONS = STATE_DISTRICT_DATA.map((entry) => entry.state);
 
@@ -1189,13 +1190,69 @@ const ProfileCompletion = () => {
     setLoading(true);
 
     try {
-      const payload = await buildOnboardingPayload(values, currentUserRole);
-      const onboardResult = await onboard({ payload });
+      // Build FormData for upload
+      const formData = new FormData();
+      // Attach files (File objects from form state)
+      formData.append('pan_card_file', values.panFile);
+      formData.append('aadhaar_card_file', values.aadhaarFile);
+      formData.append('driving_license_file', values.drivingLicenseFile);
+      formData.append('vehicle_rc_file', values.vehicleRcFile);
+      formData.append('passport_size_photo_file', values.passportPhotoFile);
+      formData.append('noc_file', values.nocFile);
+
+      // Attach data (as JSON strings)
+      formData.append('professional', JSON.stringify({
+        full_name: values.fullName,
+        father_name: values.fatherName,
+        dob: values.dob,
+        gender: values.gender,
+        state: values.state,
+        district: values.district,
+        pincode: values.pinCode,
+        // ...add other professional fields as needed
+      }));
+
+      formData.append('address', JSON.stringify({
+        permanent_address: {
+          address_line1: values.permanentAddressLine1,
+          city: values.permanentCity,
+          district: values.permanentDistrict,
+          state: values.permanentState,
+          pincode: values.permanentPinCode,
+        },
+        // ...add other address fields as needed
+      }));
+
+      formData.append('vehicle', JSON.stringify({
+        bowser_capacity_id: values.bowserCapacityId,
+        vehicle_number: values.vehicleNumber,
+        // ...add other vehicle fields as needed
+      }));
+
+      formData.append('payment', JSON.stringify({
+        account_number: values.accountNumber,
+        ifsc: values.ifsc,
+        // ...add other payment fields as needed
+      }));
+
+      // Send the request
+      const token = localStorage.getItem('POTENS_admin_access_token');
+      const response = await fetch(`${API_BASE_URL}/api/auth/onboard`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Do NOT set Content-Type
+        },
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Onboarding failed.');
+
       setCompletedSteps(getCompletedStepIndexes(values, currentUserRole));
       setSuccessMessage('Onboarding completed successfully. Redirecting to dashboard...');
 
       // Generate agreement and certificate PDFs after successful onboarding
-      const userId = onboardResult?.user?.id || onboardResult?.user?._id || onboardResult?.user?.user_id;
+      const userId = data?.user?.id || data?.user?._id || data?.user?.user_id;
       if (userId) {
         try {
           await apiGenerateAgreementPdf(userId);
