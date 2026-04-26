@@ -191,6 +191,8 @@ const DashboardPage = () => {
 	const [onboardingProgress, setOnboardingProgress] = useState(null);
 	const [loadingProfile, setLoadingProfile] = useState(true);
 	const [activeSection, setActiveSection] = useState('dashboard');
+	// Track if payment step is completed by user action
+	const [paymentStepCompleted, setPaymentStepCompleted] = useState(false);
 
 	useEffect(() => {
 		let mounted = true;
@@ -286,10 +288,11 @@ const DashboardPage = () => {
 		},
 		{
 			label: 'Partner Verification',
-			value: (onboardingProgress?.isProfileCompleted || (profileCompletion === 100 && paymentReady)) ? 'In Review' : 'Incomplete',
-			tone: (onboardingProgress?.isProfileCompleted || (profileCompletion === 100 && paymentReady)) ? 'success' : 'warning',
+			// Only mark as complete if profileCompletion is 100 and payment step is completed by user
+			value: (onboardingProgress?.isProfileCompleted || (profileCompletion === 100 && paymentStepCompleted)) ? 'In Review' : 'Incomplete',
+			tone: (onboardingProgress?.isProfileCompleted || (profileCompletion === 100 && paymentStepCompleted)) ? 'success' : 'warning',
 		},
-	], [onboardingProgress?.isProfileCompleted, paymentReady, profileCompletion, uploadedDocuments]);
+	], [onboardingProgress?.isProfileCompleted, paymentStepCompleted, profileCompletion, uploadedDocuments]);
 
 	const recentActivity = useMemo(() => getProfileActivities(profileDetails), [profileDetails]);
 
@@ -391,6 +394,8 @@ const DashboardPage = () => {
 				paymentReady={paymentReady}
 				paymentPreferenceLabel={paymentPreferenceLabel}
 				onOpenProfile={() => navigate('/profile-completion')}
+				paymentStepCompleted={paymentStepCompleted}
+				onPaymentStepComplete={() => setPaymentStepCompleted(true)}
 			/>
 		),
 		   documents: (

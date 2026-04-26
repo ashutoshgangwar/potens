@@ -1,3 +1,20 @@
+// Accepts a manual payment step completion flag
+const getCompletedStepIndexes = (values, currentRole = '', paymentStepManuallyCompleted = false) =>
+  EDITABLE_STEPS.reduce((completed, step, index) => {
+    let isComplete;
+    if (step.id === 'payment') {
+      isComplete = paymentStepManuallyCompleted;
+    } else {
+      isComplete = STEP_FIELD_NAMES[step.id].every((fieldName) => {
+        const field = FIELD_MAP[fieldName];
+        return !validateProfileField(field, values[fieldName], values, currentRole);
+      });
+    }
+    if (isComplete) {
+      completed.push(index);
+    }
+    return completed;
+  }, []);
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -88,21 +105,7 @@ const PROFILE_STEPS = [
             options: GENDER_OPTIONS,
             required: true,
           },
-          {
-            name: 'state',
-            label: 'State',
-            type: 'select',
-            options: STATE_OPTIONS.map((state) => ({ value: state, label: state })),
-            required: true,
-          },
-          {
-            name: 'district',
-            label: 'District',
-            type: 'select',
-            options: [],
-            optionsSource: 'state',
-            required: true,
-          },
+          // state, district, city, and pinCode removed as per backend changes
           {
             name: 'fieldOfficerName',
             label: 'Field Officer Name',
@@ -110,13 +113,7 @@ const PROFILE_STEPS = [
             placeholder: 'Enter field officer name',
             required: true,
           },
-          {
-            name: 'pinCode',
-            label: 'Pincode',
-            type: 'text',
-            placeholder: '243001',
-            required: true,
-          },
+          // pinCode removed as per backend changes
         ],
       },
       {
@@ -156,11 +153,9 @@ const PROFILE_STEPS = [
           {
             name: 'investmentPlan',
             label: 'Investment Plan',
-            type: 'textarea',
-            rows: 4,
+            type: 'text',
             placeholder: 'Example: 5-10 lakh',
             required: true,
-            fullWidth: true,
           },
         ],
       },
@@ -168,9 +163,9 @@ const PROFILE_STEPS = [
   },
   {
     id: 'address',
-    label: 'Address & Vehicle',
+    label: 'Address Details',
     icon: '📍',
-    subtitle: 'Collect structured permanent, business, and vehicle details.',
+    subtitle: 'Collect structured permanent and business address details.',
     sections: [
       {
         title: 'Permanent Address',
@@ -191,13 +186,6 @@ const PROFILE_STEPS = [
             required: true,
           },
           {
-            name: 'permanentCity',
-            label: 'City',
-            type: 'text',
-            placeholder: 'Bareilly',
-            required: true,
-          },
-          {
             name: 'permanentState',
             label: 'State',
             type: 'select',
@@ -210,6 +198,13 @@ const PROFILE_STEPS = [
             type: 'select',
             options: [],
             optionsSource: 'permanentState',
+            required: true,
+          },
+          {
+            name: 'permanentCity',
+            label: 'City',
+            type: 'text',
+            placeholder: 'Bareilly',
             required: true,
           },
           {
@@ -240,13 +235,6 @@ const PROFILE_STEPS = [
             required: true,
           },
           {
-            name: 'businessCity',
-            label: 'City',
-            type: 'text',
-            placeholder: 'Bareilly',
-            required: true,
-          },
-          {
             name: 'businessState',
             label: 'State',
             type: 'select',
@@ -262,6 +250,13 @@ const PROFILE_STEPS = [
             required: true,
           },
           {
+            name: 'businessCity',
+            label: 'City',
+            type: 'text',
+            placeholder: 'Bareilly',
+            required: true,
+          },
+          {
             name: 'businessPincode',
             label: 'Pincode',
             type: 'text',
@@ -270,19 +265,7 @@ const PROFILE_STEPS = [
           },
         ],
       },
-      {
-        title: 'Vehicle Details',
-        description: 'Add the vehicle number used for partner operations.',
-        fields: [
-          {
-            name: 'vehicleNumber',
-            label: 'Vehicle Number',
-            type: 'text',
-            placeholder: 'UP25AB1234',
-            required: true,
-          },
-        ],
-      },
+      // Vehicle Details section removed; vehicle number is already captured with RC details
     ],
   },
   {
@@ -369,7 +352,7 @@ const PROFILE_STEPS = [
             label: 'NOC Document',
             type: 'file',
             accept: DOCUMENT_FILE_ACCEPT_VALUE,
-            required: true,
+            required: false,
           },
         ],
       },
@@ -382,77 +365,38 @@ const PROFILE_STEPS = [
     subtitle: 'Match the settlement details expected by the backend contract.',
     sections: [
       {
-        title: 'Settlement Preference',
-        description: 'Choose the supported payout mode and fill the required account details.',
-        fields: [
-          {
-            name: 'paymentMode',
-            label: 'Payment Mode',
-            type: 'radio',
-            options: PAYMENT_OPTIONS,
-            required: true,
-            fullWidth: true,
-          },
-          {
-            name: 'upiId',
-            label: 'UPI ID',
-            type: 'text',
-            placeholder: 'ashu@upi',
-            required: true,
-            fullWidth: true,
-            paymentModes: ['upi', 'both'],
-          },
-          {
-            name: 'bankAccountNumber',
-            label: 'Account Number',
-            type: 'text',
-            placeholder: '123456789012',
-            required: true,
-            paymentModes: ['bank', 'both'],
-          },
-          {
-            name: 'ifscCode',
-            label: 'IFSC Code',
-            type: 'text',
-            placeholder: 'SBIN0001234',
-            required: true,
-            paymentModes: ['bank', 'both'],
-          },
-          {
-            name: 'bankName',
-            label: 'Bank Name',
-            type: 'text',
-            placeholder: 'State Bank of India',
-            required: true,
-            paymentModes: ['bank', 'both'],
-          },
-          {
-            name: 'bankBranch',
-            label: 'Branch Name',
-            type: 'text',
-            placeholder: 'Bareilly Main',
-            required: true,
-            paymentModes: ['bank', 'both'],
-          },
-          {
-            name: 'accountHolderName',
-            label: 'Account Holder Name',
-            type: 'text',
-            placeholder: 'Ashutosh Gangwar',
-            required: true,
-            paymentModes: ['bank', 'both'],
-          },
-          {
-            name: 'paymentOtherDetails',
-            label: 'Other Details',
-            type: 'textarea',
-            rows: 4,
-            placeholder: 'Preferred settlement weekly',
-            required: false,
-            fullWidth: true,
-            paymentModes: ['upi', 'bank', 'both'],
-          },
-        ],
+        title: 'Settlement Payment',
+        description: '',
+        fields: [],
+        customContent: (
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '24px 0'}}>
+            <img
+              src="/logos/PGES%20Bank%20QR.jpg.jpeg"
+              alt="PGES Bank UPI QR Code"
+              style={{maxWidth: 320, width: '100%', borderRadius: 10, boxShadow: '0 2px 12px #0002', marginBottom: 16, display: 'block'}}
+            />
+            <div style={{
+              fontWeight: 700,
+              fontSize: 15,
+              marginBottom: 4,
+              textAlign: 'center',
+              textTransform: 'uppercase',
+              letterSpacing: 0.2,
+            }}>
+              POTENS GREEN ENGINEERING SOLUTIONS PRIVATE LIMITED
+            </div>
+            <div style={{fontWeight: 600, fontSize: 13, marginBottom: 1, textAlign: 'center'}}>
+              Account No.: <span style={{fontWeight: 700}}>40532712517</span> | IFSC: <span style={{fontWeight: 700}}>SBIN0000004</span>
+            </div>
+            <div style={{fontWeight: 600, fontSize: 13, marginBottom: 10, textAlign: 'center'}}>
+              State Bank Of India, Alipore Kolkata Branch
+            </div>
+            <div style={{fontWeight: 600, fontSize: 15, marginBottom: 8, textAlign: 'center'}}>Make a payment using the QR code above.</div>
+            <div style={{fontSize: 13, color: '#444', marginBottom: 6, textAlign: 'center'}}>
+              After payment, please submit your transaction details (UTR number and payment screenshot) in the <b>Profile</b> section.
+            </div>
+          </div>
+        ),
       },
     ],
   },
@@ -483,7 +427,9 @@ const STEP_FIELD_NAMES = EDITABLE_STEPS.reduce((accumulator, step) => {
 }, {});
 
 const INITIAL_VALUES = PROFILE_FIELDS.reduce((accumulator, field) => {
-  accumulator[field.name] = '';
+  if (!['state', 'district', 'city', 'pinCode'].includes(field.name)) {
+    accumulator[field.name] = '';
+  }
   return accumulator;
 }, {});
 
@@ -755,19 +701,7 @@ const getDisplayValue = (field, value) => {
   return value;
 };
 
-const getCompletedStepIndexes = (values, currentRole = '') =>
-  EDITABLE_STEPS.reduce((completed, step, index) => {
-    const isComplete = STEP_FIELD_NAMES[step.id].every((fieldName) => {
-      const field = FIELD_MAP[fieldName];
-      return !validateProfileField(field, values[fieldName], values, currentRole);
-    });
-
-    if (isComplete) {
-      completed.push(index);
-    }
-
-    return completed;
-  }, []);
+// Only use the version with paymentStepManuallyCompleted flag (already defined below)
 
 function CheckIcon() {
   return (
@@ -1000,17 +934,22 @@ function ReviewSection({ step, values, onEdit, currentRole }) {
         </button>
       </div>
 
-      {step.sections.map((section) => (
-        <div key={section.title} className="profile-completion__review-section">
-          <h4>{section.title}</h4>
-          {section.fields.filter((field) => shouldRenderField(field, values, currentRole)).map((field) => (
-            <div key={field.name} className="profile-completion__review-row">
-              <span>{field.label}</span>
-              <strong>{getDisplayValue(field, values[field.name])}</strong>
-            </div>
-          ))}
-        </div>
-      ))}
+      {step.sections
+        .filter((section) =>
+          !(step.id === 'payment' &&
+            (section.title === 'Settlement Payment' || section.title === 'Payment Details' || section.subtitle === 'Match the settlement details expected by the backend contract.'))
+        )
+        .map((section) => (
+          <div key={section.title} className="profile-completion__review-section">
+            <h4>{section.title}</h4>
+            {section.fields.filter((field) => shouldRenderField(field, values, currentRole)).map((field) => (
+              <div key={field.name} className="profile-completion__review-row">
+                <span>{field.label}</span>
+                <strong>{getDisplayValue(field, values[field.name])}</strong>
+              </div>
+            ))}
+          </div>
+        ))}
     </section>
   );
 }
@@ -1043,6 +982,8 @@ const ProfileCompletion = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [apiError, setApiError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  // Track manual completion of payment step
+  const [paymentStepManuallyCompleted, setPaymentStepManuallyCompleted] = useState(false);
 
   const {
     values,
@@ -1071,7 +1012,7 @@ const ProfileCompletion = () => {
           ...existingProfile,
         };
 
-        const completed = getCompletedStepIndexes(mergedValues, currentUserRole);
+        const completed = getCompletedStepIndexes(mergedValues, currentUserRole, false);
         const firstIncompleteStep = EDITABLE_STEPS.findIndex(
           (_, index) => !completed.includes(index)
         );
@@ -1100,7 +1041,11 @@ const ProfileCompletion = () => {
   const progressCount = completedSteps.filter((stepIndex) => stepIndex < EDITABLE_STEPS.length).length;
   const progressPercent = Math.round((progressCount / EDITABLE_STEPS.length) * 100);
   const activeStep = PROFILE_STEPS[currentStep];
-  const currentFieldNames = STEP_FIELD_NAMES[activeStep.id] || [];
+  // Only include required fields for the current step, filtering out any removed fields
+  const currentFieldNames = (STEP_FIELD_NAMES[activeStep.id] || []).filter(
+    (name) =>
+      !['state', 'district', 'city', 'pinCode'].includes(name)
+  );
   const isReviewStep = activeStep.id === 'review';
 
   const validateCurrentStep = () => {
@@ -1164,11 +1109,12 @@ const ProfileCompletion = () => {
     setApiError('');
     setSuccessMessage('');
 
+    // Only validate required fields for the current step
     if (!validateCurrentStep()) {
       return;
     }
 
-    const recalculated = getCompletedStepIndexes(values, currentUserRole);
+    const recalculated = getCompletedStepIndexes(values, currentUserRole, paymentStepManuallyCompleted);
     setCompletedSteps(recalculated);
     setCurrentStep((previous) => Math.min(previous + 1, PROFILE_STEPS.length - 1));
   };
@@ -1181,9 +1127,28 @@ const ProfileCompletion = () => {
 
   const handleSubmit = async () => {
     setApiError('');
+    // Accepts a manual payment step completion flag
+    const getCompletedStepIndexes = (values, currentRole = '', paymentStepManuallyCompleted = false) =>
+      EDITABLE_STEPS.reduce((completed, step, index) => {
+        let isComplete;
+        if (step.id === 'payment') {
+          isComplete = paymentStepManuallyCompleted;
+        } else {
+          isComplete = STEP_FIELD_NAMES[step.id].every((fieldName) => {
+            const field = FIELD_MAP[fieldName];
+            return !validateProfileField(field, values[fieldName], values, currentRole);
+          });
+        }
+        if (isComplete) {
+          completed.push(index);
+        }
+        return completed;
+      }, []);
     setSuccessMessage('');
 
     if (!validateAll()) {
+      // Only set to true when user clicks Next on payment step
+      const [paymentStepManuallyCompleted, setPaymentStepManuallyCompleted] = useState(false);
       return;
     }
 
@@ -1200,40 +1165,51 @@ const ProfileCompletion = () => {
       formData.append('passport_size_photo_file', values.passportPhotoFile);
       formData.append('noc_file', values.nocFile);
 
-      // Attach data (as JSON strings)
-      formData.append('professional', JSON.stringify({
+      // Professional Details
+      const professional = {
+        register_as: currentUserRole,
         full_name: values.fullName,
         father_name: values.fatherName,
         dob: values.dob,
         gender: values.gender,
-        state: values.state,
-        district: values.district,
-        pincode: values.pinCode,
-        // ...add other professional fields as needed
-      }));
+        field_officer_name: values.fieldOfficerName,
+        oil_sector_experience_years: values.oilSectorExperienceYears,
+        distance_to_nearest_petrol_pump_km: values.nearestFuelPumpDistance,
+        investment_plan: values.investmentPlan,
+        bowser_capacity_id: values.bowserCapacityId,
+        land_area_acres: values.areaInAcres,
+      };
+      formData.append('professional', JSON.stringify(professional));
 
-      formData.append('address', JSON.stringify({
+      // Address Details
+      const address = {
         permanent_address: {
           address_line1: values.permanentAddressLine1,
+          address_line2: values.permanentAddressLine2,
           city: values.permanentCity,
           district: values.permanentDistrict,
           state: values.permanentState,
-          pincode: values.permanentPinCode,
+          pincode: values.permanentPincode,
         },
-        // ...add other address fields as needed
-      }));
+        business_address: {
+          address_line1: values.businessAddressLine1,
+          address_line2: values.businessAddressLine2,
+          city: values.businessCity,
+          district: values.businessDistrict,
+          state: values.businessState,
+          pincode: values.businessPincode,
+        },
+      };
+      formData.append('address', JSON.stringify(address));
 
-      formData.append('vehicle', JSON.stringify({
-        bowser_capacity_id: values.bowserCapacityId,
+      // Vehicle Details
+      const vehicle = {
         vehicle_number: values.vehicleNumber,
-        // ...add other vehicle fields as needed
-      }));
+        bowser_capacity_id: values.bowserCapacityId,
+      };
+      formData.append('vehicle', JSON.stringify(vehicle));
 
-      formData.append('payment', JSON.stringify({
-        account_number: values.accountNumber,
-        ifsc: values.ifsc,
-        // ...add other payment fields as needed
-      }));
+      // No payment details should be sent
 
       // Send the request
       const token = localStorage.getItem('POTENS_admin_access_token');
@@ -1248,7 +1224,7 @@ const ProfileCompletion = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Onboarding failed.');
 
-      setCompletedSteps(getCompletedStepIndexes(values, currentUserRole));
+      setCompletedSteps(getCompletedStepIndexes(values, currentUserRole, paymentStepManuallyCompleted));
       setSuccessMessage('Onboarding completed successfully. Redirecting to dashboard...');
 
       // Generate agreement and certificate PDFs after successful onboarding
@@ -1350,6 +1326,11 @@ const ProfileCompletion = () => {
                   <h3>{section.title}</h3>
                   <p>{section.description}</p>
                 </div>
+
+                {/* Render customContent if present (e.g., QR image for payment step) */}
+                {section.customContent && (
+                  <div className="profile-completion__custom-content">{section.customContent}</div>
+                )}
 
                 <div className="profile-completion__grid">
                   {section.fields.filter((field) => shouldRenderField(field, values, currentUserRole)).map((field) => {

@@ -163,7 +163,7 @@ const DummyCard = ({ company }) => {
   );
 };
 
-const PaymentSection = () => {
+const PaymentSection = ({ paymentStepCompleted, onPaymentStepComplete }) => {
   const [selectedCompany, setSelectedCompany] = useState('iocl');
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -173,6 +173,7 @@ const PaymentSection = () => {
   const [vehicleValidated, setVehicleValidated] = useState(false);
   const [mobileValidated, setMobileValidated] = useState(false);
   const [cardGenerated, setCardGenerated] = useState(false);
+  const [showNext, setShowNext] = useState(false);
 
   const selected = FUEL_COMPANIES.find(c => c.id === selectedCompany);
   const allValidated = vehicleValidated && mobileValidated;
@@ -209,6 +210,27 @@ const PaymentSection = () => {
           yearOfReg={yearOfReg}
           onReset={handleReset}
         />
+        {/* Show Next button only after card is generated and not already completed */}
+        {!paymentStepCompleted && (
+          <div style={{ marginTop: 24, textAlign: 'right' }}>
+            <button
+              className="wallet-btn-submit"
+              type="button"
+              onClick={() => {
+                onPaymentStepComplete();
+                setShowNext(false);
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
+        {/* If already completed, show green tick or message */}
+        {paymentStepCompleted && (
+          <div style={{ marginTop: 24, color: 'green', textAlign: 'right' }}>
+            <span>&#10003; Payment Details Completed</span>
+          </div>
+        )}
       </div>
     );
   }
