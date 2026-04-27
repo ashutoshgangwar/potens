@@ -90,6 +90,9 @@ const SignupPage = () => {
         confirmPassword: values.confirmPassword,
         role: values.role,
       });
+      // Log the created user for debugging
+      // eslint-disable-next-line no-console
+      console.log('Signup success:', user);
       // After signup, check if onboarding is needed
       if (user?.needs_onboarding || user?.is_onboarded === false) {
         navigate('/profile-completion', { replace: true });

@@ -1,0 +1,69 @@
+/* Container cards */
+.approvals-list, .users-table, .reports-list, .admin-stats {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Common row styling */
+.approval-item, .users-table tr, .reports-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 10px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.approval-item:last-child, .users-table tr:last-child, .reports-list li:last-child {
+  border-bottom: none;
+}
+
+/* Status chips */
+.approvals-status {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.approvals-status.pending { color: var(--color-warning); background: rgba(245,158,11,0.08); }
+.approvals-status.approved { color: var(--color-success); background: rgba(76,175,80,0.06); }
+.approvals-status.rejected { color: var(--color-text-muted); background: rgba(107,114,128,0.04); }
+
+/* Buttons */
+.btn { font-family: inherit; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: background .15s ease; }
+.btn:hover { opacity: 0.95; }
+.btn-approve { background: var(--color-success); color: white; }
+.btn-reject { background: var(--color-danger); color: white; }
+.btn-secondary { background: #f3f4f6; color: var(--color-text); }
+
+/* Users table */
+.users-table table { width: 100%; border-collapse: collapse; }
+.users-table thead th { padding: 10px; text-align: left; color: var(--color-text-muted); font-size: 0.9rem; }
+.users-table td { padding: 12px 10px; }
+.users-table tr:hover td { background: rgba(31,58,95,0.02); }
+
+.reports-list ul { list-style: none; padding: 0; margin: 0; }
+.reports-actions a { margin-left: 12px; color: var(--color-primary); }
+
+.admin-stats { display: flex; gap: 16px; align-items: stretch; }
+.admin-card { padding: 14px; border-radius: 10px; background: #fafafa; min-width: 140px; border: 1px solid #f1f5f9; }
+.admin-card .card-title { font-size: 0.85rem; color: var(--color-text-muted); }
+.admin-card .card-value { font-weight: 700; font-size: 1.25rem; margin-top: 6px; }
+
+.dashboard .dashboard-main { background: var(--color-bg); padding: 20px; min-height: 80vh; }
+
+.dashboard-mobile-nav .dashboard-mobile-nav-item { background: transparent; border: none; padding: 8px 10px; display:flex; align-items:center; gap:8px; }
+.dashboard-mobile-nav .dashboard-mobile-nav-item--active { background: rgba(31,58,95,0.06); border-radius:8px; }
+
+@media (max-width: 720px) {
+  .admin-stats { flex-direction: column; }
+}
+
+/* Payments table styles reuse table layout */
+.payments-table table { width: 100%; border-collapse: collapse; }
+.payments-table thead th { padding: 10px; text-align: left; color: var(--color-text-muted); font-size: 0.9rem; }
+.payments-table td { padding: 12px 10px; }
+.payments-table tr:hover td { background: rgba(31,58,95,0.02); }
+

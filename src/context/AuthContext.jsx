@@ -34,6 +34,37 @@ const normalizeRoleValue = (roleValue) => {
   return `${roleValue}`.trim();
 };
 
+// Derive simple capability flags from a user's role/roles for UI decisions
+const deriveRoleCapabilities = (roleOrRoles) => {
+  const roles = [];
+  if (!roleOrRoles) return {};
+  if (Array.isArray(roleOrRoles)) {
+    for (const r of roleOrRoles) {
+      if (r) roles.push(String(r).toLowerCase());
+    }
+  } else if (typeof roleOrRoles === 'string') {
+    roles.push(roleOrRoles.toLowerCase());
+  } else if (typeof roleOrRoles === 'object') {
+    const maybe = roleOrRoles.name || roleOrRoles.slug || roleOrRoles.code || roleOrRoles.label;
+    if (maybe) roles.push(String(maybe).toLowerCase());
+  }
+
+  const has = (candidates) => roles.some((r) => candidates.includes(r));
+
+  const capability = {
+    isAdmin: has(['admin', 'super-admin', 'sub-admin']),
+    isManager: has(['logistics-manager', 'ops-manager']),
+    isAccount: has(['account-executive', 'accountant']),
+    isField: has(['field-officer', 'fdp-driver', 'bowser', 'mini-pump']),
+    // generic approval permission for managers and admins
+    canApprove: has(['logistics-manager', 'ops-manager', 'admin', 'super-admin', 'sub-admin']),
+    // show wallet/payment-related UI
+    showWallet: has(['account-executive', 'accountant', 'admin', 'super-admin']),
+  };
+
+  return capability;
+};
+
 // ─── State shape ────────────────────────────────────────────────────────────
 const initialState = {
   user: null,
@@ -84,10 +115,14 @@ export const AuthProvider = ({ children }) => {
       ? { ...user, role: normalizedRole }
       : user;
 
+    // Attach derived capability flags so UI can quickly read them
+    const capabilities = deriveRoleCapabilities(normalizedUser?.roles || normalizedUser?.role);
+    const userToStore = { ...normalizedUser, ...capabilities };
+
     localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
+    localStorage.setItem(USER_KEY, JSON.stringify(userToStore));
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
-    localStorage.setItem(USER_ID_KEY, normalizedUser?.id || '');
+    localStorage.setItem(USER_ID_KEY, userToStore?.id || '');
     localStorage.setItem(USER_ROLE_KEY, normalizedRole);
   }, []);
 
@@ -106,8 +141,12 @@ export const AuthProvider = ({ children }) => {
       ? { ...fallbackUser, ...profileUser, role: normalizedRole }
       : { ...fallbackUser, ...profileUser };
 
-    persistSession(mergedUser, token, normalizedRole);
-    return mergedUser;
+    // derive capabilities and persist augmented user
+    const capabilities = deriveRoleCapabilities(mergedUser?.roles || mergedUser?.role);
+    const userToStore = { ...mergedUser, ...capabilities };
+
+    persistSession(userToStore, token, normalizedRole);
+    return userToStore;
   }, [persistSession]);
 
   // Rehydrate session from localStorage on mount
@@ -164,12 +203,15 @@ export const AuthProvider = ({ children }) => {
     const { user, token } = await apiLogin({ email, phone, password });
     const normalizedRole = normalizeRoleValue(user?.role);
     const userWithRole = normalizedRole ? { ...user, role: normalizedRole } : user;
+    // attach capabilities from the login response
+    const initialCapabilities = deriveRoleCapabilities(userWithRole?.roles || userWithRole?.role);
+    const userWithCapabilities = { ...userWithRole, ...initialCapabilities };
 
-    let profileUser = userWithRole;
+    let profileUser = userWithCapabilities;
     try {
       profileUser = await fetchAndPersistProfile({ token, fallbackUser: userWithRole });
     } catch {
-      persistSession(userWithRole, token, normalizedRole);
+      persistSession(userWithCapabilities, token, normalizedRole);
     }
 
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user: profileUser, token } });
@@ -187,22 +229,25 @@ export const AuthProvider = ({ children }) => {
     });
     const normalizedRole = normalizeRoleValue(user?.role || role);
     const userWithRole = normalizedRole ? { ...user, role: normalizedRole } : user;
+    const initialCapabilities = deriveRoleCapabilities(userWithRole?.roles || userWithRole?.role);
+    const userWithCapabilities = { ...userWithRole, ...initialCapabilities };
     // Signup now returns an access token; persist it for immediate onboarding calls.
     if (token) {
       try {
-        const profileUser = await fetchAndPersistProfile({ token, fallbackUser: userWithRole });
+        const profileUser = await fetchAndPersistProfile({ token, fallbackUser: userWithCapabilities });
         dispatch({ type: 'SIGNUP_SUCCESS', payload: { user: profileUser, token } });
         return profileUser;
       } catch {
-        persistSession(userWithRole, token, normalizedRole);
+        persistSession(userWithCapabilities, token, normalizedRole);
       }
     } else {
-      localStorage.setItem(USER_KEY, JSON.stringify(userWithRole));
+      const capabilities = deriveRoleCapabilities(userWithRole?.roles || userWithRole?.role);
+      localStorage.setItem(USER_KEY, JSON.stringify({ ...userWithRole, ...capabilities }));
       localStorage.setItem(USER_ID_KEY, userWithRole?.id || '');
       localStorage.setItem(USER_ROLE_KEY, normalizedRole);
     }
-    dispatch({ type: 'SIGNUP_SUCCESS', payload: { user: userWithRole, token: token || null } });
-    return userWithRole;
+    dispatch({ type: 'SIGNUP_SUCCESS', payload: { user: userWithCapabilities, token: token || null } });
+    return userWithCapabilities;
   }, [fetchAndPersistProfile, persistSession]);
 
   const logout = useCallback(async () => {

@@ -29,6 +29,9 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const user = await login({ email: values.email, password: values.password });
+      // Log the logged-in user for debugging
+      // eslint-disable-next-line no-console
+      console.log('Login success:', user);
       // If user needs onboarding, redirect to profile-completion
       if (user?.needs_onboarding || user?.is_onboarded === false) {
         navigate('/profile-completion', { replace: true });

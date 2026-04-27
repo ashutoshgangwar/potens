@@ -7,9 +7,12 @@ import OverviewSection from './components/sections/OverviewSection.jsx';
 import TransactionSection from './components/sections/TransactionSection.jsx';
 import ProfileSection from './components/sections/ProfileSection.jsx';
 import InvestmentSection from './components/sections/InvestmentSection.jsx';
-import PaymentSection from './components/sections/PaymentSection.jsx';
+import WalletSection from './components/sections/WalletSection.jsx';
 import DocumentsSection from './components/sections/DocumentsSection.jsx';
 import SupportSection from './components/sections/SupportSection.jsx';
+import { SIDEBAR_CONFIG } from '../../constants/sidebarConfig.js';
+import { getAllowedSidebarKeys } from '../../constants/roleAccess.js';
+
 
 const createSidebarIcon = (src, alt) => (
 	<img
@@ -18,16 +21,6 @@ const createSidebarIcon = (src, alt) => (
 		style={{ width: '1.1rem', height: '1.1rem', filter: 'brightness(0) invert(1)' }}
 	/>
 );
-
-const SIDEBAR_ITEMS = [
-	{ icon: createSidebarIcon('/overview.svg', 'Overview'), label: 'Overview', key: 'dashboard' },
-	{ icon: createSidebarIcon('/trasaction.svg', 'Transaction'), label: 'Transaction', key: 'transaction' },
-	{ icon: createSidebarIcon('/wallet.svg', 'Wallet'), label: 'Wallet', key: 'payment' },
-	{ icon: createSidebarIcon('/agreement.svg', 'Agreement'), label: 'Agreement', key: 'investment' },
-	{ icon: createSidebarIcon('/certificate.svg', 'Certificate'), label: 'Certificate', key: 'documents' },
-	{ icon: createSidebarIcon('/support.svg', 'Support'), label: 'Support', key: 'support' },
-	{ icon: createSidebarIcon('/profile.svg', 'Profile'), label: 'Profile', key: 'profile' },
-];
 
 const REQUIRED_PROFILE_FIELDS = [
 	'fullName',
@@ -354,6 +347,20 @@ const DashboardPage = () => {
 		setActiveSection(key);
 	};
 
+		// Dynamically generate sidebar items based on user role
+		const allowedSidebarKeys = getAllowedSidebarKeys(user?.role);
+		const SIDEBAR_ITEMS = allowedSidebarKeys
+			.map((key) => {
+				const config = SIDEBAR_CONFIG[key];
+				if (!config) return null;
+				return {
+					icon: createSidebarIcon(config.icon, config.label),
+					label: config.label,
+					key,
+				};
+			})
+			.filter(Boolean);
+
 	const sectionsByKey = {
 		dashboard: (
 			<OverviewSection
@@ -380,7 +387,7 @@ const DashboardPage = () => {
 				navigate={navigate}
 			/>
 		),
-		transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />,
+		transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />, 
 		investment: (
 			<InvestmentSection
 				profileDetails={profileDetails}
@@ -389,26 +396,80 @@ const DashboardPage = () => {
 				onOpenProfile={() => navigate('/profile-completion')}
 			/>
 		),
-		payment: (
-			<PaymentSection
-				paymentReady={paymentReady}
-				paymentPreferenceLabel={paymentPreferenceLabel}
+		agreement: (
+			<InvestmentSection
+				profileDetails={profileDetails}
+				userId={user?.id}
+				partnerKpis={partnerKpis}
 				onOpenProfile={() => navigate('/profile-completion')}
-				paymentStepCompleted={paymentStepCompleted}
-				onPaymentStepComplete={() => setPaymentStepCompleted(true)}
 			/>
 		),
-		   documents: (
-			   <DocumentsSection
-				   user={user}
-				   uploadedDocuments={uploadedDocuments}
-				   totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
-				   documentStatusRows={documentStatusRows}
-				   certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
+		   wallet: (
+			   <WalletSection
+				   paymentReady={paymentReady}
+				   paymentPreferenceLabel={paymentPreferenceLabel}
 				   onOpenProfile={() => navigate('/profile-completion')}
+				   paymentStepCompleted={paymentStepCompleted}
+				   onPaymentStepComplete={() => setPaymentStepCompleted(true)}
 			   />
 		   ),
-		support: <SupportSection />,
+		   payments: (
+			   <div style={{ padding: 32 }}>
+				   <h2>Payments</h2>
+				   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
+					   <thead>
+						   <tr style={{ background: '#f5f7fa' }}>
+							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR Number</th>
+							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Bank</th>
+							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Date</th>
+							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Action</th>
+						   </tr>
+					   </thead>
+					   <tbody>
+						   {/* Example static data, replace with real data as needed */}
+						   <tr>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR123456789</td>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>HDFC Bank</td>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-27</td>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
+								   <button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
+								   <button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
+							   </td>
+						   </tr>
+						   <tr>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR987654321</td>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>ICICI Bank</td>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-26</td>
+							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
+								   <button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
+								   <button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
+							   </td>
+						   </tr>
+					   </tbody>
+				   </table>
+			   </div>
+		   ),
+		documents: (
+			<DocumentsSection
+				user={user}
+				uploadedDocuments={uploadedDocuments}
+				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+				documentStatusRows={documentStatusRows}
+				certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
+				onOpenProfile={() => navigate('/profile-completion')}
+			/>
+		),
+		certificate: (
+			<DocumentsSection
+				user={user}
+				uploadedDocuments={uploadedDocuments}
+				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+				documentStatusRows={documentStatusRows}
+				certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
+				onOpenProfile={() => navigate('/profile-completion')}
+			/>
+		),
+		support: <SupportSection />, 
 	};
 
 	return (
