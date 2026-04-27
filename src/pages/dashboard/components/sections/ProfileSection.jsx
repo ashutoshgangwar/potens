@@ -114,20 +114,23 @@ const ProfileSection = ({
   ];
 
   const documentRows = [
-    { label: 'PAN Number', value: getDisplayValue(documents?.pan_card?.number || profileDetails?.panNumber) },
-    { label: 'Aadhaar Number', value: getDisplayValue(documents?.aadhaar_card?.number || profileDetails?.aadhaarNumber) },
-    { label: 'Driving License', value: getDisplayValue(documents?.driving_license?.number || profileDetails?.drivingLicenseNumber) },
-    { label: 'Vehicle RC', value: getDisplayValue(documents?.vehicle_rc?.number || profileDetails?.vehicleRcNumber) },
+    { label: 'PAN Number', value: getDisplayValue(documents?.pan_card?.number || profileDetails?.panNumber), showVerify: true },
+    { label: 'Aadhaar Number', value: getDisplayValue(documents?.aadhaar_card?.number || profileDetails?.aadhaarNumber), showVerify: true },
+    { label: 'Driving License', value: getDisplayValue(documents?.driving_license?.number || profileDetails?.drivingLicenseNumber), showVerify: true },
+    { label: 'Vehicle RC', value: getDisplayValue(documents?.vehicle_rc?.number || profileDetails?.vehicleRcNumber), showVerify: true },
     { label: 'NOC', value: hasDocumentData(documents?.noc) ? 'Submitted' : 'Not provided' },
     { label: 'Passport Photo', value: hasDocumentData(documents?.passport_size_photo) ? 'Submitted' : 'Not provided' },
   ];
 
   const renderRows = (rows) => (
     <div className="profile-details-grid">
-      {rows.map(({ label, value }) => (
-        <div key={label} className="profile-details-item">
+      {rows.map(({ label, value, showVerify }) => (
+        <div key={label} className="profile-details-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>{label}</span>
           <strong>{value}</strong>
+          {showVerify && (
+            <Button size="xs" style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}>Verify</Button>
+          )}
         </div>
       ))}
     </div>
@@ -190,10 +193,6 @@ const ProfileSection = ({
           {renderRows(profileRows)}
         </Card>
 
-        <Card padding="md" shadow="sm" className="profile-details-card profile-details-card--wide">
-          <h3 className="card-section-title card-section-title--spaced">Payment Information</h3>
-          {renderRows(paymentRows)}
-        </Card>
 
         <Card padding="md" shadow="sm" className="profile-details-card">
           <h3 className="card-section-title card-section-title--spaced">Permanent Address</h3>

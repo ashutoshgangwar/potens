@@ -156,7 +156,6 @@ const InvestmentSection = ({ profileDetails, userId }) => {
       header={
         <div className="card-header-row">
           <h2 className="card-section-title">Agreement & Certificate</h2>
-          <span className="meta-pill">QR Enabled</span>
         </div>
       }
     >
