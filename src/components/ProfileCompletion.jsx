@@ -286,6 +286,13 @@ const PROFILE_STEPS = [
             required: true,
           },
           {
+            name: 'drcNumber',
+            label: 'DRC Number',
+            type: 'text',
+            placeholder: 'Enter DRC Number',
+            required: true,
+          },
+          {
             name: 'panFile',
             label: 'PAN Card Image',
             type: 'file',
@@ -1125,6 +1132,31 @@ const ProfileCompletion = () => {
     setCurrentStep((previous) => Math.max(previous - 1, 0));
   };
 
+  // PAN/Aadhaar verification handler
+  const handleVerifyPanAadhaar = async () => {
+    setApiError('');
+    setSuccessMessage('');
+    setLoading(true);
+    try {
+      const payload = {
+        panNumber: values.panNumber,
+        aadhaarNumber: values.aadhaarNumber,
+        fullName: values.fullName,
+        userId: user?.id || user?._id || user?.user_id || '',
+      };
+      const res = await apiVerifyPanAadhaar(payload);
+      if (res.success && res.verified) {
+        setSuccessMessage('PAN and Aadhaar verified successfully.');
+      } else {
+        setApiError('PAN/Aadhaar verification failed. Please check your details.');
+      }
+    } catch (err) {
+      setApiError(err.message || 'PAN/Aadhaar verification failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setApiError('');
     // Accepts a manual payment step completion flag
@@ -1155,6 +1187,7 @@ const ProfileCompletion = () => {
     setLoading(true);
 
     try {
+
       // Build FormData for upload
       const formData = new FormData();
       // Attach files (File objects from form state)
@@ -1208,6 +1241,23 @@ const ProfileCompletion = () => {
         bowser_capacity_id: values.bowserCapacityId,
       };
       formData.append('vehicle', JSON.stringify(vehicle));
+
+      // Document Numbers (flat fields for PATCH compatibility)
+      formData.append('pan_card_number', values.panNumber || '');
+      formData.append('aadhaar_card_number', values.aadhaarNumber || '');
+      formData.append('driving_license_number', values.drivingLicenseNumber || '');
+      formData.append('vehicle_rc_number', values.vehicleRcNumber || '');
+      // Add DRC number (now required)
+      formData.append('drc_number', values.drcNumber);
+
+      // Nested document structure for onboarding/PATCH compatibility
+      const documents = {
+        pan_card: { number: values.panNumber || '' },
+        aadhaar_card: { number: values.aadhaarNumber || '' },
+        vehicle_rc: { number: values.vehicleRcNumber || '' },
+        driving_license: { number: values.drivingLicenseNumber || '' },
+      };
+      formData.append('documents', JSON.stringify(documents));
 
       // No payment details should be sent
 
@@ -1277,6 +1327,16 @@ const ProfileCompletion = () => {
             onClick={() => navigate('/dashboard')}
           >
             ← Back to Dashboard
+          </button>
+          {/* PAN/Aadhaar Verification Button */}
+          <button
+            type="button"
+            className="profile-completion__ghost-btn"
+            style={{ marginLeft: 16 }}
+            onClick={handleVerifyPanAadhaar}
+            disabled={loading}
+          >
+            Verify PAN & Aadhaar
           </button>
         </header>
 

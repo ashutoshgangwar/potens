@@ -1,5 +1,9 @@
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
+import { fetchAuthProfilePayload } from '../../../../utils/api.js';
+import { apiVerifyPan, apiVerifyAadhaar } from '../../../../utils/api.js';
 import { Button, Card } from '../../../../components/ui/index.js';
+import { useAuth } from '../../../../context/AuthContext.jsx';
 
 const getDisplayValue = (value, fallback = 'Not provided') => {
   const normalized = `${value ?? ''}`.trim();
@@ -10,38 +14,65 @@ const hasDocumentData = (doc) => {
   if (!doc || typeof doc !== 'object') {
     return false;
   }
-
-  if (typeof doc.number === 'string' && doc.number.trim()) {
-    return true;
-  }
-
-  if (typeof doc.file_url === 'string' && doc.file_url.trim()) {
-    return true;
-  }
-
   return Object.keys(doc).length > 0;
 };
 
+
+
 const ProfileSection = ({
-  user,
-  profileDetails,
   profileCompletion,
   completedProfileFieldsCount,
   totalProfileFields,
-  uploadedDocuments,
-  totalDocuments,
   paymentReady,
   paymentPreferenceLabel,
   navigate,
 }) => {
-  const apiUser = profileDetails?.user || user || {};
-  const professional = profileDetails?.professional || {};
-  const address = profileDetails?.address || {};
-  const documents = profileDetails?.documents || {};
-  const payment = profileDetails?.payment || {};
-  const vehicle = profileDetails?.vehicle || {};
-  const permanentAddress = address?.permanent_address || {};
-  const businessAddress = address?.business_address || {};
+  const { user, isLoading: authLoading } = useAuth();
+  // All hooks at the top, before any return!
+  const [profileDetails, setProfileDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [fullName, setFullName] = useState('');
+  const [verifyPanLoading, setVerifyPanLoading] = useState(false);
+  const [verifyAadhaarLoading, setVerifyAadhaarLoading] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
+  const [verifyError, setVerifyError] = useState('');
+  const [editDocFields, setEditDocFields] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('POTENS_admin_access_token');
+        if (!token) throw new Error('No auth token found');
+        const details = await fetchAuthProfilePayload(token);
+        setProfileDetails(details);
+        setFullName(details?.user?.name || details?.fullName || '');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [user, authLoading]);
+
+  if (authLoading || !user || !user.id) {
+    return <div style={{padding: '2rem', textAlign: 'center'}}>Loading profile...</div>;
+  }
+
+  if (loading) {
+    return <div style={{padding: '2rem', textAlign: 'center'}}>Loading profile...</div>;
+  }
+  // If no profile found, use empty/default objects so UI renders but is empty
+  const safeProfileDetails = profileDetails?.user ? profileDetails : { user: user || {}, professional: {}, address: {}, documents: {}, payment: {}, vehicle: {} };
+  // Use safeProfileDetails everywhere to avoid blocking UI
+  const apiUser = safeProfileDetails.user || {};
+  const professional = safeProfileDetails.professional ?? {};
+  const address = safeProfileDetails.address ?? {};
+  const documents = safeProfileDetails.documents ?? {};
+  const payment = safeProfileDetails.payment ?? {};
+  const vehicle = safeProfileDetails.vehicle ?? {};
+  const permanentAddress = (address && typeof address === 'object' ? address.permanent_address : undefined) ?? {};
+  const businessAddress = (address && typeof address === 'object' ? address.business_address : undefined) ?? {};
 
   const accountRows = [
     { label: 'Full Name', value: getDisplayValue(apiUser?.name || profileDetails?.fullName) },
@@ -113,31 +144,161 @@ const ProfileSection = ({
     { label: 'Pincode', value: getDisplayValue(businessAddress?.pincode || profileDetails?.businessPincode) },
   ];
 
+  // Always use API response values for document numbers (no duplication)
   const documentRows = [
-    { label: 'PAN Number', value: getDisplayValue(documents?.pan_card?.number || profileDetails?.panNumber), showVerify: true },
-    { label: 'Aadhaar Number', value: getDisplayValue(documents?.aadhaar_card?.number || profileDetails?.aadhaarNumber), showVerify: true },
-    { label: 'Driving License', value: getDisplayValue(documents?.driving_license?.number || profileDetails?.drivingLicenseNumber), showVerify: true },
-    { label: 'Vehicle RC', value: getDisplayValue(documents?.vehicle_rc?.number || profileDetails?.vehicleRcNumber), showVerify: true },
+    { label: 'PAN Number', value: getDisplayValue(documents?.pan_card?.number), showVerify: true, type: 'pan' },
+    // Always use the latest Aadhaar number from API response, never fallback to any other value
+    { label: 'Aadhaar Number', value: getDisplayValue(documents?.aadhaar_card && typeof documents?.aadhaar_card === 'object' ? documents?.aadhaar_card?.number : ''), showVerify: true, type: 'aadhaar' },
+    { label: 'Driving License', value: getDisplayValue(documents?.driving_license?.number), showVerify: true },
+    { label: 'Vehicle RC', value: getDisplayValue(documents?.vehicle_rc?.number), showVerify: true },
     { label: 'NOC', value: hasDocumentData(documents?.noc) ? 'Submitted' : 'Not provided' },
     { label: 'Passport Photo', value: hasDocumentData(documents?.passport_size_photo) ? 'Submitted' : 'Not provided' },
   ];
 
+  // Separate handlers for PAN and Aadhaar verification
+  // useState declarations moved to the top, duplicates removed
+
+  const handleVerifyPan = async (e) => {
+    e.preventDefault();
+    setVerifyPanLoading(true);
+    setVerifyResult(null);
+    setVerifyError('');
+    try {
+      const res = await apiVerifyPan({ panNumber, userId });
+      setVerifyResult(res);
+    } catch (err) {
+      setVerifyError(err.message || 'PAN verification failed.');
+    } finally {
+      setVerifyPanLoading(false);
+    }
+  };
+
+  const handleVerifyAadhaar = async (e) => {
+    e.preventDefault();
+    setVerifyAadhaarLoading(true);
+    setVerifyResult(null);
+    setVerifyError('');
+    try {
+        const res = await apiVerifyAadhaar({ aadhaarNumber: documents?.aadhaar_card?.number || '', userId });
+      setVerifyResult(res);
+    } catch (err) {
+      setVerifyError(err.message || 'Aadhaar verification failed.');
+    } finally {
+      setVerifyAadhaarLoading(false);
+    }
+  };
+
+  // Render rows with Verify button for PAN/Aadhaar only
   const renderRows = (rows) => (
     <div className="profile-details-grid">
       {rows.map(({ label, value, showVerify }) => (
         <div key={label} className="profile-details-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>{label}</span>
           <strong>{value}</strong>
-          {showVerify && (
-            <Button size="xs" style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}>Verify</Button>
+          {showVerify && label === 'PAN Number' && (
+            <Button
+              size="xs"
+              style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
+              loading={verifyPanLoading}
+              onClick={handleVerifyPan}
+              disabled={verifyPanLoading}
+            >
+              Verify
+            </Button>
+          )}
+          {showVerify && label === 'Aadhaar Number' && (
+            <Button
+              size="xs"
+              style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
+              loading={verifyAadhaarLoading}
+              onClick={handleVerifyAadhaar}
+              disabled={verifyAadhaarLoading}
+            >
+              Verify
+            </Button>
           )}
         </div>
       ))}
+      {/* Show verification result or error below the grid */}
+      {(verifyResult || verifyError) && (
+        <div style={{ marginTop: 8, width: '100%' }}>
+          {verifyResult && verifyResult.success && verifyResult.verified && (
+            <span style={{ color: 'green', fontWeight: 500 }}>Verification successful!</span>
+          )}
+          {verifyResult && (!verifyResult.success || !verifyResult.verified) && (
+            <span style={{ color: 'orange', fontWeight: 500 }}>Verification failed.</span>
+          )}
+          {verifyError && (
+            <span style={{ color: 'red', fontWeight: 500 }}>{verifyError}</span>
+          )}
+        </div>
+      )}
     </div>
   );
+  
+
+  // Always use the latest values from documents for PAN and Aadhaar
+  const userId = apiUser?.id || apiUser?._id || apiUser?.user_id || profileDetails?.userId || '';
+
+  // --- Profile Alert Logic ---
+
+  // Map of required fields to their nested paths in the API response
+  const REQUIRED_PROFILE_FIELDS_MAP = [
+    { label: 'Full Name', path: ['user', 'full_name'] },
+    { label: 'Father Name', path: ['professional', 'father_name'] },
+    { label: 'Date of Birth', path: ['professional', 'dob'] },
+    { label: 'Gender', path: ['professional', 'gender'] },
+    { label: 'State', path: ['professional', 'state'] },
+    { label: 'District', path: ['professional', 'district'] },
+    { label: 'Field Officer', path: ['professional', 'field_officer_name'] },
+    { label: 'Pin Code', path: ['professional', 'pincode'] },
+    { label: 'Oil Experience (Years)', path: ['professional', 'oil_sector_experience_years'] },
+    { label: 'Nearest Pump (KM)', path: ['professional', 'distance_to_nearest_petrol_pump_km'] },
+    { label: 'Investment Plan', path: ['professional', 'investment_plan'] },
+    { label: 'Permanent Address Line 1', path: ['address', 'permanent_address', 'address_line1'] },
+    { label: 'Permanent Address Line 2', path: ['address', 'permanent_address', 'address_line2'] },
+    { label: 'Permanent City', path: ['address', 'permanent_address', 'city'] },
+    { label: 'Permanent State', path: ['address', 'permanent_address', 'state'] },
+    { label: 'Permanent District', path: ['address', 'permanent_address', 'district'] },
+    { label: 'Permanent Pincode', path: ['address', 'permanent_address', 'pincode'] },
+    { label: 'Business Address Line 1', path: ['address', 'business_address', 'address_line1'] },
+    { label: 'Business Address Line 2', path: ['address', 'business_address', 'address_line2'] },
+    { label: 'Business City', path: ['address', 'business_address', 'city'] },
+    { label: 'Business State', path: ['address', 'business_address', 'state'] },
+    { label: 'Business District', path: ['address', 'business_address', 'district'] },
+    { label: 'Business Pincode', path: ['address', 'business_address', 'pincode'] },
+    { label: 'Vehicle Number', path: ['vehicle', 'vehicle_number'] },
+    { label: 'Payment Mode', path: ['payment', 'payment_mode'] },
+    { label: 'PAN Number', path: ['documents', 'pan_card', 'number'] },
+    { label: 'Aadhaar Number', path: ['documents', 'aadhaar_card', 'number'] },
+    { label: 'Driving License Number', path: ['documents', 'driving_license', 'number'] },
+    { label: 'Vehicle RC Number', path: ['documents', 'vehicle_rc', 'number'] },
+    { label: 'Passport Photo', path: ['documents', 'passport_size_photo'] },
+    { label: 'NOC', path: ['documents', 'noc'] },
+  ];
+
+  // Helper to get nested value by path
+  const getNestedValue = (obj, pathArr) => pathArr.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);
+  const isFilled = (value) => {
+    if (typeof value === 'object' && value !== null) return Object.keys(value).length > 0;
+    return Boolean(String(value ?? '').trim());
+  };
+
+  // Compute missing sections for alert using correct nested paths
+  const missingSections = REQUIRED_PROFILE_FIELDS_MAP
+    .filter(({ label, path }) => !isFilled(getNestedValue(safeProfileDetails, path)))
+    .map(({ label }) => label);
+
+  // Show alert if any required section is missing and profileCompletion < 100
+  const showProfileAlert = missingSections.length > 0 && (typeof profileCompletion === 'number' ? profileCompletion < 100 : true);
+
+  // --- End Profile Alert Logic ---
+
+  // (Unused code for handleVerify removed)
 
   return (
     <div className="profile-section">
+      {/* Always render the rest of the profile UI, even if alert is shown */}
       <Card padding="md" shadow="sm" className="profile-section-hero">
         <div className="profile-section-hero-head">
           <div>
@@ -183,6 +344,9 @@ const ProfileSection = ({
       </Card>
 
       <div className="profile-cards-grid">
+        {/* PAN/Aadhaar Verification Section */}
+        {/* Document Information Card with PAN/Aadhaar Verification */}
+        {/* ...existing code... */}
         <Card padding="md" shadow="sm" className="profile-details-card">
           <h3 className="card-section-title card-section-title--spaced">Account Information</h3>
           {renderRows(accountRows)}
@@ -211,6 +375,6 @@ const ProfileSection = ({
       </div>
     </div>
   );
-};
+}
 
 export default ProfileSection;

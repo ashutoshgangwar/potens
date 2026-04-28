@@ -1,8 +1,43 @@
 import axios from 'axios';
 
+/**
+ * PAN & Aadhaar verification API
+ * POST /api/verify/pan-aadhaar
+ * @param {{ panNumber: string, aadhaarNumber: string, fullName: string }} payload
+ * @returns {Promise<object>} API response
+ */
+
+// PAN Verification API
+export const apiVerifyPan = async ({ panNumber, userId }) => {
+  try {
+    const response = await apiClient.post('/verify/pan', {
+      panNumber,
+      userId,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'PAN verification failed.'));
+  }
+};
+
+// Aadhaar Verification API
+export const apiVerifyAadhaar = async ({ aadhaarNumber, userId }) => {
+  try {
+    console.log('[apiVerifyAadhaar] Request:', { aadhaarNumber, userId });
+    const response = await apiClient.post('/verify/aadhaar', {
+      aadhaarNumber,
+      userId,
+    });
+    console.log('[apiVerifyAadhaar] Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('[apiVerifyAadhaar] Error:', error);
+    throw new Error(getApiErrorMessage(error, 'Aadhaar verification failed.'));
+  }
+};
+
 const MOCK_USERS_KEY = 'POTENS_admin_users';
 const MOCK_PROFILES_KEY = 'POTENS_admin_profiles';
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PDF_API_BASE_URL = import.meta.env.VITE_PDF_API_BASE_URL;
 const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
@@ -141,12 +176,12 @@ const isBrowserFile = (value) =>
   typeof File !== 'undefined' && value instanceof File;
 
 const readFileAsDataUrl = (file) =>
+
   new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : undefined);
     reader.onerror = () => reject(new Error(`Could not read file: ${file?.name || 'document'}`));
     reader.readAsDataURL(file);
-
   });
 
 const getDocumentFileUrl = async (value) => {
@@ -443,16 +478,18 @@ const resolveProfilePayload = (responseData = {}) => {
       isPlainObject(candidate?.vehicle) ||
       isPlainObject(candidate?.vehicle_details)
     ) {
+      // ...existing code...
+      // If you need to call an API here, do it inside this block
+      // Example:
+      // try {
+      //   const response = await apiClient.post('/verify/pan', { panNumber, fullName, userId });
+      //   return response.data;
+      // } catch (error) {
+      //   throw new Error(getApiErrorMessage(error, 'PAN verification failed.'));
+      // }
       return candidate;
     }
   }
-
-  return candidates[0] || {};
-};
-
-const normalizeProfileResponse = (responseData = {}) => {
-  const candidates = getCandidatePayloads(responseData);
-  const payload = resolveProfilePayload(responseData);
 
   const user = findFirstObjectByKeys(candidates, ['user', 'user_details', 'account', 'account_details']);
   const professional = findFirstObjectByKeys(candidates, ['professional', 'professional_details']);
@@ -511,10 +548,7 @@ const normalizeProfileResponse = (responseData = {}) => {
     ifscCode: payment?.ifsc_code || '',
     bankBranch: payment?.branch_name || '',
     paymentOtherDetails: payment?.other_details || '',
-    panNumber: documents?.pan_card?.number || '',
-    aadhaarNumber: documents?.aadhaar_card?.number || '',
-    drivingLicenseNumber: documents?.driving_license?.number || '',
-    vehicleRcNumber: documents?.vehicle_rc?.number || '',
+    // Removed top-level document numbers to avoid confusion; always use nested values
     panFileUrl: documents?.pan_card?.file_url || documents?.pan_card?.url || '',
     aadhaarFileUrl: documents?.aadhaar_card?.file_url || documents?.aadhaar_card?.url || '',
     drivingLicenseFileUrl: documents?.driving_license?.file_url || documents?.driving_license?.url || '',
@@ -530,11 +564,12 @@ const normalizeProfileResponse = (responseData = {}) => {
   };
 };
 
-const fetchAuthProfilePayload = async (authToken) => {
+export const fetchAuthProfilePayload = async (authToken) => {
   const response = await apiClient.get('/auth/profile', {
     headers: { Authorization: `Bearer ${authToken}` },
   });
-
+  // Log the profile API response for debugging
+  console.log('[Profile API] Response:', response.data);
   return response.data || {};
 };
 

@@ -197,6 +197,7 @@ const DashboardPage = () => {
 				]);
 
 				if (mounted) {
+					console.log('[DashboardPage] profileDetails:', details);
 					setProfileDetails(details);
 					setOnboardingProgress(progress);
 				}
@@ -361,6 +362,10 @@ const DashboardPage = () => {
 			})
 			.filter(Boolean);
 
+	if (loadingProfile || profileDetails) {
+		return <div style={{padding: '2rem', textAlign: 'center'}}>Loading profile...</div>;
+	}
+
 	const sectionsByKey = {
 		dashboard: (
 			<OverviewSection
@@ -374,29 +379,20 @@ const DashboardPage = () => {
 			/>
 		),
 		profile: (
-			<ProfileSection
-				user={user}
-				profileDetails={profileDetails}
-				profileCompletion={profileCompletion}
-				completedProfileFieldsCount={completedProfileFieldsCount}
-				totalProfileFields={REQUIRED_PROFILE_FIELDS.length}
-				uploadedDocuments={uploadedDocuments}
-				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
-				paymentReady={paymentReady}
-				paymentPreferenceLabel={paymentPreferenceLabel}
-				navigate={navigate}
-			/>
+			   <ProfileSection
+				   user={user}
+				   profileCompletion={profileCompletion}
+				   completedProfileFieldsCount={completedProfileFieldsCount}
+				   totalProfileFields={REQUIRED_PROFILE_FIELDS.length}
+				   uploadedDocuments={uploadedDocuments}
+				   totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+				   paymentReady={paymentReady}
+				   paymentPreferenceLabel={paymentPreferenceLabel}
+				   navigate={navigate}
+			   />
 		),
 		transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />, 
 		investment: (
-			<InvestmentSection
-				profileDetails={profileDetails}
-				userId={user?.id}
-				partnerKpis={partnerKpis}
-				onOpenProfile={() => navigate('/profile-completion')}
-			/>
-		),
-		agreement: (
 			<InvestmentSection
 				profileDetails={profileDetails}
 				userId={user?.id}
