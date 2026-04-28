@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { apiGetPartners } from '../../../../utils/api';
+import { apiApprovePartner } from '../../../../utils/api';
 import { useAuth } from '../../../../context/AuthContext';
 import './ApprovalsSection.css';
 
@@ -11,6 +12,9 @@ const ApprovalsSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPartner, setSelectedPartner] = useState(null);
+  const [actionModal, setActionModal] = useState({ open: false, partner: null, action: null });
+  const [remarks, setRemarks] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -29,13 +33,43 @@ const ApprovalsSection = () => {
     if (token) fetchPartners();
   }, [token]);
 
-  const handleApprove = (id) => {
-    // TODO: Implement approve API call
-    setPartners((prev) => prev.map((p) => (p._id === id ? { ...p, status: 'approved' } : p)));
+  const openActionModal = (partner, action) => {
+    setActionModal({ open: true, partner, action });
+    setRemarks('');
   };
-  const handleReject = (id) => {
-    // TODO: Implement reject API call
-    setPartners((prev) => prev.map((p) => (p._id === id ? { ...p, status: 'rejected' } : p)));
+
+  const closeActionModal = () => {
+    setActionModal({ open: false, partner: null, action: null });
+    setRemarks('');
+  };
+
+  const handleAction = async () => {
+    if (!actionModal.partner || !actionModal.action) return;
+    setActionLoading(true);
+    setError(null);
+    try {
+      const action = actionModal.action === 'approve' ? 'approved' : 'rejected';
+      const approvalType = 'admin';
+      const apiPayload = {
+        token,
+        userId: actionModal.partner._id,
+        action,
+        approvalType,
+      };
+      if (action === 'approved') apiPayload.remark = remarks;
+      if (action === 'rejected') apiPayload.rejectionReason = remarks;
+      const res = await apiApprovePartner(apiPayload);
+      setPartners((prev) => prev.map((p) =>
+        p._id === actionModal.partner._id
+          ? { ...p, status: action, approvedAt: new Date().toISOString(), remarks }
+          : p
+      ));
+      closeActionModal();
+    } catch (err) {
+      setError(err.message || 'Failed to process action');
+    } finally {
+      setActionLoading(false);
+    }
   };
   const handleView = (partner) => setSelectedPartner(partner);
   const handleCloseModal = () => setSelectedPartner(null);
@@ -70,8 +104,77 @@ const ApprovalsSection = () => {
                 <td>{p.assigned_city || '-'}</td>
                 <td>
                   <button className="approvals-action-btn view" onClick={() => handleView(p)}>View</button>
-                  <button className="approvals-action-btn approve" onClick={() => handleApprove(p._id)}>Approve</button>
-                  <button className="approvals-action-btn reject" onClick={() => handleReject(p._id)}>Reject</button>
+                  {p.admin_approval_status === 'approved' ? (
+                    <span style={{ color: 'green', fontWeight: 600, marginLeft: 8 }}>✔ Approved</span>
+                  ) : p.admin_approval_status === 'rejected' ? (
+                    <>
+                      <button
+                        className="approvals-action-btn approve"
+                        onClick={() => openActionModal(p, 'approve')}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="approvals-action-btn reject"
+                        disabled
+                        style={{ opacity: 0.6 }}
+                      >
+                        Rejected
+                      </button>
+                      {p.admin_rejection_reason && (
+                        <div style={{ color: 'red', fontSize: 13, marginTop: 4, maxWidth: 180, wordBreak: 'break-word' }}>
+                          <b>Reason:</b> {p.admin_rejection_reason}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="approvals-action-btn approve"
+                        onClick={() => openActionModal(p, 'approve')}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="approvals-action-btn reject"
+                        onClick={() => openActionModal(p, 'reject')}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                      {/* Action Modal for Approve/Reject */}
+                      {actionModal.open && (
+                        <div className="modal-overlay">
+                          <div className="modal-content">
+                            <h3 style={{ marginBottom: 12, fontWeight: 700, fontSize: 18 }}>
+                              {actionModal.action === 'approve' ? 'Approve Partner' : 'Reject Partner'}
+                            </h3>
+                            <p style={{ marginBottom: 10 }}>
+                              Are you sure you want to <b>{actionModal.action}</b> <b>{actionModal.partner?.full_name}</b>?
+                            </p>
+                            <textarea
+                              style={{ width: '100%', minHeight: 60, marginBottom: 12, borderRadius: 6, border: '1px solid #cbd5e1', padding: 8 }}
+                              placeholder="Remarks (required)"
+                              value={remarks}
+                              onChange={e => setRemarks(e.target.value)}
+                              required
+                            />
+                            <div style={{ display: 'flex', gap: 12 }}>
+                              <button
+                                className={`approvals-action-btn ${actionModal.action}`}
+                                onClick={handleAction}
+                                disabled={actionLoading || !remarks.trim()}
+                                style={{ minWidth: 90 }}
+                              >
+                                {actionLoading ? 'Processing...' : (actionModal.action === 'approve' ? 'Approve' : 'Reject')}
+                              </button>
+                              <button className="approvals-action-btn view" onClick={closeActionModal} style={{ minWidth: 90 }}>Cancel</button>
+                            </div>
+                            {error && <div style={{ color: 'red', marginTop: 10 }}>{error}</div>}
+                          </div>
+                        </div>
+                      )}
                 </td>
               </tr>
             ))}

@@ -1,4 +1,41 @@
 /**
+ * Approve/Reject Partner API
+ * POST /api/partners/approve
+ * @param {Object} params
+ * @param {string} params.token
+ * @param {string} params.partnerId
+ * @param {string} params.partnerRole
+ * @param {boolean} params.approved
+ * @param {string} params.approvedBy
+ * @param {string} params.remarks
+ * @returns {Promise<object>} API response
+ */
+/**
+ * Approve/Reject Partner API (admin)
+ * POST /api/auth/admin/partner-action
+ * @param {Object} params
+ * @param {string} params.token - Auth token
+ * @param {string} params.userId - Partner user ID
+ * @param {string} params.action - "approved" or "rejected"
+ * @param {string} params.approvalType - "admin", "super_admin", etc.
+ * @returns {Promise<object>} API response
+ */
+export const apiApprovePartner = async ({ token, userId, action, approvalType, remark, rejectionReason }) => {
+  if (!token) throw new Error('Not authorized.');
+  if (!userId || !action || !approvalType) throw new Error('Missing required fields.');
+  const body = { userId, action, approvalType };
+  if (action === 'approved' && remark) body.remark = remark;
+  if (action === 'rejected' && rejectionReason) body.rejectionReason = rejectionReason;
+  try {
+    const response = await apiClient.post('/auth/admin/partner-action', body, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.response?.data?.message || 'Failed to approve/reject partner.');
+  }
+};
+/**
  * Fetch all partners (admin)
  * GET /api/auth/admin/partners
  * @param {string} token - Bearer token
