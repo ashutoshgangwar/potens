@@ -158,6 +158,10 @@ const ProfileSection = ({
   // Separate handlers for PAN and Aadhaar verification
   // useState declarations moved to the top, duplicates removed
 
+
+  // Get PAN number and userId for verification
+  const panNumber = documents?.pan_card?.number || '';
+
   const handleVerifyPan = async (e) => {
     e.preventDefault();
     setVerifyPanLoading(true);

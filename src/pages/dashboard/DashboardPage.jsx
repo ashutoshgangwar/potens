@@ -10,6 +10,7 @@ import InvestmentSection from './components/sections/InvestmentSection.jsx';
 import WalletSection from './components/sections/WalletSection.jsx';
 import DocumentsSection from './components/sections/DocumentsSection.jsx';
 import SupportSection from './components/sections/SupportSection.jsx';
+import UsersSection from './components/sections/UsersSection.jsx';
 import { SIDEBAR_CONFIG } from '../../constants/sidebarConfig.js';
 import { getAllowedSidebarKeys } from '../../constants/roleAccess.js';
 
@@ -465,7 +466,8 @@ const DashboardPage = () => {
 				onOpenProfile={() => navigate('/profile-completion')}
 			/>
 		),
-		support: <SupportSection />, 
+		support: <SupportSection />,
+		users: <UsersSection />,
 	};
 
 	return (
