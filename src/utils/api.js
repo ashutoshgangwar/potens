@@ -1,3 +1,22 @@
+/**
+ * Fetch all partners (admin)
+ * GET /api/auth/admin/partners
+ * @param {string} token - Bearer token
+ * @returns {Promise<Array>} partners
+ */
+export const apiGetPartners = async (token) => {
+  if (!token) {
+    throw new Error('Not authorized.');
+  }
+  try {
+    const response = await apiClient.get('/auth/admin/partners', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data?.partners || [];
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Failed to fetch partners.'));
+  }
+};
 import axios from 'axios';
 
 /**

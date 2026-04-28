@@ -25,10 +25,6 @@ export const SIDEBAR_CONFIG = {
     icon: '/support.svg',
     label: 'Support',
   },
-  [SIDEBAR_KEYS.PROFILE]: {
-    icon: '/profile.svg',
-    label: 'Profile',
-  },
   [SIDEBAR_KEYS.PAYMENTS]: {
     icon: '/wallet.svg',
     label: 'Payments',
@@ -48,6 +44,10 @@ export const SIDEBAR_CONFIG = {
   [SIDEBAR_KEYS.ADMIN]: {
     icon: '/profile.svg',
     label: 'Admin',
+  },
+  [SIDEBAR_KEYS.PROFILE]: {
+    icon: '/profile.svg',
+    label: 'Profile',
   },
 };
 

@@ -9,10 +9,12 @@ import ProfileSection from './components/sections/ProfileSection.jsx';
 import InvestmentSection from './components/sections/InvestmentSection.jsx';
 import WalletSection from './components/sections/WalletSection.jsx';
 import DocumentsSection from './components/sections/DocumentsSection.jsx';
+import ApprovalsSection from './components/sections/ApprovalsSection.jsx';
 import SupportSection from './components/sections/SupportSection.jsx';
 import UsersSection from './components/sections/UsersSection.jsx';
 import { SIDEBAR_CONFIG } from '../../constants/sidebarConfig.js';
 import { getAllowedSidebarKeys } from '../../constants/roleAccess.js';
+
 
 
 const createSidebarIcon = (src, alt) => (
@@ -379,20 +381,7 @@ const DashboardPage = () => {
 				profileSummary={profileSummary}
 			/>
 		),
-		profile: (
-			   <ProfileSection
-				   user={user}
-				   profileCompletion={profileCompletion}
-				   completedProfileFieldsCount={completedProfileFieldsCount}
-				   totalProfileFields={REQUIRED_PROFILE_FIELDS.length}
-				   uploadedDocuments={uploadedDocuments}
-				   totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
-				   paymentReady={paymentReady}
-				   paymentPreferenceLabel={paymentPreferenceLabel}
-				   navigate={navigate}
-			   />
-		),
-		transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />, 
+		transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />,
 		investment: (
 			<InvestmentSection
 				profileDetails={profileDetails}
@@ -401,51 +390,52 @@ const DashboardPage = () => {
 				onOpenProfile={() => navigate('/profile-completion')}
 			/>
 		),
-		   wallet: (
-			   <WalletSection
-				   paymentReady={paymentReady}
-				   paymentPreferenceLabel={paymentPreferenceLabel}
-				   onOpenProfile={() => navigate('/profile-completion')}
-				   paymentStepCompleted={paymentStepCompleted}
-				   onPaymentStepComplete={() => setPaymentStepCompleted(true)}
-			   />
-		   ),
-		   payments: (
-			   <div style={{ padding: 32 }}>
-				   <h2>Payments</h2>
-				   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
-					   <thead>
-						   <tr style={{ background: '#f5f7fa' }}>
-							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR Number</th>
-							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Bank</th>
-							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Date</th>
-							   <th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Action</th>
-						   </tr>
-					   </thead>
-					   <tbody>
-						   {/* Example static data, replace with real data as needed */}
-						   <tr>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR123456789</td>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>HDFC Bank</td>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-27</td>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
-								   <button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
-								   <button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
-							   </td>
-						   </tr>
-						   <tr>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR987654321</td>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>ICICI Bank</td>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-26</td>
-							   <td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
-								   <button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
-								   <button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
-							   </td>
-						   </tr>
-					   </tbody>
-				   </table>
-			   </div>
-		   ),
+		wallet: (
+			<WalletSection
+				paymentReady={paymentReady}
+				paymentPreferenceLabel={paymentPreferenceLabel}
+				onOpenProfile={() => navigate('/profile-completion')}
+				paymentStepCompleted={paymentStepCompleted}
+				onPaymentStepComplete={() => setPaymentStepCompleted(true)}
+			/>
+		),
+		payments: (
+			<div style={{ padding: 32 }}>
+				<h2>Payments</h2>
+				<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
+					<thead>
+						<tr style={{ background: '#f5f7fa' }}>
+							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR Number</th>
+							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Bank</th>
+							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Date</th>
+							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Action</th>
+						</tr>
+					</thead>
+					<tbody>
+						{/* Example static data, replace with real data as needed */}
+						<tr>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR123456789</td>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>HDFC Bank</td>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-27</td>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
+								<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
+								<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
+							</td>
+						</tr>
+						<tr>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR987654321</td>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>ICICI Bank</td>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-26</td>
+							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
+								<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
+								<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		),
+		approvals: <ApprovalsSection />, // <-- Add this line
 		documents: (
 			<DocumentsSection
 				user={user}
@@ -468,6 +458,19 @@ const DashboardPage = () => {
 		),
 		support: <SupportSection />,
 		users: <UsersSection />,
+		profile: (
+			<ProfileSection
+				user={user}
+				profileCompletion={profileCompletion}
+				completedProfileFieldsCount={completedProfileFieldsCount}
+				totalProfileFields={REQUIRED_PROFILE_FIELDS.length}
+				uploadedDocuments={uploadedDocuments}
+				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+				paymentReady={paymentReady}
+				paymentPreferenceLabel={paymentPreferenceLabel}
+				navigate={navigate}
+			/>
+		),
 	};
 
 	return (
