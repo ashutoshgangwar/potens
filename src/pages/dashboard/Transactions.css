@@ -13,6 +13,103 @@
   padding-left: 220px; /* sidebar width */
 }
 
+@media (max-width: 900px) {
+  .transactions-section--fullscreen {
+    padding-left: 0;
+    align-items: flex-start;
+    height: auto;
+    min-height: 100vh;
+  }
+  .transactions-card-full {
+    width: 98vw;
+    min-height: 60vh;
+    padding: 1rem;
+  }
+  .summary-table {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .transactions-section--fullscreen {
+    flex-direction: column;
+    padding: 0.5rem 0;
+    min-height: 100vh;
+    height: auto;
+    background: #f8fafc;
+  }
+  .transactions-card-full {
+    width: 98vw;
+    min-width: 0;
+    padding: 0.85rem;
+    border-radius: 1.1rem;
+    box-shadow: 0 2px 12px rgba(31,58,95,0.08);
+    margin: 0 auto;
+  }
+  .transactions-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 0.7rem;
+    box-shadow: 0 1px 6px rgba(31,58,95,0.07);
+    background: #fff;
+  }
+  .transactions-table th, .transactions-table td {
+    padding: 0.65rem 0.5rem;
+    font-size: 1rem;
+    min-width: 110px;
+    white-space: nowrap;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .transactions-table th {
+    background: #f1f5f9;
+    font-weight: 700;
+    color: #1a237e;
+    border-bottom: 2px solid #e3e8ee;
+  }
+  .transactions-table tr {
+    transition: background 0.2s;
+  }
+  .transactions-table tbody tr:hover {
+    background: #f5f7fa;
+  }
+  .summary-table {
+    width: 100%;
+    font-size: 1rem;
+    margin-top: 1.2rem;
+    border-radius: 0.7rem;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(31,58,95,0.07);
+  }
+  .summary-table td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.98rem;
+  }
+  .more-details {
+    font-size: 1rem;
+    margin-top: 1.2rem;
+    color: #64748b;
+    text-align: center;
+  }
+  .transactions-card-full button, .transactions-card-full a, .transactions-table button, .transactions-table a {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 1rem;
+    border-radius: 0.7rem;
+    padding: 0.5rem 1rem;
+    margin: 0.2rem 0;
+    box-shadow: 0 1px 3px rgba(31,58,95,0.06);
+    background: #f1f5f9;
+    color: #1a237e;
+    border: none;
+    transition: background 0.15s;
+  }
+  .transactions-card-full button:active, .transactions-table button:active {
+    background: #e3e8ee;
+  }
+}
+}
+
 .transactions-card-full {
   width: 90vw;
   max-width: 1200px;
