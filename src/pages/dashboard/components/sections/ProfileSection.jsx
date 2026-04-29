@@ -35,6 +35,7 @@ const ProfileSection = ({
   const [verifyPanLoading, setVerifyPanLoading] = useState(false);
   const [verifyAadhaarLoading, setVerifyAadhaarLoading] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyError, setVerifyError] = useState('');
   const [editDocFields, setEditDocFields] = useState(false);
 
@@ -169,7 +170,9 @@ const ProfileSection = ({
     setVerifyError('');
     try {
       const res = await apiVerifyPan({ panNumber, userId });
+      console.log('[PAN VERIFY API RESPONSE]', res);
       setVerifyResult(res);
+      setShowVerifyModal(true);
     } catch (err) {
       setVerifyError(err.message || 'PAN verification failed.');
     } finally {
@@ -195,34 +198,59 @@ const ProfileSection = ({
   // Render rows with Verify button for PAN/Aadhaar only
   const renderRows = (rows) => (
     <div className="profile-details-grid">
-      {rows.map(({ label, value, showVerify }) => (
-        <div key={label} className="profile-details-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{label}</span>
-          <strong>{value}</strong>
-          {showVerify && label === 'PAN Number' && (
-            <Button
-              size="xs"
-              style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
-              loading={verifyPanLoading}
-              onClick={handleVerifyPan}
-              disabled={verifyPanLoading}
-            >
-              Verify
-            </Button>
-          )}
-          {showVerify && label === 'Aadhaar Number' && (
-            <Button
-              size="xs"
-              style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
-              loading={verifyAadhaarLoading}
-              onClick={handleVerifyAadhaar}
-              disabled={verifyAadhaarLoading}
-            >
-              Verify
-            </Button>
-          )}
-        </div>
-      ))}
+      {rows.map(({ label, value, showVerify }) => {
+        // Check for PAN/Aadhaar verified flags from API response
+        const panVerified = (profileDetails?.pan_varified === true || profileDetails?.documents?.pan_varified === true);
+        const aadhaarVerified = (profileDetails?.adhar_varified === true || profileDetails?.documents?.adhar_varified === true);
+        return (
+          <div key={label} className="profile-details-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            {showVerify && label === 'PAN Number' && (
+              panVerified ? (
+                <Button
+                  size="xs"
+                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem', background: '#27ae60', color: '#fff', border: 'none', cursor: 'default' }}
+                  disabled
+                >
+                  Verified ✓
+                </Button>
+              ) : (
+                <Button
+                  size="xs"
+                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
+                  loading={verifyPanLoading}
+                  onClick={handleVerifyPan}
+                  disabled={verifyPanLoading}
+                >
+                  Verify
+                </Button>
+              )
+            )}
+            {showVerify && label === 'Aadhaar Number' && (
+              aadhaarVerified ? (
+                <Button
+                  size="xs"
+                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem', background: '#27ae60', color: '#fff', border: 'none', cursor: 'default' }}
+                  disabled
+                >
+                  Verified ✓
+                </Button>
+              ) : (
+                <Button
+                  size="xs"
+                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
+                  loading={verifyAadhaarLoading}
+                  onClick={handleVerifyAadhaar}
+                  disabled={verifyAadhaarLoading}
+                >
+                  Verify
+                </Button>
+              )
+            )}
+          </div>
+        );
+      })}
       {/* Show verification result or error below the grid */}
       {(verifyResult || verifyError) && (
         <div style={{ marginTop: 8, width: '100%' }}>
@@ -235,6 +263,28 @@ const ProfileSection = ({
           {verifyError && (
             <span style={{ color: 'red', fontWeight: 500 }}>{verifyError}</span>
           )}
+        </div>
+      )}
+
+      {/* Modal for PAN verify API response */}
+      {showVerifyModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{ background: '#fff', padding: 24, borderRadius: 8, minWidth: 320, maxWidth: 480, boxShadow: '0 2px 16px rgba(0,0,0,0.2)' }}>
+            <h4 style={{ marginTop: 0 }}>PAN Verification API Response</h4>
+            <pre style={{ fontSize: 13, background: '#f6f8fa', padding: 12, borderRadius: 4, maxHeight: 300, overflow: 'auto' }}>{JSON.stringify(verifyResult, null, 2)}</pre>
+            <button style={{ marginTop: 16, padding: '6px 18px', background: '#2d72d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }} onClick={() => setShowVerifyModal(false)}>Close</button>
+          </div>
         </div>
       )}
     </div>
