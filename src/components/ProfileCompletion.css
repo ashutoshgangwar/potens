@@ -1,3 +1,23 @@
+/* Two-column grid for Identity Documents section */
+.profile-completion__identity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.profile-completion__identity-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+@media (max-width: 900px) {
+  .profile-completion__identity-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+}
 .profile-completion {
   min-height: 100vh;
   padding: 2rem 1.25rem 4rem;

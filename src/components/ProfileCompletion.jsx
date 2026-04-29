@@ -902,9 +902,9 @@ function FormField({ field, value, error, onChange, onBlur }) {
           disabled={field.disabled}
           accept={field.accept}
         />
-        {storedFileLabel ? (
+        {/* {storedFileLabel ? (
           <p className="profile-completion__file-status">Saved file: {storedFileLabel}</p>
-        ) : null}
+        ) : null} */}
       </>
     );
   }
@@ -1392,35 +1392,69 @@ const ProfileCompletion = () => {
                   <div className="profile-completion__custom-content">{section.customContent}</div>
                 )}
 
-                <div className="profile-completion__grid">
-                  {section.fields.filter((field) => shouldRenderField(field, values, currentUserRole)).map((field) => {
-                    const districtOptions = field.optionsSource
-                      ? getDistrictOptions(values[field.optionsSource])
-                      : null;
-                    const fieldConfig = field.optionsSource
-                      ? {
-                          ...field,
-                          options: districtOptions,
-                          disabled: !values[field.optionsSource],
-                          label: values[field.optionsSource]
-                            ? field.label
-                            : `${field.label} (Select state first)`,
-                        }
-                      : field;
+                {/* Custom two-column layout for Identity Documents */}
+                {section.title === 'Identity Documents' ? (
+                  <div className="profile-completion__identity-grid">
+                    <div className="profile-completion__identity-col">
+                      {/* Left: Text fields */}
+                      {section.fields.filter(f => f.type === 'text' && shouldRenderField(f, values, currentUserRole)).map(field => (
+                        <FieldGroup key={field.name} field={field} error={errors[field.name]}>
+                          <FormField
+                            field={field}
+                            value={values[field.name]}
+                            error={errors[field.name]}
+                            onChange={handleFieldChange}
+                            onBlur={handleBlur}
+                          />
+                        </FieldGroup>
+                      ))}
+                    </div>
+                    <div className="profile-completion__identity-col">
+                      {/* Right: File fields */}
+                      {section.fields.filter(f => f.type === 'file' && shouldRenderField(f, values, currentUserRole)).map(field => (
+                        <FieldGroup key={field.name} field={field} error={errors[field.name]}>
+                          <FormField
+                            field={field}
+                            value={values[field.name]}
+                            error={errors[field.name]}
+                            onChange={handleFieldChange}
+                            onBlur={handleBlur}
+                          />
+                        </FieldGroup>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="profile-completion__grid">
+                    {section.fields.filter((field) => shouldRenderField(field, values, currentUserRole)).map((field) => {
+                      const districtOptions = field.optionsSource
+                        ? getDistrictOptions(values[field.optionsSource])
+                        : null;
+                      const fieldConfig = field.optionsSource
+                        ? {
+                            ...field,
+                            options: districtOptions,
+                            disabled: !values[field.optionsSource],
+                            label: values[field.optionsSource]
+                              ? field.label
+                              : `${field.label} (Select state first)`,
+                          }
+                        : field;
 
-                    return (
-                      <FieldGroup key={field.name} field={fieldConfig} error={errors[field.name]}>
-                        <FormField
-                          field={fieldConfig}
-                          value={values[field.name]}
-                          error={errors[field.name]}
-                          onChange={handleFieldChange}
-                          onBlur={handleBlur}
-                        />
-                      </FieldGroup>
-                    );
-                  })}
-                </div>
+                      return (
+                        <FieldGroup key={field.name} field={fieldConfig} error={errors[field.name]}>
+                          <FormField
+                            field={fieldConfig}
+                            value={values[field.name]}
+                            error={errors[field.name]}
+                            onChange={handleFieldChange}
+                            onBlur={handleBlur}
+                          />
+                        </FieldGroup>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             ))
           ) : (
