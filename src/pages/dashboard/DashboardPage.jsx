@@ -7,6 +7,7 @@ import OverviewSection from './components/sections/OverviewSection.jsx';
 import TransactionSection from './components/sections/TransactionSection.jsx';
 import ProfileSection from './components/sections/ProfileSection.jsx';
 import InvestmentSection from './components/sections/InvestmentSection.jsx';
+import PaymentsSection from './components/sections/PaymentsSection.jsx';
 import WalletSection from './components/sections/WalletSection.jsx';
 import DocumentsSection from './components/sections/DocumentsSection.jsx';
 import ApprovalsSection from './components/sections/ApprovalsSection.jsx';
@@ -407,42 +408,7 @@ const DashboardPage = () => {
 			onPaymentStepComplete={() => setPaymentStepCompleted(true)}
 		/>
 	),
-	payments: (
-		<div style={{ padding: 32 }}>
-			<h2>Payments</h2>
-			<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
-				<thead>
-					<tr style={{ background: '#f5f7fa' }}>
-						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR Number</th>
-						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Bank</th>
-						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Date</th>
-						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Action</th>
-					</tr>
-				</thead>
-				<tbody>
-					{/* Example static data, replace with real data as needed */}
-					<tr>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR123456789</td>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>HDFC Bank</td>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-27</td>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
-							<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
-							<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
-						</td>
-					</tr>
-					<tr>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR987654321</td>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>ICICI Bank</td>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-26</td>
-						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
-							<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
-							<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-	),
+	   payments: <PaymentsSection />,
 	approvals: <ApprovalsSection />, 
 	documents: (
 		<DocumentsSection
@@ -482,7 +448,7 @@ const DashboardPage = () => {
 };
 
 	return (
-		<div className="dashboard">
+		<div className="dashboard dashboard-responsive-root">
 			<DashboardSidebar
 				items={SIDEBAR_ITEMS}
 				activeSection={activeSection}
@@ -510,10 +476,36 @@ const DashboardPage = () => {
 						</button>
 					))}
 				</div>
-			</nav>
+
+			{/* Mobile logout button */}
+			<div className="dashboard-mobile-logout" style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
+				<button
+					type="button"
+					onClick={handleLogout}
+					className="dashboard-mobile-logout-btn"
+					style={{
+						background: '#fff',
+						color: '#f44336',
+						border: '1px solid #f44336',
+						borderRadius: 6,
+						padding: '8px 20px',
+						fontWeight: 600,
+						fontSize: '1rem',
+						cursor: 'pointer',
+						boxShadow: '0 1px 4px rgba(31,58,95,0.07)',
+						width: '90%',
+						maxWidth: 320,
+						margin: '0 auto',
+						display: 'block',
+					}}
+				>
+					Logout
+				</button>
+			</div>
+		</nav>
 
 			{/* Main content */}
-			<main className="dashboard-main">{sectionsByKey[activeSection] || sectionsByKey.dashboard}</main>
+			   <main className="dashboard-main dashboard-responsive-main">{sectionsByKey[activeSection] || sectionsByKey.dashboard}</main>
 		</div>
 	);
 };

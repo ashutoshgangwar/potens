@@ -1,0 +1,17 @@
+.txn-complete-btn {
+  min-width: 80px;
+  max-width: 120px;
+  width: 110px;
+  padding-left: 0.7em;
+  padding-right: 0.7em;
+}
+
+@media (max-width: 600px) {
+  .txn-complete-btn {
+    width: 90px;
+    min-width: 70px;
+    font-size: 0.97rem;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+  }
+}

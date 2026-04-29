@@ -1329,7 +1329,7 @@ const ProfileCompletion = () => {
             ← Back to Dashboard
           </button>
           {/* PAN/Aadhaar Verification Button */}
-          <button
+          {/* <button
             type="button"
             className="profile-completion__ghost-btn"
             style={{ marginLeft: 16 }}
@@ -1337,7 +1337,7 @@ const ProfileCompletion = () => {
             disabled={loading}
           >
             Verify PAN & Aadhaar
-          </button>
+          </button> */}
         </header>
 
         <section className="profile-completion__summary-grid">

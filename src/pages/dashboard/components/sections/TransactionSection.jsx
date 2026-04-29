@@ -1,5 +1,7 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card } from '../../../../components/ui/index.js';
+import './TransactionSection.css';
 
 const TransactionSection = ({ transactions }) => {
   const [orderRows, setOrderRows] = useState(transactions);
