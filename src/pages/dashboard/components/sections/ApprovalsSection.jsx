@@ -16,20 +16,24 @@ const ApprovalsSection = () => {
   const [remarks, setRemarks] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  console.log('partener data in approvals section:', partners);
+
+  // Fetch partners helper for reuse
+  const fetchPartners = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiGetPartners(token);
+      console.log('[ApprovalsSection] fetched partners:', data);
+      setPartners(data);
+    } catch (err) {
+      setError(err.message || 'Failed to load partners');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPartners = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await apiGetPartners(token);
-        console.log('[ApprovalsSection] fetched partners:', data);
-        setPartners(data);
-      } catch (err) {
-        setError(err.message || 'Failed to load partners');
-      } finally {
-        setLoading(false);
-      }
-    };
     if (token) fetchPartners();
   }, [token]);
 
@@ -58,12 +62,8 @@ const ApprovalsSection = () => {
       };
       if (action === 'approved') apiPayload.remark = remarks;
       if (action === 'rejected') apiPayload.rejectionReason = remarks;
-      const res = await apiApprovePartner(apiPayload);
-      setPartners((prev) => prev.map((p) =>
-        p._id === actionModal.partner._id
-          ? { ...p, status: action, approvedAt: new Date().toISOString(), remarks }
-          : p
-      ));
+      await apiApprovePartner(apiPayload);
+      await fetchPartners(); // Refresh the list from API
       closeActionModal();
     } catch (err) {
       setError(err.message || 'Failed to process action');
@@ -100,17 +100,18 @@ const ApprovalsSection = () => {
                 <td>{p.full_name}</td>
                 <td>{p.email}</td>
                 <td>{p.phone}</td>
-                <td>{p.status}</td>
+                <td>{p.approval_status || '-'}</td>
                 <td>{p.assigned_city || '-'}</td>
                 <td>
                   <button className="approvals-action-btn view" onClick={() => handleView(p)}>View</button>
-                  {p.admin_approval_status === 'approved' ? (
+                  {p.approval_status === 'approved' ? (
                     <span style={{ color: 'green', fontWeight: 600, marginLeft: 8 }}>✔ Approved</span>
-                  ) : p.admin_approval_status === 'rejected' ? (
+                  ) : p.approval_status === 'rejected' ? (
                     <>
                       <button
                         className="approvals-action-btn approve"
                         onClick={() => openActionModal(p, 'approve')}
+                        style={{ marginRight: 8 }}
                       >
                         Approve
                       </button>
@@ -121,9 +122,9 @@ const ApprovalsSection = () => {
                       >
                         Rejected
                       </button>
-                      {p.admin_rejection_reason && (
+                      {p.rejection_reason && (
                         <div style={{ color: 'red', fontSize: 13, marginTop: 4, maxWidth: 180, wordBreak: 'break-word' }}>
-                          <b>Reason:</b> {p.admin_rejection_reason}
+                          <b>Reason:</b> {p.rejection_reason}
                         </div>
                       )}
                     </>
@@ -132,6 +133,7 @@ const ApprovalsSection = () => {
                       <button
                         className="approvals-action-btn approve"
                         onClick={() => openActionModal(p, 'approve')}
+                        style={{ marginRight: 8 }}
                       >
                         Approve
                       </button>
@@ -231,16 +233,16 @@ const ApprovalsSection = () => {
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600, padding: 6 }}>PAN Number</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.documents?._doc?.pan_card?.number || '-'}</td>
+                  <td style={{ padding: 6 }}>{selectedPartner.documents?.pan_card?.number || '-'}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600, padding: 6 }}>Aadhaar Number</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.documents?._doc?.aadhaar_card?.number || '-'}</td>
+                  <td style={{ padding: 6 }}>{selectedPartner.documents?.aadhaar_card?.number || '-'}</td>
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600, padding: 6 }}>Aadhaar Verified</td>
                   <td style={{ padding: 6 }}>
-                    {selectedPartner.documents?._doc?.aadhaar_card?.file_url
+                    {selectedPartner.documents?.aadhaar_card?.file_url
                       ? <span style={{ color: 'green', fontWeight: 700 }}>&#10003; Verified</span>
                       : <span style={{ color: 'red', fontWeight: 700 }}>&#10007; Not Verified</span>}
                   </td>
@@ -248,7 +250,7 @@ const ApprovalsSection = () => {
                 <tr>
                   <td style={{ fontWeight: 600, padding: 6 }}>PAN Verified</td>
                   <td style={{ padding: 6 }}>
-                    {selectedPartner.documents?._doc?.pan_card?.file_url
+                    {selectedPartner.documents?.pan_card?.file_url
                       ? <span style={{ color: 'green', fontWeight: 700 }}>&#10003; Verified</span>
                       : <span style={{ color: 'red', fontWeight: 700 }}>&#10007; Not Verified</span>}
                   </td>

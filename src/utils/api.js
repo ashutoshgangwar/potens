@@ -26,12 +26,18 @@ export const apiApprovePartner = async ({ token, userId, action, approvalType, r
   const body = { userId, action, approvalType };
   if (action === 'approved' && remark) body.remark = remark;
   if (action === 'rejected' && rejectionReason) body.rejectionReason = rejectionReason;
+  // Debug: log the request payload
+  console.log('[apiApprovePartner] Request:', { url: '/auth/admin/partner-action', body, token });
   try {
     const response = await apiClient.post('/auth/admin/partner-action', body, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    // Debug: log the response
+    console.log('[apiApprovePartner] Response:', response.data);
     return response.data;
   } catch (error) {
+    // Debug: log the error
+    console.error('[apiApprovePartner] Error:', error?.response?.data || error);
     throw new Error(error?.response?.data?.message || 'Failed to approve/reject partner.');
   }
 };
@@ -49,11 +55,14 @@ export const apiGetPartners = async (token) => {
     const response = await apiClient.get('/auth/admin/partners', {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data?.partners || [];
+    // Always return an array, even if API returns null/undefined
+    const partners = response.data?.partners ?? response.data?.users ?? [];
+    return Array.isArray(partners) ? partners : [];
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Failed to fetch partners.'));
   }
 };
+
 import axios from 'axios';
 
 /**

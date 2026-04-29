@@ -370,108 +370,116 @@ const DashboardPage = () => {
 	}
 
 	const sectionsByKey = {
-		dashboard: (
-			<OverviewSection
-				user={user}
-				navigate={navigate}
-				loadingProfile={loadingProfile}
-				profileCompletion={profileCompletion}
-				stats={stats}
-				recentActivity={recentActivity}
-				profileSummary={profileSummary}
-			/>
-		),
-		transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />,
-		investment: (
-			<InvestmentSection
-				profileDetails={profileDetails}
-				userId={user?.id}
-				partnerKpis={partnerKpis}
-				onOpenProfile={() => navigate('/profile-completion')}
-			/>
-		),
-		wallet: (
-			<WalletSection
-				paymentReady={paymentReady}
-				paymentPreferenceLabel={paymentPreferenceLabel}
-				onOpenProfile={() => navigate('/profile-completion')}
-				paymentStepCompleted={paymentStepCompleted}
-				onPaymentStepComplete={() => setPaymentStepCompleted(true)}
-			/>
-		),
-		payments: (
-			<div style={{ padding: 32 }}>
-				<h2>Payments</h2>
-				<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
-					<thead>
-						<tr style={{ background: '#f5f7fa' }}>
-							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR Number</th>
-							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Bank</th>
-							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Date</th>
-							<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Action</th>
-						</tr>
-					</thead>
-					<tbody>
-						{/* Example static data, replace with real data as needed */}
-						<tr>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR123456789</td>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>HDFC Bank</td>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-27</td>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
-								<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
-								<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
-							</td>
-						</tr>
-						<tr>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR987654321</td>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>ICICI Bank</td>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-26</td>
-							<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
-								<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
-								<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		),
-		approvals: <ApprovalsSection />, // <-- Add this line
-		documents: (
-			<DocumentsSection
-				user={user}
-				uploadedDocuments={uploadedDocuments}
-				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
-				documentStatusRows={documentStatusRows}
-				certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
-				onOpenProfile={() => navigate('/profile-completion')}
-			/>
-		),
-		certificate: (
-			<DocumentsSection
-				user={user}
-				uploadedDocuments={uploadedDocuments}
-				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
-				documentStatusRows={documentStatusRows}
-				certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
-				onOpenProfile={() => navigate('/profile-completion')}
-			/>
-		),
-		support: <SupportSection />,
-		users: <UsersSection />,
-		profile: (
-			<ProfileSection
-				user={user}
-				profileCompletion={profileCompletion}
-				completedProfileFieldsCount={completedProfileFieldsCount}
-				totalProfileFields={REQUIRED_PROFILE_FIELDS.length}
-				uploadedDocuments={uploadedDocuments}
-				totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
-				paymentReady={paymentReady}
-				paymentPreferenceLabel={paymentPreferenceLabel}
-				navigate={navigate}
-			/>
-		),
-	};
+	dashboard: (
+		<OverviewSection
+			user={user}
+			navigate={navigate}
+			loadingProfile={loadingProfile}
+			profileCompletion={profileCompletion}
+			stats={stats}
+			recentActivity={recentActivity}
+			profileSummary={profileSummary}
+		/>
+	),
+	transaction: <TransactionSection transactions={MOCK_TRANSACTIONS} />, 
+	investment: (
+		<InvestmentSection
+			profileDetails={profileDetails}
+			userId={user?.id}
+			partnerKpis={partnerKpis}
+			onOpenProfile={() => navigate('/profile-completion')}
+		/>
+	),
+	agreement: (
+		<InvestmentSection
+			profileDetails={profileDetails}
+			userId={user?.id}
+			partnerKpis={partnerKpis}
+			onOpenProfile={() => navigate('/profile-completion')}
+		/>
+	),
+	wallet: (
+		<WalletSection
+			paymentReady={paymentReady}
+			paymentPreferenceLabel={paymentPreferenceLabel}
+			onOpenProfile={() => navigate('/profile-completion')}
+			paymentStepCompleted={paymentStepCompleted}
+			onPaymentStepComplete={() => setPaymentStepCompleted(true)}
+		/>
+	),
+	payments: (
+		<div style={{ padding: 32 }}>
+			<h2>Payments</h2>
+			<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
+				<thead>
+					<tr style={{ background: '#f5f7fa' }}>
+						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR Number</th>
+						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Bank</th>
+						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Date</th>
+						<th style={{ padding: 12, border: '1px solid #e0e0e0' }}>Action</th>
+					</tr>
+				</thead>
+				<tbody>
+					{/* Example static data, replace with real data as needed */}
+					<tr>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR123456789</td>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>HDFC Bank</td>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-27</td>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
+							<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
+							<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
+						</td>
+					</tr>
+					<tr>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>UTR987654321</td>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>ICICI Bank</td>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>2026-04-26</td>
+						<td style={{ padding: 12, border: '1px solid #e0e0e0' }}>
+							<button style={{ marginRight: 8, background: '#4caf50', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Approve</button>
+							<button style={{ background: '#f44336', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>Reject</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	),
+	approvals: <ApprovalsSection />, 
+	documents: (
+		<DocumentsSection
+			user={user}
+			uploadedDocuments={uploadedDocuments}
+			totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+			documentStatusRows={documentStatusRows}
+			certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
+			onOpenProfile={() => navigate('/profile-completion')}
+		/>
+	),
+	certificate: (
+		<DocumentsSection
+			user={user}
+			uploadedDocuments={uploadedDocuments}
+			totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+			documentStatusRows={documentStatusRows}
+			certificatePdfUrl={profileDetails?.certificatePdfUrl || profileDetails?.combinedDocumentsPdfUrl}
+			onOpenProfile={() => navigate('/profile-completion')}
+		/>
+	),
+	support: <SupportSection />, 
+	users: <UsersSection />, 
+	profile: (
+		<ProfileSection
+			user={user}
+			profileCompletion={profileCompletion}
+			completedProfileFieldsCount={completedProfileFieldsCount}
+			totalProfileFields={REQUIRED_PROFILE_FIELDS.length}
+			uploadedDocuments={uploadedDocuments}
+			totalDocuments={REQUIRED_DOCUMENT_FIELDS.length}
+			paymentReady={paymentReady}
+			paymentPreferenceLabel={paymentPreferenceLabel}
+			navigate={navigate}
+		/>
+	),
+};
 
 	return (
 		<div className="dashboard">

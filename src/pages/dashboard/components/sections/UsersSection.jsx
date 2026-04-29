@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiCreateUser } from '../../../../utils/apiCreateUser.js';
+import { fetchNonPartnerRoles } from '../../../../utils/apiNonPartnerRoles.js';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -20,6 +21,10 @@ const initialForm = {
 
 const UsersSection = () => {
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+
+
+  console.log('UsersSection rendered with users:', users);
     // Fetch users from API on mount
     useEffect(() => {
       const fetchUsers = async () => {
@@ -43,6 +48,15 @@ const UsersSection = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Fetch roles when modal opens
+  useEffect(() => {
+    if (modalOpen) {
+      fetchNonPartnerRoles()
+        .then((data) => setRoles(Array.isArray(data) ? data : (data.roles || [])))
+        .catch(() => setRoles([]));
+    }
+  }, [modalOpen]);
 
   const toggleActive = (id) => {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' } : u)));
@@ -223,7 +237,21 @@ const UsersSection = () => {
                   <input name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" required className="input-ui" style={{ padding: 10, borderRadius: 8, border: '1px solid #cfd8dc', fontSize: 15 }} />
                   <input name="password" value={form.password} onChange={handleChange} placeholder="Password" type="password" required className="input-ui" style={{ padding: 10, borderRadius: 8, border: '1px solid #cfd8dc', fontSize: 15 }} />
                   <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" required className="input-ui" style={{ padding: 10, borderRadius: 8, border: '1px solid #cfd8dc', fontSize: 15 }} />
-                  <input name="role" value={form.role} onChange={handleChange} placeholder="Role" required className="input-ui" style={{ padding: 10, borderRadius: 8, border: '1px solid #cfd8dc', fontSize: 15 }} />
+                  <select
+                    name="role"
+                    value={form.role}
+                    onChange={handleChange}
+                    required
+                    className="input-ui"
+                    style={{ padding: 10, borderRadius: 8, border: '1px solid #cfd8dc', fontSize: 15 }}
+                  >
+                    <option value="" disabled>Select Role</option>
+                    {roles.map((role) => (
+                      <option key={role.id || role._id || role.name} value={role.name || role.role}>
+                        {role.name || role.role}
+                      </option>
+                    ))}
+                  </select>
                   <input name="dob" value={form.dob} onChange={handleChange} placeholder="Date of Birth (YYYY-MM-DD)" required className="input-ui" style={{ padding: 10, borderRadius: 8, border: '1px solid #cfd8dc', fontSize: 15 }} />
                   <input name="assigned_city" value={form.assigned_city} onChange={handleChange} placeholder="Assigned City" required className="input-ui" style={{ padding: 10, borderRadius: 8, border: '1px solid #cfd8dc', fontSize: 15 }} />
                   <button type="submit" className="btn btn-primary" style={{ marginTop: 8, padding: '10px 0', borderRadius: 8, background: '#3949ab', color: '#fff', fontWeight: 600, fontSize: 16, border: 'none', boxShadow: '0 1px 4px #0002' }} disabled={loading}>{loading ? 'Creating...' : 'Create User'}</button>
