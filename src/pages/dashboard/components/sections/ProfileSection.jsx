@@ -1,3 +1,13 @@
+// Helper to toggle blur class on body (must be outside component)
+const setBodyBlur = (active) => {
+  if (typeof document !== 'undefined') {
+    if (active) {
+      document.body.classList.add('modal-blur-bg');
+    } else {
+      document.body.classList.remove('modal-blur-bg');
+    }
+  }
+};
 
 import React, { useEffect, useState } from 'react';
 import { fetchAuthProfilePayload } from '../../../../utils/api.js';
@@ -36,6 +46,12 @@ const ProfileSection = ({
   const [verifyAadhaarLoading, setVerifyAadhaarLoading] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+
+  // Blur background when modal is open
+  useEffect(() => {
+    setBodyBlur(showVerifyModal);
+    return () => setBodyBlur(false);
+  }, [showVerifyModal]);
   const [verifyError, setVerifyError] = useState('');
   const [editDocFields, setEditDocFields] = useState(false);
 
@@ -174,26 +190,28 @@ const ProfileSection = ({
       setVerifyResult(res);
       setShowVerifyModal(true);
     } catch (err) {
+      console.log('[PAN VERIFY ERROR]', err, err?.message);
       setVerifyError(err.message || 'PAN verification failed.');
+      setShowVerifyModal(true);
     } finally {
       setVerifyPanLoading(false);
     }
   };
 
-  const handleVerifyAadhaar = async (e) => {
-    e.preventDefault();
-    setVerifyAadhaarLoading(true);
-    setVerifyResult(null);
-    setVerifyError('');
-    try {
-        const res = await apiVerifyAadhaar({ aadhaarNumber: documents?.aadhaar_card?.number || '', userId });
-      setVerifyResult(res);
-    } catch (err) {
-      setVerifyError(err.message || 'Aadhaar verification failed.');
-    } finally {
-      setVerifyAadhaarLoading(false);
-    }
-  };
+  // const handleVerifyAadhaar = async (e) => {
+  //   e.preventDefault();
+  //   setVerifyAadhaarLoading(true);
+  //   setVerifyResult(null);
+  //   setVerifyError('');
+  //   try {
+  //       const res = await apiVerifyAadhaar({ aadhaarNumber: documents?.aadhaar_card?.number || '', userId });
+  //     setVerifyResult(res);
+  //   } catch (err) {
+  //     setVerifyError(err.message || 'Aadhaar verification failed.');
+  //   } finally {
+  //     setVerifyAadhaarLoading(false);
+  //   }
+  // };
 
   // Render rows with Verify button for PAN/Aadhaar only
   const renderRows = (rows) => (
@@ -241,7 +259,7 @@ const ProfileSection = ({
                   size="xs"
                   style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
                   loading={verifyAadhaarLoading}
-                  onClick={handleVerifyAadhaar}
+                  onClick={handleVerifyPan}
                   disabled={verifyAadhaarLoading}
                 >
                   Verify
@@ -252,21 +270,9 @@ const ProfileSection = ({
         );
       })}
       {/* Show verification result or error below the grid */}
-      {(verifyResult || verifyError) && (
-        <div style={{ marginTop: 8, width: '100%' }}>
-          {verifyResult && verifyResult.success && verifyResult.verified && (
-            <span style={{ color: 'green', fontWeight: 500 }}>Verification successful!</span>
-          )}
-          {verifyResult && (!verifyResult.success || !verifyResult.verified) && (
-            <span style={{ color: 'orange', fontWeight: 500 }}>Verification failed.</span>
-          )}
-          {verifyError && (
-            <span style={{ color: 'red', fontWeight: 500 }}>{verifyError}</span>
-          )}
-        </div>
-      )}
+      {/* No inline status for PAN verify, only show in modal below */}
 
-      {/* Modal for PAN verify API response */}
+      {/* Modal for PAN verify API response or error */}
       {showVerifyModal && (
         <div style={{
           position: 'fixed',
@@ -274,16 +280,37 @@ const ProfileSection = ({
           left: 0,
           width: '100vw',
           height: '100vh',
-          background: 'rgba(0,0,0,0.4)',
-          zIndex: 1000,
+          zIndex: 2000,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
           <div style={{ background: '#fff', padding: 24, borderRadius: 8, minWidth: 320, maxWidth: 480, boxShadow: '0 2px 16px rgba(0,0,0,0.2)' }}>
-            <h4 style={{ marginTop: 0 }}>PAN Verification API Response</h4>
-            <pre style={{ fontSize: 13, background: '#f6f8fa', padding: 12, borderRadius: 4, maxHeight: 300, overflow: 'auto' }}>{JSON.stringify(verifyResult, null, 2)}</pre>
-            <button style={{ marginTop: 16, padding: '6px 18px', background: '#2d72d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }} onClick={() => setShowVerifyModal(false)}>Close</button>
+            <h4 style={{ marginTop: 0 }}>PAN Verification</h4>
+            {verifyResult && verifyResult.success && verifyResult.verified ? (
+              <div style={{ color: '#27ae60', fontWeight: 500, margin: '16px 0' }}>
+                PAN verified successfully!<br />
+                Name: <b>{verifyResult.panName || 'N/A'}</b><br />
+                {verifyResult.aadhaarVerified
+                  ? 'Aadhaar also verified.'
+                  : verifyResult.aadhaarReason
+                    ? <span style={{ color: 'red', display: 'block', marginTop: 8 }}>Aadhaar not verified: {verifyResult.aadhaarReason}</span>
+                    : ''}
+              </div>
+            ) : verifyResult && (!verifyResult.success || !verifyResult.verified) ? (
+              <div style={{ color: 'red', fontWeight: 500, margin: '16px 0' }}>PAN verification failed.</div>
+            ) : verifyError ? (
+              <div style={{ color: 'red', fontWeight: 500, margin: '16px 0' }}>{verifyError}</div>
+            ) : null}
+            <button
+              style={{ marginTop: 16, padding: '6px 18px', background: '#2d72d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+              onClick={() => {
+                setShowVerifyModal(false);
+                window.location.reload();
+              }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

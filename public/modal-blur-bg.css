@@ -1,0 +1,5 @@
+body.modal-blur-bg #root > *:not(.pan-verify-modal) {
+  filter: blur(4px) brightness(0.7) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
