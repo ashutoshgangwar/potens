@@ -35,6 +35,7 @@ const UsersSection = () => {
         const response = await axios.get(`${API_BASE_URL}/api/auth/admin/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log('Fetched users:', response.data);
         setUsers(
           Array.isArray(response.data)
             ? response.data
@@ -94,7 +95,7 @@ const UsersSection = () => {
 
   const getRoleName = (u) => {
     const roleObj = Array.isArray(u.roles) && u.roles.length > 0 ? u.roles[0] : null;
-    return roleObj ? roleObj.role || roleObj.name || '' : u.role || '';
+    return roleObj ? roleObj.name || '' : u.role || '';
   };
 
   const getInitials = (name = '') =>

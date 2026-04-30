@@ -20,6 +20,7 @@ const ApprovalsSection = () => {
     try {
       const data = await apiGetPartners(token);
       setPartners(data);
+      console.log('Fetched partners:', data);
     } catch (err) {
       setError(err.message || 'Failed to load partners');
     } finally {
@@ -63,6 +64,27 @@ const ApprovalsSection = () => {
 
   const handleView = (partner) => setSelectedPartner(partner);
   const handleCloseModal = () => setSelectedPartner(null);
+
+  const getRoleName = (partner) => {
+    const roles = partner?.roles;
+    if (Array.isArray(roles) && roles.length) {
+      const names = roles
+        .map((r) => (typeof r === 'string' ? r : r?.name || r?.role))
+        .filter(Boolean);
+      return names.length ? names.join(', ') : '-';
+    }
+    if (typeof roles === 'string' && roles.trim()) return roles;
+    return '-';
+  };
+
+  const getCity = (partner) => {
+    const address = partner?.address;
+    if (!address) return '-';
+    // Prefer business_address city, fall back to permanent_address city
+    const businessCity = address?.business_address?.city;
+    const permanentCity = address?.permanent_address?.city;
+    return businessCity || permanentCity || '-';
+  };
 
   const StatusBadge = ({ status }) => {
     const cls =
@@ -120,7 +142,9 @@ const ApprovalsSection = () => {
   return (
     <div className="approvals-list-wrap">
       <h3 className="approvals-title">Onboarding Approvals</h3>
-      <p className="approvals-subtitle">Pending onboarding requests for review.</p>
+      <p className="approvals-subtitle">
+        Pending onboarding requests for review.
+      </p>
 
       {loading ? (
         <div className="approvals-loading">Loading...</div>
@@ -138,6 +162,7 @@ const ApprovalsSection = () => {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Phone</th>
+                  <th>Role</th>
                   <th>Status</th>
                   <th>City</th>
                   <th>Actions</th>
@@ -149,10 +174,11 @@ const ApprovalsSection = () => {
                     <td>{p.full_name}</td>
                     <td>{p.email}</td>
                     <td>{p.phone}</td>
+                    <td>{getRoleName(p)}</td>
                     <td>
                       <StatusBadge status={p.approval_status} />
                     </td>
-                    <td>{p.assigned_city || '-'}</td>
+                    <td>{getCity(p)}</td>
                     <td className="actions-cell">
                       <PartnerActions p={p} />
                     </td>
@@ -168,11 +194,11 @@ const ApprovalsSection = () => {
               <div key={p._id} className="partner-card">
                 <div className="partner-card__header">
                   <div className="partner-card__avatar">
-                    {(p.full_name || '?')[0].toUpperCase()}
+                    {(p.full_name || "?")[0].toUpperCase()}
                   </div>
                   <div className="partner-card__info">
-                    <p className="partner-card__name">{p.full_name || '-'}</p>
-                    <p className="partner-card__email">{p.email || '-'}</p>
+                    <p className="partner-card__name">{p.full_name || "-"}</p>
+                    <p className="partner-card__email">{p.email || "-"}</p>
                   </div>
                   <StatusBadge status={p.approval_status} />
                 </div>
@@ -180,11 +206,21 @@ const ApprovalsSection = () => {
                 <div className="partner-card__meta">
                   <div className="partner-card__meta-row">
                     <span className="partner-card__meta-label">Phone</span>
-                    <span className="partner-card__meta-value">{p.phone || '-'}</span>
+                    <span className="partner-card__meta-value">
+                      {p.phone || "-"}
+                    </span>
+                  </div>
+                  <div className="partner-card__meta-row">
+                    <span className="partner-card__meta-label">Role</span>
+                    <span className="partner-card__meta-value">
+                      {getRoleName(p)}
+                    </span>
                   </div>
                   <div className="partner-card__meta-row">
                     <span className="partner-card__meta-label">City</span>
-                    <span className="partner-card__meta-value">{p.assigned_city || '-'}</span>
+                    <span className="partner-card__meta-value">
+                      {getCity(p)}
+                    </span>
                   </div>
                 </div>
 
@@ -202,10 +238,12 @@ const ApprovalsSection = () => {
         <div className="modal-overlay" onClick={closeActionModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">
-              {actionModal.action === 'approve' ? 'Approve partner' : 'Reject partner'}
+              {actionModal.action === "approve"
+                ? "Approve partner"
+                : "Reject partner"}
             </h3>
             <p className="modal-body">
-              Are you sure you want to <b>{actionModal.action}</b>{' '}
+              Are you sure you want to <b>{actionModal.action}</b>{" "}
               <b>{actionModal.partner?.full_name}</b>?
             </p>
             <textarea
@@ -221,12 +259,15 @@ const ApprovalsSection = () => {
                 disabled={actionLoading || !remarks.trim()}
               >
                 {actionLoading
-                  ? 'Processing...'
-                  : actionModal.action === 'approve'
-                  ? 'Approve'
-                  : 'Reject'}
+                  ? "Processing..."
+                  : actionModal.action === "approve"
+                    ? "Approve"
+                    : "Reject"}
               </button>
-              <button className="approvals-action-btn view" onClick={closeActionModal}>
+              <button
+                className="approvals-action-btn view"
+                onClick={closeActionModal}
+              >
                 Cancel
               </button>
             </div>
@@ -238,67 +279,89 @@ const ApprovalsSection = () => {
       {/* ── Partner detail modal ── */}
       {selectedPartner && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content modal-content--wide" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content modal-content--wide"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="modal-title">Partner overview</h3>
 
             <table className="detail-table">
               <tbody>
                 {[
-                  ['Father name', selectedPartner.professional?.father_name],
+                  ["Father name", selectedPartner.professional?.father_name],
                   [
-                    'Date of birth',
+                    "Date of birth",
                     selectedPartner.professional?.dob
-                      ? new Date(selectedPartner.professional.dob).toLocaleDateString()
+                      ? new Date(
+                          selectedPartner.professional.dob,
+                        ).toLocaleDateString()
                       : null,
                   ],
                   [
-                    'Business address',
+                    "Business address",
                     selectedPartner.address?.business_address
-                      ? typeof selectedPartner.address.business_address === 'object'
-                        ? Object.values(selectedPartner.address.business_address)
+                      ? typeof selectedPartner.address.business_address ===
+                        "object"
+                        ? Object.values(
+                            selectedPartner.address.business_address,
+                          )
                             .filter(Boolean)
-                            .join(', ')
+                            .join(", ")
                         : selectedPartner.address.business_address
                       : null,
                   ],
                   [
-                    'Permanent address',
+                    "Permanent address",
                     selectedPartner.address?.permanent_address
-                      ? typeof selectedPartner.address.permanent_address === 'object'
-                        ? Object.values(selectedPartner.address.permanent_address)
+                      ? typeof selectedPartner.address.permanent_address ===
+                        "object"
+                        ? Object.values(
+                            selectedPartner.address.permanent_address,
+                          )
                             .filter(Boolean)
-                            .join(', ')
+                            .join(", ")
                         : selectedPartner.address.permanent_address
                       : null,
                   ],
-                  ['Role type', selectedPartner.professional?.register_as],
-                  ['Bowser capacity', selectedPartner.vehicle?.bowser_capacity_id],
-                  ['Land area (acres)', selectedPartner.professional?.land_area_acres],
-                  ['PAN number', selectedPartner.documents?.pan_card?.number],
-                  ['Aadhaar number', selectedPartner.documents?.aadhaar_card?.number],
+                  ["Role name", getRoleName(selectedPartner)],
+                  ["Role type", selectedPartner.professional?.register_as],
+                  [
+                    "Bowser capacity",
+                    selectedPartner.vehicle?.bowser_capacity_id,
+                  ],
+                  [
+                    "Land area (acres)",
+                    selectedPartner.professional?.land_area_acres,
+                  ],
+                  ["PAN number", selectedPartner.documents?.pan_card?.number],
+                  [
+                    "Aadhaar number",
+                    selectedPartner.documents?.aadhaar_card?.number,
+                  ],
                 ].map(([label, value]) => (
                   <tr key={label}>
                     <td className="detail-table__label">{label}</td>
-                    <td className="detail-table__value">{value || '-'}</td>
+                    <td className="detail-table__value">{value || "-"}</td>
                   </tr>
                 ))}
                 <tr>
-                  <td className="detail-table__label">Aadhaar verified</td>
+                  <td className="detail-table__label">Aadhaar Verified</td>
                   <td className="detail-table__value">
-                    {selectedPartner.documents?.aadhaar_card?.file_url ? (
+                    {selectedPartner?.documents?.adhar_varified === true ? (
                       <span className="verified-tag">✔ Verified</span>
                     ) : (
-                      <span className="unverified-tag">✗ Not verified</span>
+                      <span className="unverified-tag">✗ Not Verified</span>
                     )}
                   </td>
                 </tr>
+
                 <tr>
-                  <td className="detail-table__label">PAN verified</td>
+                  <td className="detail-table__label">PAN Verified</td>
                   <td className="detail-table__value">
-                    {selectedPartner.documents?.pan_card?.file_url ? (
+                    {selectedPartner?.documents?.pan_varified === true ? (
                       <span className="verified-tag">✔ Verified</span>
                     ) : (
-                      <span className="unverified-tag">✗ Not verified</span>
+                      <span className="unverified-tag">✗ Not Verified</span>
                     )}
                   </td>
                 </tr>

@@ -30,6 +30,7 @@ const PaymentModal = ({ onClose, accessToken }) => {
   const [accountNumber, setAccountNumber] = useState('');
   const [amount, setAmount] = useState('');
   const [bankName, setBankName] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
   const [screenshot, setScreenshot] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -47,8 +48,8 @@ const PaymentModal = ({ onClose, accessToken }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!utr.trim() || !accountNumber.trim() || !amount || !bankName.trim() || !screenshot) {
-      setSubmitResult({ success: false, message: 'All fields including screenshot are required.' });
+    if (!utr.trim() || !accountNumber.trim() || !amount || !bankName.trim() || !paymentDate || !screenshot) {
+      setSubmitResult({ success: false, message: 'All fields including payment date and screenshot are required.' });
       return;
     }
 
@@ -62,6 +63,7 @@ const PaymentModal = ({ onClose, accessToken }) => {
       formData.append('amount', Number(amount));
       formData.append('screenshot', screenshot);
       formData.append('bank_name', bankName.trim());
+      formData.append('payment_date', paymentDate);
       const BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const res = await fetch(`${BASE_URL}/api/payment/submit`, {
         method: 'POST',
@@ -213,6 +215,18 @@ const PaymentModal = ({ onClose, accessToken }) => {
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
                 placeholder="Enter your bank name"
+                style={inputStyle}
+                disabled={submitting}
+              />
+            </div>
+
+            {/* Payment Date */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Payment Date <span style={{ color: 'red' }}>*</span></label>
+              <input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
                 style={inputStyle}
                 disabled={submitting}
               />

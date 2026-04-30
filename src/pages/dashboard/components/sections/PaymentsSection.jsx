@@ -44,10 +44,12 @@ const PaymentsSection = () => {
   const [error, setError]       = useState('');
   const [actionLoading, setActionLoading] = useState({});
   const [actionResult, setActionResult]   = useState({}); 
+  const [actionModal, setActionModal] = useState({ open: false, paymentId: null, action: null });
+  const [remark, setRemark] = useState('');
 
   const accessToken = localStorage.getItem('POTENS_admin_access_token') || '';
   const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  // console.log('Using API base URL:', accessToken, BASE_URL);
+
   useEffect(() => {
     const fetchPayments = async () => {
       setLoading(true);
@@ -83,24 +85,49 @@ const PaymentsSection = () => {
   }, []);
 
   // ── Approve / Reject ──────────────────────────────────────────────────────
-  const handleAction = async (id, action) => {
+  const handleAction = async (id, action, enteredRemark) => {
+    const finalRemark = (enteredRemark || '').trim();
+    if (!finalRemark) {
+      setActionResult((prev) => ({
+        ...prev,
+        [id]: { success: false, message: 'Remark is required.' },
+      }));
+      return;
+    }
+
     setActionLoading((prev) => ({ ...prev, [id]: action }));
     setActionResult((prev) => ({ ...prev, [id]: null }));
     try {
-      const res = await fetch(`${BASE_URL}/api/payment/${action}/${id}`, {
-        method: 'POST',
+      const res = await fetch(`${BASE_URL}/api/payment/${id}/${action}`, {
+        method: 'PATCH',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ remark: finalRemark }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || `Failed to ${action}`);
-      setActionResult((prev) => ({ ...prev, [id]: { success: true, message: data?.message || `Payment ${action}d successfully.` } }));
-      // Optimistically update status in list
+
+      const updatedRecord = data?.data || {};
+      setActionResult((prev) => ({
+        ...prev,
+        [id]: { success: true, message: data?.message || `Payment ${action}d successfully.` },
+      }));
+
+      // Update payment in list using response data (approval_status + approved_by)
       setPayments((prev) =>
         prev.map((p) =>
-          (p.id || p._id) === id ? { ...p, status: action === 'approve' ? 'approved' : 'rejected' } : p
+          (p.id || p._id) === id
+            ? {
+                ...p,
+                status: updatedRecord.status ?? (action === 'approve' ? 'approved' : 'rejected'),
+                approval_status: updatedRecord.approval_status ?? (action === 'approve' ? 'approved' : 'rejected'),
+                approved_by: updatedRecord.approved_by ?? p.approved_by,
+                approval_remark: updatedRecord.approval_remark ?? finalRemark,
+                approval_action_at: updatedRecord.approval_action_at ?? new Date().toISOString(),
+              }
+            : p
         )
       );
     } catch (err) {
@@ -110,22 +137,47 @@ const PaymentsSection = () => {
     }
   };
 
+  const openActionModal = (paymentId, action) => {
+    setActionModal({ open: true, paymentId, action });
+    setRemark('');
+  };
+
+  const closeActionModal = () => {
+    setActionModal({ open: false, paymentId: null, action: null });
+    setRemark('');
+  };
+
+  const confirmAction = async () => {
+    if (!actionModal.paymentId || !actionModal.action) return;
+    await handleAction(actionModal.paymentId, actionModal.action, remark);
+    if (remark.trim()) closeActionModal();
+  };
+
   // ── Shared action buttons renderer ────────────────────────────────────────
   const ActionButtons = ({ payment }) => {
     const id     = payment.id || payment._id;
-    const status = payment.status?.toLowerCase();
+    const status = (payment.approval_status || payment.status)?.toLowerCase();
     const busy   = actionLoading[id];
     const result = actionResult[id];
 
     if (status === 'approved' || status === 'rejected') {
-      return <StatusBadge status={status} />;
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <StatusBadge status={status} />
+          {/* {payment.approved_by?.full_name && (
+            <span style={{ fontSize: '0.72rem', color: '#999' }}>
+              by {payment.approved_by.full_name}
+            </span>
+          )} */}
+        </div>
+      );
     }
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 180 }}>
         <div style={{ display: 'flex', gap: 6 }}>
           <button
-            onClick={() => handleAction(id, 'approve')}
+            onClick={() => openActionModal(id, 'approve')}
             disabled={!!busy}
             style={{
               flex: 1, padding: '6px 0', border: 'none', borderRadius: 5,
@@ -137,7 +189,7 @@ const PaymentsSection = () => {
             {busy === 'approve' ? '…' : '✓ Approve'}
           </button>
           <button
-            onClick={() => handleAction(id, 'reject')}
+            onClick={() => openActionModal(id, 'reject')}
             disabled={!!busy}
             style={{
               flex: 1, padding: '6px 0', border: 'none', borderRadius: 5,
@@ -195,12 +247,12 @@ const PaymentsSection = () => {
         .payments-table {
           width: 100%;
           border-collapse: collapse;
-          min-width: 700px;
+          min-width: 800px;
           background: #fff;
         }
 
         .payments-table th {
-          padding: 13px 14px;
+          padding: 15px 14px;
           background: #f5f7fa;
           font-size: 0.78rem;
           font-weight: 700;
@@ -213,7 +265,7 @@ const PaymentsSection = () => {
         }
 
         .payments-table td {
-          padding: 12px 14px;
+          padding: 12px 10px;
           border-bottom: 1px solid #f0f0f0;
           font-size: 0.9rem;
           color: #333;
@@ -316,6 +368,39 @@ const PaymentsSection = () => {
           color: #aaa;
           font-size: 1rem;
         }
+
+        .payments-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+        }
+
+        .payments-modal {
+          width: 100%;
+          max-width: 460px;
+          background: #fff;
+          border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+          padding: 18px;
+        }
+
+        .payments-modal textarea {
+          width: 100%;
+          min-height: 96px;
+          margin-top: 10px;
+          border: 1px solid #dfe3e8;
+          border-radius: 8px;
+          padding: 10px;
+          font-size: 0.9rem;
+          outline: none;
+          resize: vertical;
+          box-sizing: border-box;
+        }
       `}</style>
 
       <div className="payments-root" style={{ padding: 32 }}>
@@ -359,7 +444,9 @@ const PaymentsSection = () => {
                 <th>UTR Number</th>
                 <th>Account Number</th>
                 <th>Amount</th>
-                <th>Date</th>
+                <th>Transaction Date</th>
+                <th>Action Date</th>
+                <th>Approved By</th>
                 <th>Status / Action</th>
               </tr>
             </thead>
@@ -368,7 +455,7 @@ const PaymentsSection = () => {
                 [1,2,3].map((i) => <SkeletonRow key={i} />)
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="payments-empty">No payment records found.</td>
+                  <td colSpan={8} className="payments-empty">No payment records found.</td>
                 </tr>
               ) : (
                 payments.map((payment, idx) => {
@@ -388,18 +475,9 @@ const PaymentsSection = () => {
                       <td style={{ fontWeight: 600 }}>
                         {formatAmount(payment.amount)}
                       </td>
-                      {/* <td>
-                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#222' }}>
-                          {user.name || user.full_name || '—'}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#999' }}>
-                          {user.email || ''}
-                        </div>
-                        {user.phone && (
-                          <div style={{ fontSize: '0.78rem', color: '#aaa' }}>{user.phone}</div>
-                        )}
-                      </td> */}
-                      <td style={{ color: '#666' }}>{formatDate(payment.createdAt || payment.date || payment.created_at)}</td>
+                      <td style={{ color: '#666' }}>{formatDate(payment.payment_date || payment.date || payment.created_at)}</td>
+                      <td style={{ color: '#666' }}>{formatDate(payment.approval_action_at)}</td>
+                      <td style={{ color: '#666' }}>{payment.approved_by?.full_name || '—'}</td>
                       <td>
                         <ActionButtons payment={payment} />
                       </td>
@@ -433,7 +511,7 @@ const PaymentsSection = () => {
                     <span className="payments-card-utr">
                       {payment.utr || payment.utr_number || `Record #${idx + 1}`}
                     </span>
-                    <StatusBadge status={payment.status || 'pending'} />
+                    <StatusBadge status={payment.approval_status || payment.status || 'pending'} />
                   </div>
 
                   <div className="payments-card-row">
@@ -472,8 +550,22 @@ const PaymentsSection = () => {
                   )}
 
                   <div className="payments-card-row">
-                    <span className="payments-card-label">Date</span>
-                    <span className="payments-card-value">{formatDate(payment.createdAt || payment.date || payment.created_at)}</span>
+                    <span className="payments-card-label">Transaction Date</span>
+                    <span className="payments-card-value">{formatDate(payment.payment_date || payment.date || payment.created_at)}</span>
+                  </div>
+
+                  {payment.approved_by?.full_name && (
+                    <div className="payments-card-row">
+                      <span className="payments-card-label">
+                        {(payment.approval_status || payment.status)?.toLowerCase() === 'rejected' ? 'Rejected By' : 'Approved By'}
+                      </span>
+                      <span className="payments-card-value">{payment.approved_by.full_name}</span>
+                    </div>
+                  )}
+
+                  <div className="payments-card-row">
+                    <span className="payments-card-label">Action Date</span>
+                    <span className="payments-card-value">{formatDate(payment.approval_action_at)}</span>
                   </div>
 
                   <div className="payments-card-actions">
@@ -492,6 +584,53 @@ const PaymentsSection = () => {
           </p>
         )}
       </div>
+
+      {actionModal.open && (
+        <div className="payments-modal-overlay" onClick={closeActionModal}>
+          <div className="payments-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#1a1a2e' }}>
+              {actionModal.action === 'approve' ? 'Approve payment' : 'Reject payment'}
+            </h3>
+            <p style={{ margin: '8px 0 0', color: '#666', fontSize: '0.9rem' }}>
+              Please enter remark before proceeding.
+            </p>
+
+            <textarea
+              placeholder="Enter remark (required)"
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+            />
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+              <button
+                onClick={closeActionModal}
+                style={{
+                  padding: '8px 14px', borderRadius: 7, border: '1px solid #d0d7de',
+                  background: '#fff', color: '#444', cursor: 'pointer', fontWeight: 600,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAction}
+                disabled={!remark.trim() || !!actionLoading[actionModal.paymentId]}
+                style={{
+                  padding: '8px 14px', borderRadius: 7, border: 'none',
+                  background: actionModal.action === 'approve' ? '#4caf50' : '#f44336',
+                  color: '#fff', cursor: !remark.trim() ? 'not-allowed' : 'pointer',
+                  opacity: !remark.trim() ? 0.6 : 1, fontWeight: 700,
+                }}
+              >
+                {actionLoading[actionModal.paymentId]
+                  ? 'Processing...'
+                  : actionModal.action === 'approve'
+                  ? 'Approve'
+                  : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

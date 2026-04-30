@@ -44,6 +44,21 @@ export const roleAccess = {
     ],
   },
 
+   logistics_manager: {
+    sidebar: [
+      SIDEBAR_KEYS.OVERVIEW,
+      SIDEBAR_KEYS.TRANSACTION,
+      // SIDEBAR_KEYS.WALLET,
+      SIDEBAR_KEYS.AGREEMENT,
+      SIDEBAR_KEYS.CERTIFICATE,
+      SIDEBAR_KEYS.PAYMENTS,
+      SIDEBAR_KEYS.APPROVALS,
+      SIDEBAR_KEYS.USERS,
+      // SIDEBAR_KEYS.REPORTS,
+      // SIDEBAR_KEYS.ADMIN,
+    ],
+  },
+
   field_officer: {
       sidebar: [
       SIDEBAR_KEYS.OVERVIEW,
