@@ -92,7 +92,7 @@ const ProfileSection = ({
   const businessAddress = (address && typeof address === 'object' ? address.business_address : undefined) ?? {};
 
   const accountRows = [
-    { label: 'Full Name', value: getDisplayValue(apiUser?.name || profileDetails?.fullName) },
+    { label: 'Full Name', value: getDisplayValue(apiUser?.full_name || profileDetails?.full_name) },
     { label: 'Email', value: getDisplayValue(apiUser?.email || user?.email) },
     { label: 'Phone', value: getDisplayValue(apiUser?.phone || user?.phone) },
     { label: 'Role', value: getDisplayValue(apiUser?.role || user?.role) },
