@@ -9,24 +9,303 @@ const setBodyBlur = (active) => {
   }
 };
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { fetchAuthProfilePayload } from '../../../../utils/api.js';
 import { apiVerifyPan, apiVerifyAadhaar } from '../../../../utils/api.js';
 import { Button, Card } from '../../../../components/ui/index.js';
 import { useAuth } from '../../../../context/AuthContext.jsx';
+
+
+
+
 
 const getDisplayValue = (value, fallback = 'Not provided') => {
   const normalized = `${value ?? ''}`.trim();
   return normalized || fallback;
 };
 
-const hasDocumentData = (doc) => {
-  if (!doc || typeof doc !== 'object') {
-    return false;
-  }
-  return Object.keys(doc).length > 0;
+// ─── Payment Modal Component ────────────────────────────────────────────────
+const PaymentModal = ({ onClose, accessToken }) => {
+  const [utr, setUtr] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [amount, setAmount] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [screenshot, setScreenshot] = useState(null);
+  const [screenshotPreview, setScreenshotPreview] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState(null); // { success, message }
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setScreenshot(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setScreenshotPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!utr.trim() || !accountNumber.trim() || !amount || !bankName.trim() || !screenshot) {
+      setSubmitResult({ success: false, message: 'All fields including screenshot are required.' });
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('utr', utr.trim());
+      formData.append('accountNumber', accountNumber.trim());
+      formData.append('amount', Number(amount));
+      formData.append('screenshot', screenshot);
+      formData.append('bank_name', bankName.trim());
+      const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const res = await fetch(`${BASE_URL}/api/payment/submit`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          // Do NOT set Content-Type for multipart/form-data; browser sets it automatically
+        },
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        setSubmitResult({ success: true, message: data?.message || 'Payment submitted successfully!' });
+      } else {
+        setSubmitResult({ success: false, message: data?.message || `Error: ${res.status} ${res.statusText}` });
+      }
+    } catch (err) {
+      setSubmitResult({ success: false, message: err.message || 'Payment submission failed.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (submitResult?.success) {
+      window.location.reload();
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        zIndex: 2100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.45)',
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+    >
+      <div style={{
+        background: '#fff',
+        padding: '32px 28px 24px',
+        borderRadius: 12,
+        minWidth: 340,
+        maxWidth: 480,
+        width: '100%',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
+        position: 'relative',
+      }}>
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          style={{
+            position: 'absolute', top: 14, right: 16,
+            background: 'none', border: 'none',
+            fontSize: 22, cursor: 'pointer', color: '#888', lineHeight: 1,
+          }}
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        <h4 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 700, color: '#1a1a2e' }}>
+          Submit Payment
+        </h4>
+        <p style={{ margin: '0 0 20px', fontSize: '0.85rem', color: '#666' }}>
+          Fill in your payment details and upload a screenshot proof.
+        </p>
+
+        {submitResult ? (
+          <div>
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: 8,
+              background: submitResult.success ? '#edfaf3' : '#fff3f3',
+              color: submitResult.success ? '#1a7f4b' : '#c0392b',
+              fontWeight: 500,
+              marginBottom: 20,
+              fontSize: '0.97rem',
+            }}>
+              {submitResult.success ? '✓ ' : '✗ '}{submitResult.message}
+            </div>
+            <button
+              onClick={handleClose}
+              style={{
+                width: '100%', padding: '10px 0',
+                background: submitResult.success ? '#27ae60' : '#2d72d2',
+                color: '#fff', border: 'none', borderRadius: 6,
+                fontWeight: 600, fontSize: '0.97rem', cursor: 'pointer',
+              }}
+            >
+              {submitResult.success ? 'Close & Refresh' : 'Try Again'}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} encType="multipart/form-data">
+            {/* UTR */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>UTR / Transaction Number <span style={{ color: 'red' }}>*</span></label>
+              <input
+                type="text"
+                value={utr}
+                onChange={(e) => setUtr(e.target.value)}
+                placeholder="Enter UTR or transaction number"
+                style={inputStyle}
+                disabled={submitting}
+              />
+            </div>
+
+            {/* Account Number */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Your Account Number (From which you made the payment) <span style={{ color: 'red' }}>*</span></label>
+              <input
+                type="text"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                placeholder="Enter account number"
+                style={inputStyle}
+                disabled={submitting}
+              />
+            </div>
+
+            {/* Amount */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Amount (₹) <span style={{ color: 'red' }}>*</span></label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                min="1"
+                style={inputStyle}
+                disabled={submitting}
+              />
+            </div>
+
+            {/* Bank Name */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Bank Name <span style={{ color: 'red' }}>*</span></label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="Enter your bank name"
+                style={inputStyle}
+                disabled={submitting}
+              />
+            </div>
+
+            {/* Screenshot Upload */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>Screenshot Proof <span style={{ color: 'red' }}>*</span></label>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed #b0bec5',
+                  borderRadius: 8,
+                  padding: screenshotPreview ? 8 : '18px 12px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: '#f9fbfc',
+                  transition: 'border-color 0.2s',
+                }}
+              >
+                {screenshotPreview ? (
+                  <img
+                    src={screenshotPreview}
+                    alt="Screenshot preview"
+                    style={{ maxHeight: 140, maxWidth: '100%', borderRadius: 6, objectFit: 'contain' }}
+                  />
+                ) : (
+                  <span style={{ color: '#90a4ae', fontSize: '0.88rem' }}>
+                    📎 Click to upload screenshot (JPG, PNG, PDF)
+                  </span>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                disabled={submitting}
+              />
+              {screenshot && (
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#607d8b' }}>
+                  {screenshot.name}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: '100%',
+                padding: '11px 0',
+                background: submitting ? '#90a4ae' : '#2d72d2',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                fontWeight: 600,
+                fontSize: '1rem',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                letterSpacing: 0.3,
+                transition: 'background 0.2s',
+              }}
+            >
+              {submitting ? 'Submitting…' : 'Submit Payment'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
 };
 
+const labelStyle = {
+  display: 'block',
+  marginBottom: 5,
+  fontWeight: 600,
+  fontSize: '0.85rem',
+  color: '#444',
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '9px 12px',
+  border: '1px solid #d0d7de',
+  borderRadius: 6,
+  fontSize: '0.95rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+  background: '#fafbfc',
+  color: '#222',
+};
+// ────────────────────────────────────────────────────────────────────────────
 
 
 const ProfileSection = ({
@@ -38,7 +317,6 @@ const ProfileSection = ({
   navigate,
 }) => {
   const { user, isLoading: authLoading } = useAuth();
-  // All hooks at the top, before any return!
   const [profileDetails, setProfileDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState('');
@@ -46,12 +324,14 @@ const ProfileSection = ({
   const [verifyAadhaarLoading, setVerifyAadhaarLoading] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);  // ← NEW
 
-  // Blur background when modal is open
+  // Blur background when any modal is open
   useEffect(() => {
-    setBodyBlur(showVerifyModal);
+    setBodyBlur(showVerifyModal || showPaymentModal);
     return () => setBodyBlur(false);
-  }, [showVerifyModal]);
+  }, [showVerifyModal, showPaymentModal]);
+
   const [verifyError, setVerifyError] = useState('');
   const [editDocFields, setEditDocFields] = useState(false);
 
@@ -73,15 +353,14 @@ const ProfileSection = ({
   }, [user, authLoading]);
 
   if (authLoading || !user || !user.id) {
-    return <div style={{padding: '2rem', textAlign: 'center'}}>Loading profile...</div>;
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading profile...</div>;
   }
 
   if (loading) {
-    return <div style={{padding: '2rem', textAlign: 'center'}}>Loading profile...</div>;
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading profile...</div>;
   }
-  // If no profile found, use empty/default objects so UI renders but is empty
+
   const safeProfileDetails = profileDetails?.user ? profileDetails : { user: user || {}, professional: {}, address: {}, documents: {}, payment: {}, vehicle: {} };
-  // Use safeProfileDetails everywhere to avoid blocking UI
   const apiUser = safeProfileDetails.user || {};
   const professional = safeProfileDetails.professional ?? {};
   const address = safeProfileDetails.address ?? {};
@@ -104,7 +383,6 @@ const ProfileSection = ({
     if (!dateStr || typeof dateStr !== 'string') return '';
     const d = new Date(dateStr);
     if (isNaN(d)) return dateStr;
-    // Format as DD-MM-YYYY
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
@@ -158,23 +436,15 @@ const ProfileSection = ({
     { label: 'Pincode', value: getDisplayValue(businessAddress?.pincode || profileDetails?.businessPincode) },
   ];
 
-  // Always use API response values for document numbers (no duplication)
   const documentRows = [
     { label: 'PAN Number', value: getDisplayValue(documents?.pan_card?.number), showVerify: true, type: 'pan' },
-    // Always use the latest Aadhaar number from API response, never fallback to any other value
     { label: 'Aadhaar Number', value: getDisplayValue(documents?.aadhaar_card && typeof documents?.aadhaar_card === 'object' ? documents?.aadhaar_card?.number : ''), showVerify: true, type: 'aadhaar' },
     { label: 'Driving License', value: getDisplayValue(documents?.driving_license?.number), showVerify: true },
     { label: 'Vehicle RC', value: getDisplayValue(documents?.vehicle_rc?.number), showVerify: true },
-    // { label: 'NOC', value: hasDocumentData(documents?.noc) ? 'Submitted' : 'Not provided' },
-    // { label: 'Passport Photo', value: hasDocumentData(documents?.passport_size_photo) ? 'Submitted' : 'Not provided' },
   ];
 
-  // Separate handlers for PAN and Aadhaar verification
-  // useState declarations moved to the top, duplicates removed
-
-
-  // Get PAN number and userId for verification
   const panNumber = documents?.pan_card?.number || '';
+  const userId = apiUser?.id || apiUser?._id || apiUser?.user_id || profileDetails?.userId || '';
 
   const handleVerifyPan = async (e) => {
     e.preventDefault();
@@ -183,11 +453,9 @@ const ProfileSection = ({
     setVerifyError('');
     try {
       const res = await apiVerifyPan({ panNumber, userId });
-      console.log('[PAN VERIFY API RESPONSE]', res);
       setVerifyResult(res);
       setShowVerifyModal(true);
     } catch (err) {
-      console.log('[PAN VERIFY ERROR]', err, err?.message);
       setVerifyError(err.message || 'PAN verification failed.');
       setShowVerifyModal(true);
     } finally {
@@ -195,26 +463,9 @@ const ProfileSection = ({
     }
   };
 
-  // const handleVerifyAadhaar = async (e) => {
-  //   e.preventDefault();
-  //   setVerifyAadhaarLoading(true);
-  //   setVerifyResult(null);
-  //   setVerifyError('');
-  //   try {
-  //       const res = await apiVerifyAadhaar({ aadhaarNumber: documents?.aadhaar_card?.number || '', userId });
-  //     setVerifyResult(res);
-  //   } catch (err) {
-  //     setVerifyError(err.message || 'Aadhaar verification failed.');
-  //   } finally {
-  //     setVerifyAadhaarLoading(false);
-  //   }
-  // };
-
-  // Render rows with Verify button for PAN/Aadhaar only
   const renderRows = (rows) => (
     <div className="profile-details-grid">
       {rows.map(({ label, value, showVerify }) => {
-        // Check for PAN/Aadhaar verified flags from API response
         const panVerified = (profileDetails?.pan_varified === true || profileDetails?.documents?.pan_varified === true);
         const aadhaarVerified = (profileDetails?.adhar_varified === true || profileDetails?.documents?.adhar_varified === true);
         return (
@@ -223,42 +474,22 @@ const ProfileSection = ({
             <strong>{value}</strong>
             {showVerify && label === 'PAN Number' && (
               panVerified ? (
-                <Button
-                  size="xs"
-                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem', background: '#27ae60', color: '#fff', border: 'none', cursor: 'default' }}
-                  disabled
-                >
+                <Button size="xs" style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem', background: '#27ae60', color: '#fff', border: 'none', cursor: 'default' }} disabled>
                   Verified ✓
                 </Button>
               ) : (
-                <Button
-                  size="xs"
-                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
-                  loading={verifyPanLoading}
-                  onClick={handleVerifyPan}
-                  disabled={verifyPanLoading}
-                >
+                <Button size="xs" style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }} loading={verifyPanLoading} onClick={handleVerifyPan} disabled={verifyPanLoading}>
                   Verify
                 </Button>
               )
             )}
             {showVerify && label === 'Aadhaar Number' && (
               aadhaarVerified ? (
-                <Button
-                  size="xs"
-                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem', background: '#27ae60', color: '#fff', border: 'none', cursor: 'default' }}
-                  disabled
-                >
+                <Button size="xs" style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem', background: '#27ae60', color: '#fff', border: 'none', cursor: 'default' }} disabled>
                   Verified ✓
                 </Button>
               ) : (
-                <Button
-                  size="xs"
-                  style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
-                  loading={verifyAadhaarLoading}
-                  onClick={handleVerifyPan}
-                  disabled={verifyAadhaarLoading}
-                >
+                <Button size="xs" style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }} loading={verifyAadhaarLoading} onClick={handleVerifyPan} disabled={verifyAadhaarLoading}>
                   Verify
                 </Button>
               )
@@ -266,22 +497,10 @@ const ProfileSection = ({
           </div>
         );
       })}
-      {/* Show verification result or error below the grid */}
-      {/* No inline status for PAN verify, only show in modal below */}
 
-      {/* Modal for PAN verify API response or error */}
+      {/* PAN Verify Modal */}
       {showVerifyModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          zIndex: 2000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', padding: 24, borderRadius: 8, minWidth: 320, maxWidth: 480, boxShadow: '0 2px 16px rgba(0,0,0,0.2)' }}>
             <h4 style={{ marginTop: 0 }}>PAN Verification</h4>
             {verifyResult && verifyResult.success && verifyResult.verified ? (
@@ -301,10 +520,7 @@ const ProfileSection = ({
             ) : null}
             <button
               style={{ marginTop: 16, padding: '6px 18px', background: '#2d72d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-              onClick={() => {
-                setShowVerifyModal(false);
-                window.location.reload();
-              }}
+              onClick={() => { setShowVerifyModal(false); window.location.reload(); }}
             >
               Close
             </button>
@@ -313,14 +529,7 @@ const ProfileSection = ({
       )}
     </div>
   );
-  
 
-  // Always use the latest values from documents for PAN and Aadhaar
-  const userId = apiUser?.id || apiUser?._id || apiUser?.user_id || profileDetails?.userId || '';
-
-  // --- Profile Alert Logic ---
-
-  // Map of required fields to their nested paths in the API response
   const REQUIRED_PROFILE_FIELDS_MAP = [
     { label: 'Full Name', path: ['user', 'full_name'] },
     { label: 'Father Name', path: ['professional', 'father_name'] },
@@ -355,28 +564,31 @@ const ProfileSection = ({
     { label: 'NOC', path: ['documents', 'noc'] },
   ];
 
-  // Helper to get nested value by path
   const getNestedValue = (obj, pathArr) => pathArr.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);
   const isFilled = (value) => {
     if (typeof value === 'object' && value !== null) return Object.keys(value).length > 0;
     return Boolean(String(value ?? '').trim());
   };
 
-  // Compute missing sections for alert using correct nested paths
   const missingSections = REQUIRED_PROFILE_FIELDS_MAP
-    .filter(({ label, path }) => !isFilled(getNestedValue(safeProfileDetails, path)))
+    .filter(({ path }) => !isFilled(getNestedValue(safeProfileDetails, path)))
     .map(({ label }) => label);
 
-  // Show alert if any required section is missing and profileCompletion < 100
   const showProfileAlert = missingSections.length > 0 && (typeof profileCompletion === 'number' ? profileCompletion < 100 : true);
 
-  // --- End Profile Alert Logic ---
-
-  // (Unused code for handleVerify removed)
+  // Access token for payment API
+  const accessToken = localStorage.getItem('POTENS_admin_access_token') || '';
 
   return (
     <div className="profile-section">
-      {/* Always render the rest of the profile UI, even if alert is shown */}
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          onClose={() => setShowPaymentModal(false)}
+          accessToken={accessToken}
+        />
+      )}
+
       <Card padding="md" shadow="sm" className="profile-section-hero">
         <div className="profile-section-hero-head">
           <div>
@@ -384,47 +596,24 @@ const ProfileSection = ({
             <h2 className="card-section-title">All fetched account details</h2>
             <p className="dashboard-subtitle">View your auth and onboarding profile data in one place.</p>
           </div>
-          <Button size="sm" onClick={() => navigate('/profile-completion')}>
-            Update Profile
-          </Button>
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowPaymentModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              + Submit Payment
+            </Button>
+            <Button size="sm" onClick={() => navigate('/profile-completion')}>
+              Update Profile
+            </Button>
+          </div>
         </div>
-
-        {/* <section className="profile-health-panel" aria-label="Profile summary">
-          <article className="profile-health-metric">
-            <header className="profile-health-metric-head">
-              <span className="profile-health-label">Profile completion</span>
-              <strong className="profile-health-value">{profileCompletion}%</strong>
-            </header>
-            <progress
-              className="profile-health-progress"
-              max="100"
-              value={profileCompletion}
-              aria-label={`Profile completion ${profileCompletion}%`}
-            />
-            <p className="profile-health-copy">
-              {completedProfileFieldsCount}/{totalProfileFields} fields completed
-            </p>
-          </article>
-
-          <article className="profile-health-metric">
-            <header className="profile-health-metric-head">
-              <span className="profile-health-label">Payment readiness</span>
-              <strong className={`profile-health-status ${paymentReady ? 'profile-health-ok' : 'profile-health-pending'}`}>
-                {paymentReady ? 'Ready' : 'Pending'}
-              </strong>
-            </header>
-            <dl className="profile-health-meta">
-              <dt>Preferred method</dt>
-              <dd>{paymentPreferenceLabel}</dd>
-            </dl>
-          </article>
-        </section> */}
       </Card>
 
       <div className="profile-cards-grid">
-        {/* PAN/Aadhaar Verification Section */}
-        {/* Document Information Card with PAN/Aadhaar Verification */}
-        {/* ...existing code... */}
         <Card padding="md" shadow="sm" className="profile-details-card">
           <h3 className="card-section-title card-section-title--spaced">Account Information</h3>
           {renderRows(accountRows)}
@@ -434,7 +623,6 @@ const ProfileSection = ({
           <h3 className="card-section-title card-section-title--spaced">Onboarding Information</h3>
           {renderRows(profileRows)}
         </Card>
-
 
         <Card padding="md" shadow="sm" className="profile-details-card">
           <h3 className="card-section-title card-section-title--spaced">Permanent Address</h3>
@@ -453,6 +641,6 @@ const ProfileSection = ({
       </div>
     </div>
   );
-}
+};
 
 export default ProfileSection;
