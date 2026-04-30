@@ -303,19 +303,47 @@ const SignupPage = () => {
               Welcome to <span>Potens Portal</span>
             </h1>
             <p className="signup-brand-subtitle">
-              Manage your energy journey with confidence.<br />
-              <span style={{ fontWeight: 700 }}>Secure, unified, and built for scale.</span>
+              Manage your energy journey with confidence.
+              <br />
+              <strong>Secure, unified, and built for scale.</strong>
+              <br />
+              <span style={{ fontWeight: 500 }}>
+                Support Contact: 18003135280
+              </span>
             </p>
+            <a
+              href="https://wa.me/918003135280?text=Hello%20I%20need%20support"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontWeight: 700,
+                color: "#25D366",
+                marginBottom: "1rem",
+                display: "inline-block",
+              }}
+            >
+              💬 Need help? Chat on WhatsApp
+            </a>
             <div className="signup-brand-links">
-              <a href="#" className="signup-brand-link">YouTube</a>
-              <a href="#" className="signup-brand-link">Privacy Policy</a>
-              <a href="#" className="signup-brand-link">Other Info</a>
+              <a href="#" className="signup-brand-link">
+                YouTube
+              </a>
+              <a href="#" className="signup-brand-link">
+                Privacy Policy
+              </a>
+              <a href="#" className="signup-brand-link">
+                Other Info
+              </a>
             </div>
             <p className="signup-brand-support">
-              For help, contact{' '}
+              For help, contact{" "}
               <a
                 href="mailto:support@potensenergy.in"
-                style={{ color: '#000', textDecoration: 'underline', fontWeight: 600 }}
+                style={{
+                  color: "#000",
+                  textDecoration: "underline",
+                  fontWeight: 600,
+                }}
               >
                 support@potensenergy.in
               </a>
@@ -339,7 +367,7 @@ const SignupPage = () => {
                 <Alert
                   type="error"
                   message={apiError}
-                  onClose={() => setApiError('')}
+                  onClose={() => setApiError("")}
                   className="mb-5"
                 />
               )}
@@ -358,8 +386,18 @@ const SignupPage = () => {
                   required
                   autoComplete="name"
                   leftIcon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   }
                 />
@@ -379,8 +417,18 @@ const SignupPage = () => {
                   inputMode="numeric"
                   maxLength={10}
                   leftIcon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.895 1.368l1.02 3.06a2 2 0 01-.457 2.11l-1.373 1.373a16.042 16.042 0 006.586 6.586l1.373-1.373a2 2 0 012.11-.457l3.06 1.02A2 2 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 5a2 2 0 012-2h3.28a2 2 0 011.895 1.368l1.02 3.06a2 2 0 01-.457 2.11l-1.373 1.373a16.042 16.042 0 006.586 6.586l1.373-1.373a2 2 0 012.11-.457l3.06 1.02A2 2 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                      />
                     </svg>
                   }
                 />
@@ -398,14 +446,27 @@ const SignupPage = () => {
                   required
                   autoComplete="email"
                   leftIcon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                      />
                     </svg>
                   }
                 />
 
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="role" className="text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="role"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Role <span className="text-red-500 ml-0.5">*</span>
                   </label>
                   {rolesLoading ? (
@@ -434,27 +495,34 @@ const SignupPage = () => {
                       required
                       disabled={rolesLoading}
                       className={[
-                        'w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-gray-900',
-                        'transition-colors duration-150 outline-none',
-                        'focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+                        "w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-gray-900",
+                        "transition-colors duration-150 outline-none",
+                        "focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
                         errors.role
-                          ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
-                          : 'border-gray-300',
-                      ].join(' ')}
+                          ? "border-red-400 focus:ring-red-400 focus:border-red-400"
+                          : "border-gray-300",
+                      ].join(" ")}
                     >
                       <option value="">Select a role…</option>
-                      {Object.entries(rolesByCategory).map(([category, categoryRoles]) => (
-                        <optgroup key={category} label={category}>
-                          {categoryRoles.map((r) => (
-                            <option key={r._id || r.id || r.name} value={r._id || r.id || r.name}>
-                              {r.display_name || r.label || r.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
+                      {Object.entries(rolesByCategory).map(
+                        ([category, categoryRoles]) => (
+                          <optgroup key={category} label={category}>
+                            {categoryRoles.map((r) => (
+                              <option
+                                key={r._id || r.id || r.name}
+                                value={r._id || r.id || r.name}
+                              >
+                                {r.display_name || r.label || r.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ),
+                      )}
                     </select>
                   )}
-                  {errors.role && <p className="text-xs text-red-500 mt-0.5">{errors.role}</p>}
+                  {errors.role && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.role}</p>
+                  )}
                 </div>
 
                 <Input
@@ -469,10 +537,20 @@ const SignupPage = () => {
                   error={errors.password}
                   required
                   autoComplete="new-password"
-                  helperText={!errors.password && 'Use at least 8 characters.'}
+                  helperText={!errors.password && "Use at least 8 characters."}
                   leftIcon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
                     </svg>
                   }
                 />
@@ -490,16 +568,32 @@ const SignupPage = () => {
                   required
                   autoComplete="new-password"
                   leftIcon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      />
                     </svg>
                   }
                 />
 
                 <p className="terms-text">
-                  By creating an account you agree to our{' '}
-                  <a href="#" className="auth-link">Terms of Service</a> and{' '}
-                  <a href="#" className="auth-link">Privacy Policy</a>.
+                  By creating an account you agree to our{" "}
+                  <a href="#" className="auth-link">
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a href="#" className="auth-link">
+                    Privacy Policy
+                  </a>
+                  .
                 </p>
 
                 <Button type="submit" fullWidth loading={loading} size="lg">
@@ -512,7 +606,7 @@ const SignupPage = () => {
               </form>
 
               <p className="auth-switch">
-                Already have an account?{' '}
+                Already have an account?{" "}
                 <Link to="/login" className="auth-link">
                   Sign in
                 </Link>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Card } from '../../../../components/ui/index.js';
 
-const SUPPORT_EMAIL = 'support@POTENSnergy.com';
+const SUPPORT_EMAIL = ' info@potensgreenengineering.in';
 
 const SupportSection = () => {
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -68,13 +68,13 @@ const SupportSection = () => {
           </div>
           <div className="status-row">
             <span className="status-label">Support Phone</span>
-            <span className="status-value">+91 98765 43210</span>
+            <span className="status-value">18003135280</span>
           </div>
           <div className="status-row">
             <span className="status-label">Working Hours</span>
             <span className="status-value">Mon - Sat, 9:00 AM - 7:00 PM</span>
           </div>
-          <div className="support-actions">
+          {/* <div className="support-actions">
             <Button
               variant="secondary"
               size="sm"
@@ -87,7 +87,7 @@ const SupportSection = () => {
                 Send Email Query
               </span>
             </Button>
-          </div>
+          </div> */}
         </>
       ) : (
         <form onSubmit={handleSendEmail} className="support-email-form">

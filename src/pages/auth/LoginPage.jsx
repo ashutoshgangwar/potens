@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext.jsx';
-import useForm from '../../hooks/useForm.js';
-import { validators } from '../../utils/validators.js';
-import { Button, Input, Card, Alert } from '../../components/ui/index.js';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
+import useForm from "../../hooks/useForm.js";
+import { validators } from "../../utils/validators.js";
+import { Button, Input, Card, Alert } from "../../components/ui/index.js";
 
 const validationRules = {
   email: validators.email,
@@ -13,33 +13,36 @@ const validationRules = {
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [apiError, setApiError] = useState('');
+  const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { values, errors, handleChange, handleBlur, validateAll } = useForm(
-    { email: '', password: '' },
-    validationRules
+    { email: "", password: "" },
+    validationRules,
   );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setApiError('');
+    setApiError("");
     if (!validateAll()) return;
 
     setLoading(true);
     try {
-      const user = await login({ email: values.email, password: values.password });
+      const user = await login({
+        email: values.email,
+        password: values.password,
+      });
       // Log the logged-in user for debugging
       // eslint-disable-next-line no-console
-      console.log('Login success:', user);
+      console.log("Login success:", user);
       // If user needs onboarding, redirect to profile-completion
       if (user?.needs_onboarding || user?.is_onboarded === false) {
-        navigate('/profile-completion', { replace: true });
+        navigate("/profile-completion", { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
-      setApiError(err.message || 'Login failed. Please try again.');
+      setApiError(err.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -242,19 +245,49 @@ const LoginPage = () => {
               Welcome to <span>Potens Portal</span>
             </h1>
             <p className="login-brand-subtitle">
-              Manage your energy journey with confidence.<br />
-              <span style={{ fontWeight: 700 }}>Secure, unified, and built for scale.</span>
+              Manage your energy journey with confidence.
+              <br />
+              <span style={{ fontWeight: 700 }}>
+                Secure, unified, and built for scale.
+              </span>
+              <br />
+              <span style={{ fontWeight: 500 }}>
+                Support Contact: 18003135280
+              </span>
             </p>
+            <a
+              href="https://wa.me/918003135280?text=Hello%20I%20need%20support"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontWeight: 700,
+                color: "#25D366",
+                marginBottom: "1rem",
+                display: "inline-block",
+              }}
+            >
+              💬 Need help? Chat on WhatsApp
+            </a>
             <div className="login-brand-links">
-              <a href="#" className="login-brand-link">YouTube</a>
-              <a href="#" className="login-brand-link">Privacy Policy</a>
-              <a href="#" className="login-brand-link">Other Info</a>
+              <a href="#" className="login-brand-link">
+                YouTube
+              </a>
+              <a href="#" className="login-brand-link">
+                Privacy Policy
+              </a>
+              <a href="#" className="login-brand-link">
+                Other Info
+              </a>
             </div>
             <p className="login-brand-support">
-              For help, contact{' '}
+              For help, contact{" "}
               <a
                 href="mailto:support@potensenergy.in"
-                style={{ color: '#000', textDecoration: 'underline', fontWeight: 600 }}
+                style={{
+                  color: "#000",
+                  textDecoration: "underline",
+                  fontWeight: 600,
+                }}
               >
                 support@potensenergy.in
               </a>
@@ -278,7 +311,7 @@ const LoginPage = () => {
                 <Alert
                   type="error"
                   message={apiError}
-                  onClose={() => setApiError('')}
+                  onClose={() => setApiError("")}
                   className="mb-5"
                 />
               )}
@@ -297,8 +330,18 @@ const LoginPage = () => {
                   required
                   autoComplete="email"
                   leftIcon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                      />
                     </svg>
                   }
                 />
@@ -316,14 +359,26 @@ const LoginPage = () => {
                   required
                   autoComplete="current-password"
                   leftIcon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
                     </svg>
                   }
                 />
 
                 <div className="auth-forgot">
-                  <a href="#" className="forgot-link">Forgot password?</a>
+                  <a href="#" className="forgot-link">
+                    Forgot password?
+                  </a>
                 </div>
 
                 <Button type="submit" fullWidth loading={loading} size="lg">
@@ -336,7 +391,7 @@ const LoginPage = () => {
               </form>
 
               <p className="auth-switch">
-                Don&apos;t have an account?{' '}
+                Don&apos;t have an account?{" "}
                 <Link to="/signup" className="auth-link">
                   Create account
                 </Link>

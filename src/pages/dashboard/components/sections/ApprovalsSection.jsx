@@ -1,10 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { apiGetPartners } from '../../../../utils/api';
 import { apiApprovePartner } from '../../../../utils/api';
 import { useAuth } from '../../../../context/AuthContext';
 import './ApprovalsSection.css';
-
 
 const ApprovalsSection = () => {
   const { token } = useAuth();
@@ -16,15 +14,11 @@ const ApprovalsSection = () => {
   const [remarks, setRemarks] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  console.log('partener data in approvals section:', partners);
-
-  // Fetch partners helper for reuse
   const fetchPartners = async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await apiGetPartners(token);
-      console.log('[ApprovalsSection] fetched partners:', data);
       setPartners(data);
     } catch (err) {
       setError(err.message || 'Failed to load partners');
@@ -54,16 +48,11 @@ const ApprovalsSection = () => {
     try {
       const action = actionModal.action === 'approve' ? 'approved' : 'rejected';
       const approvalType = 'admin';
-      const apiPayload = {
-        token,
-        userId: actionModal.partner._id,
-        action,
-        approvalType,
-      };
+      const apiPayload = { token, userId: actionModal.partner._id, action, approvalType };
       if (action === 'approved') apiPayload.remark = remarks;
       if (action === 'rejected') apiPayload.rejectionReason = remarks;
       await apiApprovePartner(apiPayload);
-      await fetchPartners(); // Refresh the list from API
+      await fetchPartners();
       closeActionModal();
     } catch (err) {
       setError(err.message || 'Failed to process action');
@@ -71,193 +60,258 @@ const ApprovalsSection = () => {
       setActionLoading(false);
     }
   };
+
   const handleView = (partner) => setSelectedPartner(partner);
   const handleCloseModal = () => setSelectedPartner(null);
 
+  const StatusBadge = ({ status }) => {
+    const cls =
+      status === 'approved'
+        ? 'badge badge--approved'
+        : status === 'rejected'
+        ? 'badge badge--rejected'
+        : 'badge badge--pending';
+    return <span className={cls}>{status || 'pending'}</span>;
+  };
+
+  const PartnerActions = ({ p }) => (
+    <>
+      <button className="approvals-action-btn view" onClick={() => handleView(p)}>
+        View
+      </button>
+      {p.approval_status === 'approved' ? (
+        <span className="approved-tag">✔ Approved</span>
+      ) : p.approval_status === 'rejected' ? (
+        <>
+          <button
+            className="approvals-action-btn approve"
+            onClick={() => openActionModal(p, 'approve')}
+          >
+            Approve
+          </button>
+          <button className="approvals-action-btn reject" disabled style={{ opacity: 0.5 }}>
+            Rejected
+          </button>
+          {p.rejection_reason && (
+            <p className="rejection-reason">
+              <b>Reason:</b> {p.rejection_reason}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <button
+            className="approvals-action-btn approve"
+            onClick={() => openActionModal(p, 'approve')}
+          >
+            Approve
+          </button>
+          <button
+            className="approvals-action-btn reject"
+            onClick={() => openActionModal(p, 'reject')}
+          >
+            Reject
+          </button>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="approvals-list-wrap">
-      <h3 style={{ fontWeight: 700, fontSize: 22, marginBottom: 4, color: '#1a237e' }}>Onboarding Approvals</h3>
-      <p style={{ color: '#475569', marginBottom: 18 }}>Pending onboarding requests for review.</p>
+      <h3 className="approvals-title">Onboarding Approvals</h3>
+      <p className="approvals-subtitle">Pending onboarding requests for review.</p>
+
       {loading ? (
-        <div>Loading...</div>
+        <div className="approvals-loading">Loading...</div>
       ) : error ? (
-        <div style={{ color: 'red' }}>{error}</div>
+        <div className="approvals-error">{error}</div>
+      ) : partners.length === 0 ? (
+        <div className="approvals-empty">No partners found.</div>
       ) : (
-        <table className="approvals-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Status</th>
-              <th>City</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          {/* ── Desktop table ── */}
+          <div className="approvals-table-wrap">
+            <table className="approvals-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                  <th>City</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partners.map((p) => (
+                  <tr key={p._id}>
+                    <td>{p.full_name}</td>
+                    <td>{p.email}</td>
+                    <td>{p.phone}</td>
+                    <td>
+                      <StatusBadge status={p.approval_status} />
+                    </td>
+                    <td>{p.assigned_city || '-'}</td>
+                    <td className="actions-cell">
+                      <PartnerActions p={p} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Mobile card list ── */}
+          <div className="approvals-card-list">
             {partners.map((p) => (
-              <tr key={p._id}>
-                <td>{p.full_name}</td>
-                <td>{p.email}</td>
-                <td>{p.phone}</td>
-                <td>{p.approval_status || '-'}</td>
-                <td>{p.assigned_city || '-'}</td>
-                <td>
-                  <button className="approvals-action-btn view" onClick={() => handleView(p)}>View</button>
-                  {p.approval_status === 'approved' ? (
-                    <span style={{ color: 'green', fontWeight: 600, marginLeft: 8 }}>✔ Approved</span>
-                  ) : p.approval_status === 'rejected' ? (
-                    <>
-                      <button
-                        className="approvals-action-btn approve"
-                        onClick={() => openActionModal(p, 'approve')}
-                        style={{ marginRight: 8 }}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        className="approvals-action-btn reject"
-                        disabled
-                        style={{ opacity: 0.6 }}
-                      >
-                        Rejected
-                      </button>
-                      {p.rejection_reason && (
-                        <div style={{ color: 'red', fontSize: 13, marginTop: 4, maxWidth: 180, wordBreak: 'break-word' }}>
-                          <b>Reason:</b> {p.rejection_reason}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="approvals-action-btn approve"
-                        onClick={() => openActionModal(p, 'approve')}
-                        style={{ marginRight: 8 }}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        className="approvals-action-btn reject"
-                        onClick={() => openActionModal(p, 'reject')}
-                      >
-                        Reject
-                      </button>
-                    </>
-                  )}
-                      {/* Action Modal for Approve/Reject */}
-                      {actionModal.open && (
-                        <div className="modal-overlay">
-                          <div className="modal-content">
-                            <h3 style={{ marginBottom: 12, fontWeight: 700, fontSize: 18 }}>
-                              {actionModal.action === 'approve' ? 'Approve Partner' : 'Reject Partner'}
-                            </h3>
-                            <p style={{ marginBottom: 10 }}>
-                              Are you sure you want to <b>{actionModal.action}</b> <b>{actionModal.partner?.full_name}</b>?
-                            </p>
-                            <textarea
-                              style={{ width: '100%', minHeight: 60, marginBottom: 12, borderRadius: 6, border: '1px solid #cbd5e1', padding: 8 }}
-                              placeholder="Remarks (required)"
-                              value={remarks}
-                              onChange={e => setRemarks(e.target.value)}
-                              required
-                            />
-                            <div style={{ display: 'flex', gap: 12 }}>
-                              <button
-                                className={`approvals-action-btn ${actionModal.action}`}
-                                onClick={handleAction}
-                                disabled={actionLoading || !remarks.trim()}
-                                style={{ minWidth: 90 }}
-                              >
-                                {actionLoading ? 'Processing...' : (actionModal.action === 'approve' ? 'Approve' : 'Reject')}
-                              </button>
-                              <button className="approvals-action-btn view" onClick={closeActionModal} style={{ minWidth: 90 }}>Cancel</button>
-                            </div>
-                            {error && <div style={{ color: 'red', marginTop: 10 }}>{error}</div>}
-                          </div>
-                        </div>
-                      )}
-                </td>
-              </tr>
+              <div key={p._id} className="partner-card">
+                <div className="partner-card__header">
+                  <div className="partner-card__avatar">
+                    {(p.full_name || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="partner-card__info">
+                    <p className="partner-card__name">{p.full_name || '-'}</p>
+                    <p className="partner-card__email">{p.email || '-'}</p>
+                  </div>
+                  <StatusBadge status={p.approval_status} />
+                </div>
+
+                <div className="partner-card__meta">
+                  <div className="partner-card__meta-row">
+                    <span className="partner-card__meta-label">Phone</span>
+                    <span className="partner-card__meta-value">{p.phone || '-'}</span>
+                  </div>
+                  <div className="partner-card__meta-row">
+                    <span className="partner-card__meta-label">City</span>
+                    <span className="partner-card__meta-value">{p.assigned_city || '-'}</span>
+                  </div>
+                </div>
+
+                <div className="partner-card__actions">
+                  <PartnerActions p={p} />
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </>
       )}
 
-      {/* Modal for partner details */}
+      {/* ── Action modal (Approve / Reject) ── */}
+      {actionModal.open && (
+        <div className="modal-overlay" onClick={closeActionModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">
+              {actionModal.action === 'approve' ? 'Approve partner' : 'Reject partner'}
+            </h3>
+            <p className="modal-body">
+              Are you sure you want to <b>{actionModal.action}</b>{' '}
+              <b>{actionModal.partner?.full_name}</b>?
+            </p>
+            <textarea
+              className="modal-textarea"
+              placeholder="Remarks (required)"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+            />
+            <div className="modal-footer">
+              <button
+                className={`approvals-action-btn ${actionModal.action}`}
+                onClick={handleAction}
+                disabled={actionLoading || !remarks.trim()}
+              >
+                {actionLoading
+                  ? 'Processing...'
+                  : actionModal.action === 'approve'
+                  ? 'Approve'
+                  : 'Reject'}
+              </button>
+              <button className="approvals-action-btn view" onClick={closeActionModal}>
+                Cancel
+              </button>
+            </div>
+            {error && <p className="modal-error">{error}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Partner detail modal ── */}
       {selectedPartner && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ marginBottom: 18, fontWeight: 700, fontSize: 20 }}>Partner Overview</h3>
-            <table style={{ width: '100%', marginBottom: 20, fontSize: 15, background: '#f8fafc', borderRadius: 8, overflow: 'hidden' }}>
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content modal-content--wide" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Partner overview</h3>
+
+            <table className="detail-table">
               <tbody>
-                <tr>
-                  <td style={{ fontWeight: 600, width: 160, padding: 6 }}>Father Name</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.professional?.father_name || '-'}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Date of Birth</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.professional?.dob ? new Date(selectedPartner.professional.dob).toLocaleDateString() : '-'}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Business Address</td>
-                  <td style={{ padding: 6 }}>
-                    {selectedPartner.address?.business_address ? (
-                      typeof selectedPartner.address.business_address === 'object'
-                        ? Object.values(selectedPartner.address.business_address).filter(Boolean).join(', ')
+                {[
+                  ['Father name', selectedPartner.professional?.father_name],
+                  [
+                    'Date of birth',
+                    selectedPartner.professional?.dob
+                      ? new Date(selectedPartner.professional.dob).toLocaleDateString()
+                      : null,
+                  ],
+                  [
+                    'Business address',
+                    selectedPartner.address?.business_address
+                      ? typeof selectedPartner.address.business_address === 'object'
+                        ? Object.values(selectedPartner.address.business_address)
+                            .filter(Boolean)
+                            .join(', ')
                         : selectedPartner.address.business_address
-                    ) : '-'}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Permanent Address</td>
-                  <td style={{ padding: 6 }}>
-                    {selectedPartner.address?.permanent_address ? (
-                      typeof selectedPartner.address.permanent_address === 'object'
-                        ? Object.values(selectedPartner.address.permanent_address).filter(Boolean).join(', ')
+                      : null,
+                  ],
+                  [
+                    'Permanent address',
+                    selectedPartner.address?.permanent_address
+                      ? typeof selectedPartner.address.permanent_address === 'object'
+                        ? Object.values(selectedPartner.address.permanent_address)
+                            .filter(Boolean)
+                            .join(', ')
                         : selectedPartner.address.permanent_address
-                    ) : '-'}
+                      : null,
+                  ],
+                  ['Role type', selectedPartner.professional?.register_as],
+                  ['Bowser capacity', selectedPartner.vehicle?.bowser_capacity_id],
+                  ['Land area (acres)', selectedPartner.professional?.land_area_acres],
+                  ['PAN number', selectedPartner.documents?.pan_card?.number],
+                  ['Aadhaar number', selectedPartner.documents?.aadhaar_card?.number],
+                ].map(([label, value]) => (
+                  <tr key={label}>
+                    <td className="detail-table__label">{label}</td>
+                    <td className="detail-table__value">{value || '-'}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td className="detail-table__label">Aadhaar verified</td>
+                  <td className="detail-table__value">
+                    {selectedPartner.documents?.aadhaar_card?.file_url ? (
+                      <span className="verified-tag">✔ Verified</span>
+                    ) : (
+                      <span className="unverified-tag">✗ Not verified</span>
+                    )}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Role Type</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.professional?.register_as || '-'}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Bowser Capacity</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.vehicle?.bowser_capacity_id || '-'}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Land Area (Acres)</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.professional?.land_area_acres || '-'}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>PAN Number</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.documents?.pan_card?.number || '-'}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Aadhaar Number</td>
-                  <td style={{ padding: 6 }}>{selectedPartner.documents?.aadhaar_card?.number || '-'}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>Aadhaar Verified</td>
-                  <td style={{ padding: 6 }}>
-                    {selectedPartner.documents?.aadhaar_card?.file_url
-                      ? <span style={{ color: 'green', fontWeight: 700 }}>&#10003; Verified</span>
-                      : <span style={{ color: 'red', fontWeight: 700 }}>&#10007; Not Verified</span>}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600, padding: 6 }}>PAN Verified</td>
-                  <td style={{ padding: 6 }}>
-                    {selectedPartner.documents?.pan_card?.file_url
-                      ? <span style={{ color: 'green', fontWeight: 700 }}>&#10003; Verified</span>
-                      : <span style={{ color: 'red', fontWeight: 700 }}>&#10007; Not Verified</span>}
+                  <td className="detail-table__label">PAN verified</td>
+                  <td className="detail-table__value">
+                    {selectedPartner.documents?.pan_card?.file_url ? (
+                      <span className="verified-tag">✔ Verified</span>
+                    ) : (
+                      <span className="unverified-tag">✗ Not verified</span>
+                    )}
                   </td>
                 </tr>
               </tbody>
             </table>
-            <button onClick={handleCloseModal} className="approvals-action-btn view" style={{ marginTop: 16, padding: '8px 20px', fontSize: 15 }}>Close</button>
+
+            <button
+              onClick={handleCloseModal}
+              className="approvals-action-btn view"
+              style={{ marginTop: 20 }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

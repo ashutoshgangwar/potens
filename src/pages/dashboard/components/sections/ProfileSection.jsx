@@ -123,13 +123,10 @@ const ProfileSection = ({
     { label: 'Date of Birth', value: getDisplayValue(getDOBValue()) },
     { label: 'Gender', value: getDisplayValue(professional?.gender || profileDetails?.gender) },
     { label: 'Field Officer', value: getDisplayValue(professional?.field_officer_name || profileDetails?.fieldOfficerName) },
-    { label: 'State / District', value: getDisplayValue(`${professional?.state || profileDetails?.state || ''} ${professional?.district || profileDetails?.district || ''}`.trim()) },
-    { label: 'Pin Code', value: getDisplayValue(professional?.pincode || profileDetails?.pinCode) },
     { label: 'Investment Plan', value: getDisplayValue(professional?.investment_plan || profileDetails?.investmentPlan) },
     { label: 'Oil Experience (Years)', value: getDisplayValue(professional?.oil_sector_experience_years || profileDetails?.oilSectorExperienceYears) },
     { label: 'Nearest Pump (KM)', value: getDisplayValue(professional?.distance_to_nearest_petrol_pump_km || profileDetails?.nearestFuelPumpDistance) },
     { label: 'Land Area (Acres)', value: getDisplayValue(professional?.land_area_acres) },
-    { label: 'Vehicle Number', value: getDisplayValue(vehicle?.vehicle_number || profileDetails?.vehicleNumber) },
   ];
 
   const paymentRows = [
@@ -168,8 +165,8 @@ const ProfileSection = ({
     { label: 'Aadhaar Number', value: getDisplayValue(documents?.aadhaar_card && typeof documents?.aadhaar_card === 'object' ? documents?.aadhaar_card?.number : ''), showVerify: true, type: 'aadhaar' },
     { label: 'Driving License', value: getDisplayValue(documents?.driving_license?.number), showVerify: true },
     { label: 'Vehicle RC', value: getDisplayValue(documents?.vehicle_rc?.number), showVerify: true },
-    { label: 'NOC', value: hasDocumentData(documents?.noc) ? 'Submitted' : 'Not provided' },
-    { label: 'Passport Photo', value: hasDocumentData(documents?.passport_size_photo) ? 'Submitted' : 'Not provided' },
+    // { label: 'NOC', value: hasDocumentData(documents?.noc) ? 'Submitted' : 'Not provided' },
+    // { label: 'Passport Photo', value: hasDocumentData(documents?.passport_size_photo) ? 'Submitted' : 'Not provided' },
   ];
 
   // Separate handlers for PAN and Aadhaar verification
@@ -392,7 +389,7 @@ const ProfileSection = ({
           </Button>
         </div>
 
-        <section className="profile-health-panel" aria-label="Profile summary">
+        {/* <section className="profile-health-panel" aria-label="Profile summary">
           <article className="profile-health-metric">
             <header className="profile-health-metric-head">
               <span className="profile-health-label">Profile completion</span>
@@ -421,7 +418,7 @@ const ProfileSection = ({
               <dd>{paymentPreferenceLabel}</dd>
             </dl>
           </article>
-        </section>
+        </section> */}
       </Card>
 
       <div className="profile-cards-grid">

@@ -1,25 +1,9 @@
-// Accepts a manual payment step completion flag
-const getCompletedStepIndexes = (values, currentRole = '', paymentStepManuallyCompleted = false) =>
-  EDITABLE_STEPS.reduce((completed, step, index) => {
-    let isComplete;
-    if (step.id === 'payment') {
-      isComplete = paymentStepManuallyCompleted;
-    } else {
-      isComplete = STEP_FIELD_NAMES[step.id].every((fieldName) => {
-        const field = FIELD_MAP[fieldName];
-        return !validateProfileField(field, values[fieldName], values, currentRole);
-      });
-    }
-    if (isComplete) {
-      completed.push(index);
-    }
-    return completed;
-  }, []);
 import React, { useEffect, useMemo, useState } from 'react';
+import { apiGetBowserCapacities } from '../utils/apiBowserCapacities.js';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import useForm from '../hooks/useForm.js';
-import { apiGetProfileDetails, buildOnboardingPayload } from '../utils/api.js';
+import { apiGetProfileDetails } from '../utils/api.js';
 import { apiGenerateAgreementPdf, apiGenerateCertificatePdf } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
@@ -40,24 +24,6 @@ const GENDER_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
-const PAYMENT_OPTIONS = [
-  {
-    value: 'upi',
-    label: 'UPI',
-    description: 'Send settlements directly to your UPI ID.',
-  },
-  {
-    value: 'bank',
-    label: 'Bank Transfer',
-    description: 'Receive settlements in your bank account.',
-  },
-  {
-    value: 'both',
-    label: 'UPI + Bank',
-    description: 'Keep both payout methods ready for backend review.',
-  },
-];
-
 const ALLOWED_DOCUMENT_FILE_TYPES = [
   'image/jpeg',
   'image/jpg',
@@ -66,6 +32,16 @@ const ALLOWED_DOCUMENT_FILE_TYPES = [
 ];
 const ALLOWED_DOCUMENT_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf'];
 const DOCUMENT_FILE_ACCEPT_VALUE = ALLOWED_DOCUMENT_FILE_EXTENSIONS.join(',');
+
+// ─── bowserCapacity field placeholder — options injected dynamically below ───
+const BOWSER_CAPACITY_FIELD_PLACEHOLDER = {
+  name: 'bowserCapacity',
+  label: 'Bowser Capacity',
+  type: 'select',
+  options: [], // populated via apiGetBowserCapacities
+  required: true,
+  visibleRoles: ['bowser'],
+};
 
 const PROFILE_STEPS = [
   {
@@ -105,7 +81,6 @@ const PROFILE_STEPS = [
             options: GENDER_OPTIONS,
             required: true,
           },
-          // state, district, city, and pinCode removed as per backend changes
           {
             name: 'fieldOfficerName',
             label: 'Field Officer Name',
@@ -113,7 +88,6 @@ const PROFILE_STEPS = [
             placeholder: 'Enter field officer name',
             required: true,
           },
-          // pinCode removed as per backend changes
         ],
       },
       {
@@ -134,14 +108,8 @@ const PROFILE_STEPS = [
             placeholder: '2.5',
             required: true,
           },
-          {
-            name: 'bowserCapacity',
-            label: 'Bowser Capacity (Liters)',
-            type: 'number',
-            placeholder: '12000',
-            required: true,
-            visibleRoles: ['bowser'],
-          },
+          // bowserCapacity options are injected at runtime — see ProfileCompletion component
+          BOWSER_CAPACITY_FIELD_PLACEHOLDER,
           {
             name: 'areaInAcres',
             label: 'Area (Acres)',
@@ -265,7 +233,6 @@ const PROFILE_STEPS = [
           },
         ],
       },
-      // Vehicle Details section removed; vehicle number is already captured with RC details
     ],
   },
   {
@@ -276,20 +243,14 @@ const PROFILE_STEPS = [
     sections: [
       {
         title: 'Identity Documents',
-        description: 'Upload the document files and share their reference numbers for onboarding review.',
+        description:
+          'Upload the document files and share their reference numbers for onboarding review.',
         fields: [
           {
             name: 'panNumber',
             label: 'PAN Number',
             type: 'text',
             placeholder: 'ABCDE1234F',
-            required: true,
-          },
-          {
-            name: 'drcNumber',
-            label: 'DRC Number',
-            type: 'text',
-            placeholder: 'Enter DRC Number',
             required: true,
           },
           {
@@ -376,31 +337,64 @@ const PROFILE_STEPS = [
         description: '',
         fields: [],
         customContent: (
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '24px 0'}}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              margin: '24px 0',
+            }}
+          >
             <img
               src="/logos/PGES%20Bank%20QR.jpg.jpeg"
               alt="PGES Bank UPI QR Code"
-              style={{maxWidth: 320, width: '100%', borderRadius: 10, boxShadow: '0 2px 12px #0002', marginBottom: 16, display: 'block'}}
+              style={{
+                maxWidth: 320,
+                width: '100%',
+                borderRadius: 10,
+                boxShadow: '0 2px 12px #0002',
+                marginBottom: 16,
+                display: 'block',
+              }}
             />
-            <div style={{
-              fontWeight: 700,
-              fontSize: 15,
-              marginBottom: 4,
-              textAlign: 'center',
-              textTransform: 'uppercase',
-              letterSpacing: 0.2,
-            }}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 15,
+                marginBottom: 4,
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                letterSpacing: 0.2,
+              }}
+            >
               POTENS GREEN ENGINEERING SOLUTIONS PRIVATE LIMITED
             </div>
-            <div style={{fontWeight: 600, fontSize: 13, marginBottom: 1, textAlign: 'center'}}>
-              Account No.: <span style={{fontWeight: 700}}>40532712517</span> | IFSC: <span style={{fontWeight: 700}}>SBIN0000004</span>
+            <div
+              style={{ fontWeight: 600, fontSize: 13, marginBottom: 1, textAlign: 'center' }}
+            >
+              Account No.: <span style={{ fontWeight: 700 }}>40532712517</span> | IFSC:{' '}
+              <span style={{ fontWeight: 700 }}>SBIN0000004</span>
             </div>
-            <div style={{fontWeight: 600, fontSize: 13, marginBottom: 10, textAlign: 'center'}}>
+            <div
+              style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, textAlign: 'center' }}
+            >
               State Bank Of India, Alipore Kolkata Branch
             </div>
-            <div style={{fontWeight: 600, fontSize: 15, marginBottom: 8, textAlign: 'center'}}>Make a payment using the QR code above.</div>
-            <div style={{fontSize: 13, color: '#444', marginBottom: 6, textAlign: 'center'}}>
-              After payment, please submit your transaction details (UTR number and payment screenshot) in the <b>Profile</b> section.
+            <div
+              style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, textAlign: 'center' }}
+            >
+              Make a payment using the QR code above.
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: '#444',
+                marginBottom: 6,
+                textAlign: 'center',
+              }}
+            >
+              After payment, please submit your transaction details (UTR number and payment
+              screenshot) in the <b>Profile</b> section.
             </div>
           </div>
         ),
@@ -452,106 +446,56 @@ const DISTRICT_FIELD_BY_STATE = {
   businessState: 'businessDistrict',
 };
 
-const PAYMENT_LABELS = {
-  upi: 'UPI',
-  bank: 'Bank Transfer',
-  both: 'UPI + Bank',
-};
-
-const URL_PATTERN = /^https?:\/\/.+/i;
-
 const isStoredFileReference = (value) => {
-  if (!value) {
-    return false;
-  }
-
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
+  if (!value) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
   return typeof value === 'object' && typeof value.name === 'string' && value.name.trim().length > 0;
 };
 
 const getStoredFileLabel = (value) => {
-  if (value instanceof File) {
-    return value.name;
-  }
-
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (typeof value === 'object' && typeof value?.name === 'string') {
-    return value.name;
-  }
-
+  if (value instanceof File) return value.name;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && typeof value?.name === 'string') return value.name;
   return '';
 };
 
 const hasAllowedDocumentExtension = (fileName) => {
   const normalizedName = `${fileName || ''}`.toLowerCase();
-  return ALLOWED_DOCUMENT_FILE_EXTENSIONS.some((extension) => normalizedName.endsWith(extension));
+  return ALLOWED_DOCUMENT_FILE_EXTENSIONS.some((ext) => normalizedName.endsWith(ext));
 };
 
 const isAllowedDocumentFile = (file) => {
-  if (!(file instanceof File)) {
-    return false;
-  }
-
+  if (!(file instanceof File)) return false;
   const mimeType = `${file.type || ''}`.toLowerCase();
   return ALLOWED_DOCUMENT_FILE_TYPES.includes(mimeType) || hasAllowedDocumentExtension(file.name);
 };
 
 const hasValidStoredDocumentFile = (value) => {
-  if (value instanceof File) {
-    return isAllowedDocumentFile(value);
-  }
-
-  if (!isStoredFileReference(value)) {
-    return false;
-  }
-
+  if (value instanceof File) return isAllowedDocumentFile(value);
+  if (!isStoredFileReference(value)) return false;
   return hasAllowedDocumentExtension(getStoredFileLabel(value));
 };
 
 const normalizeValue = (value) => `${value ?? ''}`.trim();
 
 const normalizeRoleForComparison = (roleValue = '') =>
-  `${roleValue}`
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, '-');
+  `${roleValue}`.trim().toLowerCase().replace(/[_\s]+/g, '-');
 
 const roleMatchesTag = (currentRole, roleTag) => {
   const normalizedRole = normalizeRoleForComparison(currentRole);
   const normalizedTag = normalizeRoleForComparison(roleTag);
-
-  if (!normalizedRole || !normalizedTag) {
-    return false;
-  }
-
+  if (!normalizedRole || !normalizedTag) return false;
   return normalizedRole.includes(normalizedTag) || normalizedTag.includes(normalizedRole);
 };
 
 const shouldRenderField = (field, values, currentRole = '') => {
   if (!field.paymentModes) {
-    if (!field.visibleRoles?.length) {
-      return true;
-    }
-
+    if (!field.visibleRoles?.length) return true;
     return field.visibleRoles.some((roleTag) => roleMatchesTag(currentRole, roleTag));
   }
-
   const matchesPaymentMode = field.paymentModes.includes(values.paymentMode);
-
-  if (!matchesPaymentMode) {
-    return false;
-  }
-
-  if (!field.visibleRoles?.length) {
-    return true;
-  }
-
+  if (!matchesPaymentMode) return false;
+  if (!field.visibleRoles?.length) return true;
   return field.visibleRoles.some((roleTag) => roleMatchesTag(currentRole, roleTag));
 };
 
@@ -561,54 +505,43 @@ const getDistrictOptions = (selectedState) =>
     label: district,
   }));
 
-const isValidCoordinate = (value, min, max) => {
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) && numericValue >= min && numericValue <= max;
-};
-
 const validateProfileField = (field, value, allValues = {}, currentRole = '') => {
-  if (!shouldRenderField(field, allValues, currentRole)) {
-    return '';
-  }
+  if (!shouldRenderField(field, allValues, currentRole)) return '';
 
   const trimmedValue = normalizeValue(value);
 
-  if (field.required && !trimmedValue) {
-    return `${field.label} is required.`;
-  }
-
-  if (!trimmedValue) {
-    return '';
-  }
+  if (field.required && !trimmedValue) return `${field.label} is required.`;
+  if (!trimmedValue) return '';
 
   switch (field.name) {
     case 'dob': {
       const selectedDate = new Date(trimmedValue);
       const today = new Date();
-      if (Number.isNaN(selectedDate.getTime())) {
-        return 'Enter a valid date of birth.';
-      }
-      if (selectedDate > today) {
-        return 'Date of birth cannot be in the future.';
-      }
+      if (Number.isNaN(selectedDate.getTime())) return 'Enter a valid date of birth.';
+      if (selectedDate > today) return 'Date of birth cannot be in the future.';
       return '';
     }
     case 'pinCode':
     case 'permanentPincode':
     case 'businessPincode':
       return /^\d{6}$/.test(trimmedValue) ? '' : 'Pincode must be exactly 6 digits.';
-    case 'vehicleNumber':
-      return /^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{4}$/i.test(trimmedValue.replace(/\s+/g, ''))
-        ? ''
-        : 'Enter a valid vehicle number.';
     case 'oilSectorExperienceYears':
       return Number(trimmedValue) >= 0 ? '' : 'Experience years must be 0 or more.';
     case 'nearestFuelPumpDistance':
       return Number(trimmedValue) >= 0 ? '' : 'Distance must be 0 or more.';
-    case 'bowserCapacity':
-      return Number(trimmedValue) > 0 ? '' : 'Bowser capacity must be greater than 0.';
-    case 'areaInAcres':
+    case 'bowserCapacity': {
+      // Only required for bowser role
+      const isBowser = roleMatchesTag(currentRole, 'bowser');
+      if (!isBowser) return '';
+      return trimmedValue.length > 0 ? '' : 'Bowser capacity is required.';
+    }
+    case 'areaInAcres': {
+      // Only required for mini-pump role
+      const isMiniPump =
+        roleMatchesTag(currentRole, 'mini-pump') || roleMatchesTag(currentRole, 'minipump');
+      if (!isMiniPump) return '';
       return Number(trimmedValue) > 0 ? '' : 'Area in acres must be greater than 0.';
+    }
     case 'state':
     case 'permanentState':
     case 'businessState':
@@ -619,27 +552,17 @@ const validateProfileField = (field, value, allValues = {}, currentRole = '') =>
       const parentStateField = DISTRICT_SOURCE_BY_FIELD[field.name];
       const parentState = allValues[parentStateField];
       const stateDistricts = DISTRICT_OPTIONS_BY_STATE[parentState] || [];
-      if (!parentState) {
-        return 'Please select a state first.';
-      }
+      if (!parentState) return 'Please select a state first.';
       return stateDistricts.includes(trimmedValue)
         ? ''
         : 'Select a district from the selected state.';
     }
     case 'investmentPlan':
       return trimmedValue.length >= 3 ? '' : 'Investment plan is required.';
-    case 'upiId':
-      return /^[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}$/.test(trimmedValue)
-        ? ''
-        : 'Enter a valid UPI ID.';
     case 'bankAccountNumber':
-      return /^\d{9,18}$/.test(trimmedValue)
-        ? ''
-        : 'Account number must be 9 to 18 digits.';
+      return /^\d{9,18}$/.test(trimmedValue) ? '' : 'Account number must be 9 to 18 digits.';
     case 'ifscCode':
-      return /^[A-Z]{4}0[A-Z0-9]{6}$/i.test(trimmedValue)
-        ? ''
-        : 'Enter a valid IFSC code.';
+      return /^[A-Z]{4}0[A-Z0-9]{6}$/i.test(trimmedValue) ? '' : 'Enter a valid IFSC code.';
     case 'bankName':
     case 'bankBranch':
     case 'accountHolderName':
@@ -654,13 +577,9 @@ const validateProfileField = (field, value, allValues = {}, currentRole = '') =>
     case 'businessCity':
       return trimmedValue.length >= 2 ? '' : `${field.label} must be at least 2 characters.`;
     case 'panNumber':
-      return /^[A-Z]{5}\d{4}[A-Z]$/i.test(trimmedValue)
-        ? ''
-        : 'Enter a valid PAN number.';
+      return /^[A-Z]{5}\d{4}[A-Z]$/i.test(trimmedValue) ? '' : 'Enter a valid PAN number.';
     case 'aadhaarNumber':
-      return /^\d{12}$/.test(trimmedValue)
-        ? ''
-        : 'Aadhaar number must be exactly 12 digits.';
+      return /^\d{12}$/.test(trimmedValue) ? '' : 'Aadhaar number must be exactly 12 digits.';
     case 'drivingLicenseNumber':
       return trimmedValue.length >= 8 ? '' : 'Enter a valid driving license number.';
     case 'vehicleRcNumber':
@@ -671,10 +590,7 @@ const validateProfileField = (field, value, allValues = {}, currentRole = '') =>
     case 'vehicleRcFile':
     case 'passportPhotoFile':
     case 'nocFile':
-      if (!value) {
-        return `${field.label} is required.`;
-      }
-
+      if (!value) return `${field.label} is required.`;
       return hasValidStoredDocumentFile(value)
         ? ''
         : `${field.label} must be a JPG, JPEG, PNG, or PDF file.`;
@@ -683,32 +599,35 @@ const validateProfileField = (field, value, allValues = {}, currentRole = '') =>
   }
 };
 
+// ─── Accepts a manual payment step completion flag ───────────────────────────
+const getCompletedStepIndexes = (values, currentRole = '', paymentStepManuallyCompleted = false) =>
+  EDITABLE_STEPS.reduce((completed, step, index) => {
+    let isComplete;
+    if (step.id === 'payment') {
+      isComplete = paymentStepManuallyCompleted;
+    } else {
+      isComplete = STEP_FIELD_NAMES[step.id].every((fieldName) => {
+        const field = FIELD_MAP[fieldName];
+        return !validateProfileField(field, values[fieldName], values, currentRole);
+      });
+    }
+    if (isComplete) completed.push(index);
+    return completed;
+  }, []);
+
 const getOptionLabel = (field, value) => {
   const match = field.options?.find((option) => option.value === value);
   return match?.label || value;
 };
 
 const getDisplayValue = (field, value) => {
-  if (!value) {
-    return '—';
-  }
-
-  if (field.type === 'file') {
-    return getStoredFileLabel(value) || '—';
-  }
-
-  if (field.type === 'select' || field.type === 'radio') {
-    return getOptionLabel(field, value);
-  }
-
-  if (field.name === 'paymentMode') {
-    return PAYMENT_LABELS[value] || value;
-  }
-
+  if (!value) return '—';
+  if (field.type === 'file') return getStoredFileLabel(value) || '—';
+  if (field.type === 'select' || field.type === 'radio') return getOptionLabel(field, value);
   return value;
 };
 
-// Only use the version with paymentStepManuallyCompleted flag (already defined below)
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
 function CheckIcon() {
   return (
@@ -730,7 +649,6 @@ function StepIndicator({ currentStep, completedSteps }) {
       {PROFILE_STEPS.map((step, index) => {
         const isCompleted = completedSteps.includes(index);
         const isActive = index === currentStep;
-
         return (
           <React.Fragment key={step.id}>
             <div className="profile-completion__step-item">
@@ -819,7 +737,6 @@ function FormField({ field, value, error, onChange, onBlur }) {
   const baseClassName = ['profile-completion__control', error ? 'has-error' : '']
     .filter(Boolean)
     .join(' ');
-  const storedFileLabel = field.type === 'file' ? getStoredFileLabel(value) : '';
 
   if (field.type === 'textarea') {
     return (
@@ -851,7 +768,7 @@ function FormField({ field, value, error, onChange, onBlur }) {
         <option value="">Select {field.label}</option>
         {field.options.map((option) => (
           <option key={option.value} value={option.value}>
-            {option.label}
+            {option.name || option.label}
           </option>
         ))}
       </select>
@@ -891,21 +808,16 @@ function FormField({ field, value, error, onChange, onBlur }) {
 
   if (field.type === 'file') {
     return (
-      <>
-        <input
-          id={field.name}
-          name={field.name}
-          type="file"
-          onChange={onChange}
-          onBlur={onBlur}
-          className={baseClassName}
-          disabled={field.disabled}
-          accept={field.accept}
-        />
-        {/* {storedFileLabel ? (
-          <p className="profile-completion__file-status">Saved file: {storedFileLabel}</p>
-        ) : null} */}
-      </>
+      <input
+        id={field.name}
+        name={field.name}
+        type="file"
+        onChange={onChange}
+        onBlur={onBlur}
+        className={baseClassName}
+        disabled={field.disabled}
+        accept={field.accept}
+      />
     );
   }
 
@@ -925,7 +837,15 @@ function FormField({ field, value, error, onChange, onBlur }) {
   );
 }
 
-function ReviewSection({ step, values, onEdit, currentRole }) {
+function ReviewSection({ step, values, onEdit, currentRole, bowserCapacityOptions }) {
+  // Build a runtime field map so the bowserCapacity select shows the correct name
+  const resolveField = (field) => {
+    if (field.name === 'bowserCapacity') {
+      return { ...field, options: bowserCapacityOptions };
+    }
+    return field;
+  };
+
   return (
     <section className="profile-completion__review-card">
       <div className="profile-completion__review-head">
@@ -942,36 +862,84 @@ function ReviewSection({ step, values, onEdit, currentRole }) {
       </div>
 
       {step.sections
-        .filter((section) =>
-          !(step.id === 'payment' &&
-            (section.title === 'Settlement Payment' || section.title === 'Payment Details' || section.subtitle === 'Match the settlement details expected by the backend contract.'))
+        .filter(
+          (section) =>
+            !(
+              step.id === 'payment' &&
+              (section.title === 'Settlement Payment' ||
+                section.title === 'Payment Details' ||
+                section.subtitle ===
+                  'Match the settlement details expected by the backend contract.')
+            )
         )
         .map((section) => (
           <div key={section.title} className="profile-completion__review-section">
             <h4>{section.title}</h4>
-            {section.fields.filter((field) => shouldRenderField(field, values, currentRole)).map((field) => (
-              <div key={field.name} className="profile-completion__review-row">
-                <span>{field.label}</span>
-                <strong>{getDisplayValue(field, values[field.name])}</strong>
-              </div>
-            ))}
+            {section.fields
+              .filter((field) => shouldRenderField(field, values, currentRole))
+              .map((field) => {
+                const resolvedField = resolveField(field);
+                return (
+                  <div key={field.name} className="profile-completion__review-row">
+                    <span>{field.label}</span>
+                    <strong>{getDisplayValue(resolvedField, values[field.name])}</strong>
+                  </div>
+                );
+              })}
           </div>
         ))}
     </section>
   );
 }
 
+// ─── Main component ──────────────────────────────────────────────────────────
+
 const ProfileCompletion = () => {
   const navigate = useNavigate();
-  const { user, onboard } = useAuth();
+  const { user } = useAuth();
+
   const currentUserRole = useMemo(() => {
     const directUserRole = user?.role;
-    if (directUserRole) {
-      return directUserRole;
-    }
-
+    if (directUserRole) return directUserRole;
     return localStorage.getItem(USER_ROLE_KEY) || '';
   }, [user?.role]);
+
+  // ── Bowser capacity options fetched from API ──────────────────────────────
+  // Each option: { value: _id, label: name }
+  const [bowserCapacityOptions, setBowserCapacityOptions] = useState([]);
+
+  useEffect(() => {
+    apiGetBowserCapacities()
+      .then((capacities) => {
+        // capacities = [{ _id, name, capacity_kl, is_active, ... }]
+        const options = capacities
+          .filter((c) => c.is_active)
+          .map((c) => ({ value: c._id, label: c.name }));
+        setBowserCapacityOptions(options);
+      })
+      .catch((err) => {
+        console.error('Failed to load bowser capacities:', err);
+      });
+  }, []);
+
+  // Inject live options into the static field definition so validation & display work
+  // We patch FIELD_MAP in place so validateProfileField picks it up correctly
+  useMemo(() => {
+    if (bowserCapacityOptions.length > 0) {
+      FIELD_MAP['bowserCapacity'] = {
+        ...FIELD_MAP['bowserCapacity'],
+        options: bowserCapacityOptions,
+      };
+    }
+  }, [bowserCapacityOptions]);
+
+  // Build the field config used when rendering — merges live options into the static step config
+  const getFieldConfig = (field) => {
+    if (field.name === 'bowserCapacity') {
+      return { ...field, options: bowserCapacityOptions };
+    }
+    return field;
+  };
 
   const validationRules = useMemo(
     () =>
@@ -980,7 +948,8 @@ const ProfileCompletion = () => {
           validateProfileField(field, value, allValues, currentUserRole);
         return accumulator;
       }, {}),
-    [currentUserRole]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentUserRole, bowserCapacityOptions]
   );
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -989,7 +958,6 @@ const ProfileCompletion = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [apiError, setApiError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  // Track manual completion of payment step
   const [paymentStepManuallyCompleted, setPaymentStepManuallyCompleted] = useState(false);
 
   const {
@@ -1009,9 +977,7 @@ const ProfileCompletion = () => {
     const loadProfile = async () => {
       try {
         const existingProfile = await apiGetProfileDetails(user?.id);
-        if (!isMounted) {
-          return;
-        }
+        if (!isMounted) return;
 
         const mergedValues = {
           ...INITIAL_VALUES,
@@ -1028,37 +994,29 @@ const ProfileCompletion = () => {
         setCompletedSteps(completed);
         setCurrentStep(firstIncompleteStep === -1 ? PROFILE_STEPS.length - 1 : firstIncompleteStep);
       } catch (error) {
-        if (isMounted) {
-          setApiError(error.message || 'Could not load profile details.');
-        }
+        if (isMounted) setApiError(error.message || 'Could not load profile details.');
       } finally {
-        if (isMounted) {
-          setLoadingProfile(false);
-        }
+        if (isMounted) setLoadingProfile(false);
       }
     };
 
     loadProfile();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [currentUserRole, setValues, user?.id, user?.name]);
 
-  const progressCount = completedSteps.filter((stepIndex) => stepIndex < EDITABLE_STEPS.length).length;
+  const progressCount = completedSteps.filter(
+    (stepIndex) => stepIndex < EDITABLE_STEPS.length
+  ).length;
   const progressPercent = Math.round((progressCount / EDITABLE_STEPS.length) * 100);
   const activeStep = PROFILE_STEPS[currentStep];
-  // Only include required fields for the current step, filtering out any removed fields
   const currentFieldNames = (STEP_FIELD_NAMES[activeStep.id] || []).filter(
-    (name) =>
-      !['state', 'district', 'city', 'pinCode'].includes(name)
+    (name) => !['state', 'district', 'city', 'pinCode'].includes(name)
   );
   const isReviewStep = activeStep.id === 'review';
+  const isPaymentStep = activeStep.id === 'payment';
 
   const validateCurrentStep = () => {
-    if (!currentFieldNames.length) {
-      return true;
-    }
+    if (!currentFieldNames.length) return true;
 
     const nextErrors = {};
     const nextTouched = {};
@@ -1068,14 +1026,11 @@ const ProfileCompletion = () => {
       const fieldError = validationRules[fieldName](values[fieldName], values);
       nextTouched[fieldName] = true;
       nextErrors[fieldName] = fieldError;
-      if (fieldError) {
-        isValid = false;
-      }
+      if (fieldError) isValid = false;
     });
 
     setTouched((previous) => ({ ...previous, ...nextTouched }));
     setErrors((previous) => ({ ...previous, ...nextErrors }));
-
     return isValid;
   };
 
@@ -1091,11 +1046,15 @@ const ProfileCompletion = () => {
     const availableDistricts = DISTRICT_OPTIONS_BY_STATE[value] || [];
 
     setValues((previousValues) => {
-      const districtStillValid = availableDistricts.includes(previousValues[dependentDistrictField]);
+      const districtStillValid = availableDistricts.includes(
+        previousValues[dependentDistrictField]
+      );
       return {
         ...previousValues,
         [name]: value,
-        [dependentDistrictField]: districtStillValid ? previousValues[dependentDistrictField] : '',
+        [dependentDistrictField]: districtStillValid
+          ? previousValues[dependentDistrictField]
+          : '',
       };
     });
 
@@ -1116,12 +1075,16 @@ const ProfileCompletion = () => {
     setApiError('');
     setSuccessMessage('');
 
-    // Only validate required fields for the current step
-    if (!validateCurrentStep()) {
-      return;
+    if (!validateCurrentStep()) return;
+
+    // Mark payment step as manually completed when user clicks Next on it
+    let nextPaymentCompleted = paymentStepManuallyCompleted;
+    if (isPaymentStep) {
+      nextPaymentCompleted = true;
+      setPaymentStepManuallyCompleted(true);
     }
 
-    const recalculated = getCompletedStepIndexes(values, currentUserRole, paymentStepManuallyCompleted);
+    const recalculated = getCompletedStepIndexes(values, currentUserRole, nextPaymentCompleted);
     setCompletedSteps(recalculated);
     setCurrentStep((previous) => Math.min(previous + 1, PROFILE_STEPS.length - 1));
   };
@@ -1132,71 +1095,34 @@ const ProfileCompletion = () => {
     setCurrentStep((previous) => Math.max(previous - 1, 0));
   };
 
-  // PAN/Aadhaar verification handler
-  const handleVerifyPanAadhaar = async () => {
-    setApiError('');
-    setSuccessMessage('');
-    setLoading(true);
-    try {
-      const payload = {
-        panNumber: values.panNumber,
-        aadhaarNumber: values.aadhaarNumber,
-        fullName: values.fullName,
-        userId: user?.id || user?._id || user?.user_id || '',
-      };
-      const res = await apiVerifyPanAadhaar(payload);
-      if (res.success && res.verified) {
-        setSuccessMessage('PAN and Aadhaar verified successfully.');
-      } else {
-        setApiError('PAN/Aadhaar verification failed. Please check your details.');
-      }
-    } catch (err) {
-      setApiError(err.message || 'PAN/Aadhaar verification failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async () => {
     setApiError('');
-    // Accepts a manual payment step completion flag
-    const getCompletedStepIndexes = (values, currentRole = '', paymentStepManuallyCompleted = false) =>
-      EDITABLE_STEPS.reduce((completed, step, index) => {
-        let isComplete;
-        if (step.id === 'payment') {
-          isComplete = paymentStepManuallyCompleted;
-        } else {
-          isComplete = STEP_FIELD_NAMES[step.id].every((fieldName) => {
-            const field = FIELD_MAP[fieldName];
-            return !validateProfileField(field, values[fieldName], values, currentRole);
-          });
-        }
-        if (isComplete) {
-          completed.push(index);
-        }
-        return completed;
-      }, []);
     setSuccessMessage('');
 
-    if (!validateAll()) {
-      // Only set to true when user clicks Next on payment step
-      const [paymentStepManuallyCompleted, setPaymentStepManuallyCompleted] = useState(false);
-      return;
-    }
+    if (!validateAll()) return;
 
     setLoading(true);
 
     try {
-
-      // Build FormData for upload
       const formData = new FormData();
-      // Attach files (File objects from form state)
-      formData.append('pan_card_file', values.panFile);
-      formData.append('aadhaar_card_file', values.aadhaarFile);
-      formData.append('driving_license_file', values.drivingLicenseFile);
-      formData.append('vehicle_rc_file', values.vehicleRcFile);
-      formData.append('passport_size_photo_file', values.passportPhotoFile);
-      formData.append('noc_file', values.nocFile);
+
+      // Files
+      if (values.panFile) formData.append('pan_card_file', values.panFile);
+      if (values.aadhaarFile) formData.append('aadhaar_card_file', values.aadhaarFile);
+      if (values.drivingLicenseFile)
+        formData.append('driving_license_file', values.drivingLicenseFile);
+      if (values.vehicleRcFile) formData.append('vehicle_rc_file', values.vehicleRcFile);
+      if (values.passportPhotoFile)
+        formData.append('passport_size_photo_file', values.passportPhotoFile);
+      if (values.nocFile) formData.append('noc_file', values.nocFile);
+
+      // ── Role guards ────────────────────────────────────────────────────────
+      // bowser_capacity_id  → bowser role only  (value stored = _id from API)
+      // land_area_acres     → mini-pump role only
+      const isBowserRole = roleMatchesTag(currentUserRole, 'bowser');
+      const isMiniPumpRole =
+        roleMatchesTag(currentUserRole, 'mini-pump') ||
+        roleMatchesTag(currentUserRole, 'minipump');
 
       // Professional Details
       const professional = {
@@ -1209,8 +1135,8 @@ const ProfileCompletion = () => {
         oil_sector_experience_years: values.oilSectorExperienceYears,
         distance_to_nearest_petrol_pump_km: values.nearestFuelPumpDistance,
         investment_plan: values.investmentPlan,
-        bowser_capacity_id: values.bowserCapacityId,
-        land_area_acres: values.areaInAcres,
+        ...(isBowserRole && { bowser_capacity_id: values.bowserCapacity }),
+        ...(isMiniPumpRole && { land_area_acres: values.areaInAcres }),
       };
       formData.append('professional', JSON.stringify(professional));
 
@@ -1235,22 +1161,20 @@ const ProfileCompletion = () => {
       };
       formData.append('address', JSON.stringify(address));
 
-      // Vehicle Details
+      // Vehicle Details — bowser_capacity_id only for bowser role
       const vehicle = {
-        vehicle_number: values.vehicleNumber,
-        bowser_capacity_id: values.bowserCapacityId,
+        vehicle_number: values.vehicleNumber || '',
+        ...(isBowserRole && { bowser_capacity_id: values.bowserCapacity }),
       };
       formData.append('vehicle', JSON.stringify(vehicle));
 
-      // Document Numbers (flat fields for PATCH compatibility)
+      // Document Numbers
       formData.append('pan_card_number', values.panNumber || '');
       formData.append('aadhaar_card_number', values.aadhaarNumber || '');
       formData.append('driving_license_number', values.drivingLicenseNumber || '');
       formData.append('vehicle_rc_number', values.vehicleRcNumber || '');
-      // Add DRC number (now required)
-      formData.append('drc_number', values.drcNumber);
+      if (values.drcNumber) formData.append('drc_number', values.drcNumber);
 
-      // Nested document structure for onboarding/PATCH compatibility
       const documents = {
         pan_card: { number: values.panNumber || '' },
         aadhaar_card: { number: values.aadhaarNumber || '' },
@@ -1259,32 +1183,27 @@ const ProfileCompletion = () => {
       };
       formData.append('documents', JSON.stringify(documents));
 
-      // No payment details should be sent
-
-      // Send the request
       const token = localStorage.getItem('POTENS_admin_access_token');
       const response = await fetch(`${API_BASE_URL}/api/auth/onboard`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Do NOT set Content-Type
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Onboarding failed.');
 
-      setCompletedSteps(getCompletedStepIndexes(values, currentUserRole, paymentStepManuallyCompleted));
+      setCompletedSteps(
+        getCompletedStepIndexes(values, currentUserRole, paymentStepManuallyCompleted)
+      );
       setSuccessMessage('Onboarding completed successfully. Redirecting to dashboard...');
 
-      // Generate agreement and certificate PDFs after successful onboarding
+      // Generate PDFs
       const userId = data?.user?.id || data?.user?._id || data?.user?.user_id;
       if (userId) {
         try {
           await apiGenerateAgreementPdf(userId);
           await apiGenerateCertificatePdf(userId);
         } catch (pdfError) {
-          // Optionally show a warning, but don't block navigation
           console.warn('PDF generation failed:', pdfError);
         }
       }
@@ -1320,7 +1239,6 @@ const ProfileCompletion = () => {
               structure expected by the crew profile API.
             </p>
           </div>
-
           <button
             type="button"
             className="profile-completion__ghost-btn"
@@ -1328,16 +1246,6 @@ const ProfileCompletion = () => {
           >
             ← Back to Dashboard
           </button>
-          {/* PAN/Aadhaar Verification Button */}
-          {/* <button
-            type="button"
-            className="profile-completion__ghost-btn"
-            style={{ marginLeft: 16 }}
-            onClick={handleVerifyPanAadhaar}
-            disabled={loading}
-          >
-            Verify PAN & Aadhaar
-          </button> */}
         </header>
 
         <section className="profile-completion__summary-grid">
@@ -1387,72 +1295,98 @@ const ProfileCompletion = () => {
                   <p>{section.description}</p>
                 </div>
 
-                {/* Render customContent if present (e.g., QR image for payment step) */}
                 {section.customContent && (
-                  <div className="profile-completion__custom-content">{section.customContent}</div>
+                  <div className="profile-completion__custom-content">
+                    {section.customContent}
+                  </div>
                 )}
 
-                {/* Custom two-column layout for Identity Documents */}
                 {section.title === 'Identity Documents' ? (
                   <div className="profile-completion__identity-grid">
                     <div className="profile-completion__identity-col">
-                      {/* Left: Text fields */}
-                      {section.fields.filter(f => f.type === 'text' && shouldRenderField(f, values, currentUserRole)).map(field => (
-                        <FieldGroup key={field.name} field={field} error={errors[field.name]}>
-                          <FormField
-                            field={field}
-                            value={values[field.name]}
-                            error={errors[field.name]}
-                            onChange={handleFieldChange}
-                            onBlur={handleBlur}
-                          />
-                        </FieldGroup>
-                      ))}
+                      {section.fields
+                        .filter(
+                          (f) => f.type === 'text' && shouldRenderField(f, values, currentUserRole)
+                        )
+                        .map((field) => {
+                          const fieldConfig = getFieldConfig(field);
+                          return (
+                            <FieldGroup
+                              key={field.name}
+                              field={fieldConfig}
+                              error={errors[field.name]}
+                            >
+                              <FormField
+                                field={fieldConfig}
+                                value={values[field.name]}
+                                error={errors[field.name]}
+                                onChange={handleFieldChange}
+                                onBlur={handleBlur}
+                              />
+                            </FieldGroup>
+                          );
+                        })}
                     </div>
                     <div className="profile-completion__identity-col">
-                      {/* Right: File fields */}
-                      {section.fields.filter(f => f.type === 'file' && shouldRenderField(f, values, currentUserRole)).map(field => (
-                        <FieldGroup key={field.name} field={field} error={errors[field.name]}>
-                          <FormField
-                            field={field}
-                            value={values[field.name]}
-                            error={errors[field.name]}
-                            onChange={handleFieldChange}
-                            onBlur={handleBlur}
-                          />
-                        </FieldGroup>
-                      ))}
+                      {section.fields
+                        .filter(
+                          (f) => f.type === 'file' && shouldRenderField(f, values, currentUserRole)
+                        )
+                        .map((field) => {
+                          const fieldConfig = getFieldConfig(field);
+                          return (
+                            <FieldGroup
+                              key={field.name}
+                              field={fieldConfig}
+                              error={errors[field.name]}
+                            >
+                              <FormField
+                                field={fieldConfig}
+                                value={values[field.name]}
+                                error={errors[field.name]}
+                                onChange={handleFieldChange}
+                                onBlur={handleBlur}
+                              />
+                            </FieldGroup>
+                          );
+                        })}
                     </div>
                   </div>
                 ) : (
                   <div className="profile-completion__grid">
-                    {section.fields.filter((field) => shouldRenderField(field, values, currentUserRole)).map((field) => {
-                      const districtOptions = field.optionsSource
-                        ? getDistrictOptions(values[field.optionsSource])
-                        : null;
-                      const fieldConfig = field.optionsSource
-                        ? {
-                            ...field,
+                    {section.fields
+                      .filter((field) => shouldRenderField(field, values, currentUserRole))
+                      .map((field) => {
+                        // Resolve district options from state dependency
+                        let fieldConfig = getFieldConfig(field);
+                        if (field.optionsSource) {
+                          const districtOptions = getDistrictOptions(values[field.optionsSource]);
+                          fieldConfig = {
+                            ...fieldConfig,
                             options: districtOptions,
                             disabled: !values[field.optionsSource],
                             label: values[field.optionsSource]
                               ? field.label
                               : `${field.label} (Select state first)`,
-                          }
-                        : field;
+                          };
+                        }
 
-                      return (
-                        <FieldGroup key={field.name} field={fieldConfig} error={errors[field.name]}>
-                          <FormField
+                        return (
+                          <FieldGroup
+                            key={field.name}
                             field={fieldConfig}
-                            value={values[field.name]}
                             error={errors[field.name]}
-                            onChange={handleFieldChange}
-                            onBlur={handleBlur}
-                          />
-                        </FieldGroup>
-                      );
-                    })}
+                          >
+                            <FormField
+                              field={fieldConfig}
+                              value={values[field.name]}
+                              error={errors[field.name]}
+                              onChange={handleFieldChange}
+                              onBlur={handleBlur}
+                            />
+                          </FieldGroup>
+                        );
+                      })}
                   </div>
                 )}
               </section>
@@ -1465,6 +1399,7 @@ const ProfileCompletion = () => {
                   step={step}
                   values={values}
                   currentRole={currentUserRole}
+                  bowserCapacityOptions={bowserCapacityOptions}
                   onEdit={() => goToStep(index)}
                 />
               ))}

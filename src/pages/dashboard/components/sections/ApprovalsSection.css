@@ -1,24 +1,157 @@
+/* ─── Wrapper ──────────────────────────────────────────────────────────────── */
 .approvals-list-wrap {
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
   background: #f8fafc;
   border-radius: 14px;
-  box-shadow: 0 2px 16px rgba(60,72,88,0.07);
+  box-shadow: 0 2px 16px rgba(60, 72, 88, 0.07);
+}
+
+.approvals-title {
+  font-weight: 700;
+  font-size: 22px;
+  margin: 0 0 4px;
+  color: #1a237e;
+}
+
+.approvals-subtitle {
+  color: #475569;
+  margin: 0 0 18px;
+  font-size: 15px;
+}
+
+.approvals-loading,
+.approvals-empty {
+  padding: 24px 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.approvals-error {
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+/* ─── Badges ───────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.badge--approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge--rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.badge--pending {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.approved-tag {
+  color: #15803d;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.rejection-reason {
+  color: #dc2626;
+  font-size: 12px;
+  margin: 4px 0 0;
+  max-width: 180px;
+  word-break: break-word;
+}
+
+.verified-tag {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.unverified-tag {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* ─── Action buttons ───────────────────────────────────────────────────────── */
+.approvals-action-btn {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.approvals-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.approvals-action-btn.view {
+  background: #e3e8ee;
+  color: #1a237e;
+}
+
+.approvals-action-btn.view:hover:not(:disabled) {
+  background: #d0d8e8;
+}
+
+.approvals-action-btn.approve {
+  background: #4caf50;
+  color: #fff;
+}
+
+.approvals-action-btn.approve:hover:not(:disabled) {
+  background: #388e3c;
+}
+
+.approvals-action-btn.reject {
+  background: #f44336;
+  color: #fff;
+}
+
+.approvals-action-btn.reject:hover:not(:disabled) {
+  background: #c62828;
+}
+
+/* ─── Desktop table ────────────────────────────────────────────────────────── */
+.approvals-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .approvals-table {
   width: 100%;
-  margin-top: 18px;
   border-collapse: separate;
   border-spacing: 0;
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 1px 6px rgba(60,72,88,0.06);
+  box-shadow: 0 1px 6px rgba(60, 72, 88, 0.06);
+  table-layout: auto;
 }
 
-.approvals-table th, .approvals-table td {
+.approvals-table th,
+.approvals-table td {
   padding: 13px 14px;
   text-align: left;
+  font-size: 14px;
 }
 
 .approvals-table th {
@@ -26,10 +159,11 @@
   font-weight: 700;
   color: #1a237e;
   border-bottom: 2px solid #e3e8ee;
+  white-space: nowrap;
 }
 
-.approvals-table tr {
-  transition: background 0.2s;
+.approvals-table tbody tr {
+  transition: background 0.15s;
 }
 
 .approvals-table tbody tr:hover {
@@ -38,123 +172,284 @@
 
 .approvals-table td {
   border-bottom: 1px solid #e3e8ee;
-  font-size: 15px;
+  vertical-align: top;
 }
 
-.approvals-action-btn {
-  padding: 7px 16px;
-  border: none;
-  border-radius: 5px;
-  font-weight: 600;
-  font-size: 14px;
-  margin-right: 7px;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+.approvals-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.approvals-action-btn.view {
-  background: #e3e8ee;
+.actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 200px;
+}
+
+/* ─── Mobile card list (hidden on desktop) ─────────────────────────────────── */
+.approvals-card-list {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.partner-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e3e8ee;
+  box-shadow: 0 1px 4px rgba(60, 72, 88, 0.06);
+  overflow: hidden;
+}
+
+.partner-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.partner-card__avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  background: #e8eaf6;
   color: #1a237e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
 }
 
-.approvals-action-btn.approve {
-  background: #4caf50;
-  color: #fff;
+.partner-card__info {
+  flex: 1;
+  min-width: 0;
 }
 
-.approvals-action-btn.reject {
-  background: #f44336;
-  color: #fff;
+.partner-card__name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1a237e;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.approvals-action-btn:last-child {
-  margin-right: 0;
+.partner-card__email {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.partner-card__meta {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.partner-card__meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.partner-card__meta-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.partner-card__meta-value {
+  color: #0f172a;
+  font-weight: 500;
+  text-align: right;
+}
+
+.partner-card__actions {
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.partner-card__actions .approvals-action-btn {
+  font-size: 14px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ─── Modal ────────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.3);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .modal-content {
   background: #fff;
-  padding: 28px;
-  border-radius: 12px;
-  min-width: 320px;
-  max-width: 650px;
-  max-height: 85vh;
+  padding: 24px;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 88vh;
   overflow-y: auto;
-  box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
 }
 
+.modal-content--wide {
+  max-width: 640px;
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 18px;
+  margin: 0 0 12px;
+  color: #1a237e;
+}
+
+.modal-body {
+  font-size: 15px;
+  color: #374151;
+  margin: 0 0 14px;
+}
+
+.modal-textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.modal-textarea:focus {
+  border-color: #6366f1;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modal-footer .approvals-action-btn {
+  flex: 1;
+  min-width: 90px;
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.modal-error {
+  color: #dc2626;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+/* ─── Detail table (inside partner modal) ──────────────────────────────────── */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.detail-table tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.detail-table__label {
+  font-weight: 600;
+  color: #374151;
+  padding: 8px 12px 8px 0;
+  width: 42%;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.detail-table__value {
+  color: #0f172a;
+  padding: 8px 0;
+  word-break: break-word;
+}
+
+/* ─── Responsive breakpoints ───────────────────────────────────────────────── */
+
+/* Tablet: tighten table padding */
 @media (max-width: 900px) {
-  .modal-content {
-    min-width: 0;
-    max-width: 98vw;
-    padding: 18px;
+  .approvals-table th,
+  .approvals-table td {
+    padding: 10px 10px;
+    font-size: 13px;
   }
-  .approvals-table th, .approvals-table td {
-    padding: 10px 8px;
-    font-size: 14px;
+
+  .actions-cell {
+    min-width: 160px;
   }
 }
 
+/* Mobile: hide table, show cards */
 @media (max-width: 640px) {
+  .approvals-list-wrap {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .approvals-title {
+    font-size: 18px;
+  }
+
+  /* Hide desktop table entirely */
+  .approvals-table-wrap {
+    display: none;
+  }
+
+  /* Show card list */
+  .approvals-card-list {
+    display: flex;
+  }
+
+  /* Make modal full-width on small screens */
   .modal-content {
-    padding: 12px 6px;
-    border-radius: 1rem;
-    box-shadow: 0 2px 12px rgba(31,58,95,0.09);
-    min-width: 0;
-    width: 98vw;
-    max-width: 99vw;
+    padding: 18px 16px;
+    border-radius: 12px;
+    max-height: 90vh;
   }
-  .approvals-table {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    border-radius: 0.7rem;
-    box-shadow: 0 1px 6px rgba(31,58,95,0.07);
-    background: #fff;
+
+  .modal-title {
+    font-size: 16px;
   }
-  .approvals-table th, .approvals-table td {
-    padding: 9px 7px;
-    font-size: 1rem;
-    min-width: 110px;
-    white-space: nowrap;
-    border-bottom: 1px solid #e3e8ee;
+
+  .detail-table__label {
+    width: 40%;
+    font-size: 13px;
+    white-space: normal;
   }
-  .approvals-table th {
-    background: #f1f5f9;
-    font-weight: 700;
-    color: #1a237e;
-    border-bottom: 2px solid #e3e8ee;
-  }
-  .approvals-table tr {
-    transition: background 0.2s;
-  }
-  .approvals-table tbody tr:hover {
-    background: #f5f7fa;
-  }
-  .approvals-action-btn {
-    padding: 10px 14px;
-    font-size: 1rem;
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 0.7rem;
-    margin: 0.2rem 0;
-    box-shadow: 0 1px 3px rgba(31,58,95,0.06);
-    background: #f1f5f9;
-    color: #1a237e;
-    border: none;
-    transition: background 0.15s;
-  }
-  .approvals-action-btn:active {
-    background: #e3e8ee;
+
+  .detail-table__value {
+    font-size: 13px;
   }
 }
