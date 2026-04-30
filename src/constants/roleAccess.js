@@ -96,7 +96,7 @@ export const roleAccess = {
       SIDEBAR_KEYS.CERTIFICATE,
       SIDEBAR_KEYS.SUPPORT,
       SIDEBAR_KEYS.PROFILE,
-      SIDEBAR_KEYS.PAYMENTS, 
+      // SIDEBAR_KEYS.PAYMENTS, 
     ],
   },
 
@@ -109,7 +109,7 @@ export const roleAccess = {
       SIDEBAR_KEYS.CERTIFICATE,
       SIDEBAR_KEYS.SUPPORT,
       SIDEBAR_KEYS.PROFILE,
-      SIDEBAR_KEYS.PAYMENTS,
+      // SIDEBAR_KEYS.PAYMENTS,
     ],
   },
 };

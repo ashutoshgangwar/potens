@@ -255,7 +255,7 @@ const LoginPage = () => {
                 Support Contact: 18003135280
               </span>
             </p>
-            <a
+            {/* <a
               href="https://wa.me/918003135280?text=Hello%20I%20need%20support"
               target="_blank"
               rel="noopener noreferrer"
@@ -267,7 +267,7 @@ const LoginPage = () => {
               }}
             >
               💬 Need help? Chat on WhatsApp
-            </a>
+            </a> */}
             <div className="login-brand-links">
               <a href="#" className="login-brand-link">
                 YouTube

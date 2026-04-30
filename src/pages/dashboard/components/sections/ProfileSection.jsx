@@ -344,6 +344,8 @@ const ProfileSection = ({
         if (!token) throw new Error('No auth token found');
         const details = await fetchAuthProfilePayload(token);
         setProfileDetails(details);
+
+        console.log('Fetched profile details:', details);
         setFullName(details?.user?.name || details?.fullName || '');
       } finally {
         setLoading(false);
@@ -407,16 +409,24 @@ const ProfileSection = ({
     { label: 'Land Area (Acres)', value: getDisplayValue(professional?.land_area_acres) },
   ];
 
+  // Payment details from profileDetails.payment or similar
+  // Debug: log payment details structure
+  console.log('ProfileSection payment details:', profileDetails?.payment, profileDetails);
+  const paymentDetails = profileDetails?.payment || {};
   const paymentRows = [
     { label: 'Payment Mode', value: getDisplayValue(paymentPreferenceLabel) },
-    { label: 'UPI ID', value: getDisplayValue(payment?.upi_id || profileDetails?.upiId) },
-    { label: 'Bank Name', value: getDisplayValue(payment?.bank_name || profileDetails?.bankName) },
-    { label: 'Account Holder', value: getDisplayValue(payment?.account_holder_name || profileDetails?.accountHolderName) },
-    { label: 'Account Number', value: getDisplayValue(payment?.account_number || profileDetails?.bankAccountNumber) },
-    { label: 'IFSC Code', value: getDisplayValue(payment?.ifsc_code || profileDetails?.ifscCode) },
-    { label: 'Branch', value: getDisplayValue(payment?.branch_name || profileDetails?.bankBranch) },
-    { label: 'Other Details', value: getDisplayValue(payment?.other_details || profileDetails?.paymentOtherDetails) },
-  ];
+    { label: 'UPI ID', value: getDisplayValue(paymentDetails.upi_id || profileDetails?.upiId) },
+    { label: 'Bank Name', value: getDisplayValue(paymentDetails.bank_name || profileDetails?.bankName) },
+    { label: 'Account Holder', value: getDisplayValue(paymentDetails.account_holder_name || profileDetails?.accountHolderName) },
+    { label: 'Account Number', value: getDisplayValue(paymentDetails.account_number || profileDetails?.bankAccountNumber) },
+    { label: 'IFSC Code', value: getDisplayValue(paymentDetails.ifsc_code || profileDetails?.ifscCode) },
+    { label: 'Branch', value: getDisplayValue(paymentDetails.branch_name || profileDetails?.bankBranch) },
+    { label: 'Other Details', value: getDisplayValue(paymentDetails.other_details || profileDetails?.paymentOtherDetails) },
+    // Additional payment submission details if present
+    paymentDetails.amount !== undefined ? { label: 'Amount', value: getDisplayValue(paymentDetails.amount) } : null,
+    paymentDetails.transaction_number ? { label: 'Transaction Number', value: getDisplayValue(paymentDetails.transaction_number) } : null,
+    paymentDetails.status ? { label: 'Payment Status', value: getDisplayValue(paymentDetails.status) } : null,
+  ].filter(Boolean);
 
   const permanentAddressRows = [
     { label: 'Address Line 1', value: getDisplayValue(permanentAddress?.address_line1 || profileDetails?.permanentAddressLine1) },
@@ -633,6 +643,21 @@ const ProfileSection = ({
           <h3 className="card-section-title card-section-title--spaced">Business Address</h3>
           {renderRows(businessAddressRows)}
         </Card>
+
+        {/* Payment Submission Details Card (styled like others) */}
+        {profileDetails?.payment && (
+          <Card padding="md" shadow="sm" className="profile-details-card">
+            <h3 className="card-section-title card-section-title--spaced">Payment Submission Details</h3>
+            {renderRows([
+              { label: 'Account Number', value: profileDetails.payment.account_number },
+              { label: 'Bank Name', value: profileDetails.payment.bank_name },
+              { label: 'Amount', value: profileDetails.payment.amount },
+              { label: 'Transaction Number', value: profileDetails.payment.transaction_number },
+              { label: 'Status', value: profileDetails.payment.status },
+              { label: 'Payment Proof', value: profileDetails.payment.payment_proof },
+            ].filter(row => row.value !== undefined && row.value !== ''))}
+          </Card>
+        )}
 
         <Card padding="md" shadow="sm" className="profile-details-card profile-details-card--wide">
           <h3 className="card-section-title card-section-title--spaced">Document Information</h3>
