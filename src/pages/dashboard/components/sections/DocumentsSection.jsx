@@ -344,11 +344,8 @@ const DocumentsSection = ({ user }) => {
                 <div className="cert-dummy-preview">
                   <img src="/certificate.svg" alt="Certificate" className="cert-dummy-icon" />
                   <strong>Certificate Ready</strong>
-                  <span>Click the button below to view or download your certificate.</span>
+                  <span>Click the button below to view your certificate.</span>
                   <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <Button variant="primary" size="sm" onClick={handleDownloadCertificate}>
-                      Download Certificate
-                    </Button>
                     <Button variant="secondary" size="sm" onClick={handleViewCertificate}>
                       View in New Tab
                     </Button>
