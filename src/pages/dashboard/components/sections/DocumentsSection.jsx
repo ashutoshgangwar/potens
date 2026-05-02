@@ -14,10 +14,8 @@ const DocumentsSection = ({ user }) => {
 
   const formatDate = (value) => {
     if (!value) return '—';
-
     const parsedDate = new Date(value);
     if (Number.isNaN(parsedDate.getTime())) return '—';
-
     return parsedDate.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -25,22 +23,29 @@ const DocumentsSection = ({ user }) => {
     });
   };
 
-  // Convert PDF to image using pdfjs — crops out blank bottom area
+  // Convert PDF page 1 to a clean cropped image (no black bars, no viewer chrome)
   const renderPdfToImage = async (pdfUrl) => {
     try {
       const loadingTask = pdfjsLib.getDocument(pdfUrl);
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 2.5 }); // higher scale = sharper
+      const viewport = page.getViewport({ scale: 2.5 });
+
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+
+      // ✅ KEY FIX: Fill white BEFORE rendering so blank/empty areas are white not black
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
       await page.render({ canvasContext: context, viewport }).promise;
 
-      // Crop: scan from bottom to find last non-white/non-black row
+      // Scan pixel rows from bottom — find last row with non-white content
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const { data, width, height } = imageData;
+
       let lastContentRow = height;
       for (let y = height - 1; y >= 0; y--) {
         let rowHasContent = false;
@@ -49,26 +54,48 @@ const DocumentsSection = ({ user }) => {
           const r = data[idx];
           const g = data[idx + 1];
           const b = data[idx + 2];
-          // not white/near-white AND not black/near-black (black = pdf.js default blank bg)
-          const isWhite = r > 240 && g > 240 && b > 240;
-          const isBlack = r < 15 && g < 15 && b < 15;
-          if (!isWhite && !isBlack) {
+          if (r < 245 || g < 245 || b < 245) {
             rowHasContent = true;
             break;
           }
         }
         if (rowHasContent) {
-          lastContentRow = y + 1;
+          lastContentRow = Math.min(height, y + 6); // +6px bottom padding
           break;
         }
       }
 
-      // Draw cropped result
+      // Scan from top — find first row with non-white content
+      let firstContentRow = 0;
+      for (let y = 0; y < height; y++) {
+        let rowHasContent = false;
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          if (r < 245 || g < 245 || b < 245) {
+            rowHasContent = true;
+            break;
+          }
+        }
+        if (rowHasContent) {
+          firstContentRow = Math.max(0, y - 6); // -6px top padding
+          break;
+        }
+      }
+
+      const croppedHeight = lastContentRow - firstContentRow;
+
+      // Draw only the cropped certificate region
       const cropped = document.createElement('canvas');
       cropped.width = canvas.width;
-      cropped.height = lastContentRow;
+      cropped.height = croppedHeight;
       const croppedCtx = cropped.getContext('2d');
-      croppedCtx.drawImage(canvas, 0, 0);
+      croppedCtx.fillStyle = '#ffffff';
+      croppedCtx.fillRect(0, 0, cropped.width, cropped.height);
+      croppedCtx.drawImage(canvas, 0, -firstContentRow);
+
       return cropped.toDataURL('image/png');
     } catch (err) {
       console.error('PDF to image conversion failed:', err);
@@ -81,7 +108,6 @@ const DocumentsSection = ({ user }) => {
       if (currentUrl && currentUrl !== nextUrl) {
         window.URL.revokeObjectURL(currentUrl);
       }
-
       return nextUrl;
     });
   };
@@ -91,23 +117,18 @@ const DocumentsSection = ({ user }) => {
     try {
       if (user?.id) {
         const token = localStorage.getItem('POTENS_admin_access_token') || '';
-
         const certRes = await apiGetCertificatePdfDetails({ token });
-
         setCertificateDetails(certRes || {});
 
         if (certRes?.certificateUrl) {
           try {
             const { blob } = await apiDownloadCertificatePdfFile({ token });
             const blobPreviewUrl = window.URL.createObjectURL(blob);
-
             updatePreviewPdfUrl(blobPreviewUrl);
-
             const imgUrl = await renderPdfToImage(blobPreviewUrl);
             setCertificateImageUrl(imgUrl);
           } catch (previewError) {
             updatePreviewPdfUrl(null);
-
             const imgUrl = await renderPdfToImage(certRes.certificateUrl);
             setCertificateImageUrl(imgUrl);
           }
@@ -142,7 +163,6 @@ const DocumentsSection = ({ user }) => {
   const handleDownloadCertificate = async () => {
     try {
       const token = localStorage.getItem('POTENS_admin_access_token') || '';
-
       const { blob, fileName } = await apiDownloadCertificatePdfFile({ token });
       const objectUrl = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -159,11 +179,7 @@ const DocumentsSection = ({ user }) => {
 
   const handleViewCertificate = () => {
     const previewUrl = previewPdfUrl || certificateDetails.certificateUrl;
-
-    if (!previewUrl) {
-      return;
-    }
-
+    if (!previewUrl) return;
     window.open(previewUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -209,37 +225,34 @@ const DocumentsSection = ({ user }) => {
 
   return (
     <>
-      {/* Responsive styles injected inline so no external CSS file change needed */}
       <style>{`
-        .certificate-preview-responsive-wrap {
+        .cert-preview-wrap {
           width: 100%;
           max-width: 860px;
           margin: 0 auto 32px;
           border-radius: 16px;
           overflow: hidden;
           border: 1.5px solid #d0e4f7;
-          background: #fff;
+          background: #ffffff;
           box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
-        .certificate-image-preview-responsive {
+        .cert-preview-img {
           width: 100%;
           height: auto;
           display: block;
-          border-radius: 0;
         }
-        .certificate-skeleton-responsive {
+        .cert-preview-skeleton {
           width: 100%;
           aspect-ratio: 1.414 / 1;
           background: linear-gradient(90deg, #f0f4f8 25%, #e2eaf2 50%, #f0f4f8 75%);
           background-size: 200% 100%;
-          animation: shimmer 1.4s infinite;
-          border-radius: 12px;
+          animation: cert-shimmer 1.4s infinite;
         }
-        @keyframes shimmer {
+        @keyframes cert-shimmer {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
-        .certificate-dummy-preview-responsive {
+        .cert-dummy-preview {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -250,20 +263,27 @@ const DocumentsSection = ({ user }) => {
           color: #6b7c93;
           min-height: 260px;
         }
-        .certificate-dummy-icon-responsive {
+        .cert-dummy-icon {
           width: 56px;
           height: 56px;
           opacity: 0.5;
         }
+        .cert-preview-header-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
         @media (max-width: 600px) {
-          .certificate-preview-responsive-wrap {
+          .cert-preview-wrap {
             border-radius: 10px;
             margin-bottom: 20px;
           }
-          .certificate-preview-header-row {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
+          .cert-preview-header-row {
+            flex-direction: column;
+            align-items: flex-start;
           }
         }
       `}</style>
@@ -271,6 +291,8 @@ const DocumentsSection = ({ user }) => {
       <div tabIndex={0}>
         <Card padding="md" shadow="sm" className="certificate-section-card">
           <div className="certificate-content-wrap">
+
+            {/* Hero */}
             <div className="certificate-hero">
               <div>
                 <div className="certificate-hero-chip">Verified Document</div>
@@ -294,11 +316,8 @@ const DocumentsSection = ({ user }) => {
               <p className="certificate-loading-copy">Loading certificate details...</p>
             )}
 
-            {/* Certificate Preview Header */}
-            <div
-              className="certificate-preview-header certificate-preview-header-row"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}
-            >
+            {/* Preview Header Row */}
+            <div className="cert-preview-header-row">
               <div>
                 <h3 className="certificate-section-title">Certificate Preview</h3>
                 <p className="certificate-preview-copy">Your certificate is shown directly on screen below.</p>
@@ -311,19 +330,19 @@ const DocumentsSection = ({ user }) => {
               )}
             </div>
 
-            {/* Certificate Preview — responsive, cropped */}
-            <div className="certificate-preview-responsive-wrap">
+            {/* Certificate Preview — clean image, no black bars */}
+            <div className="cert-preview-wrap">
               {loading ? (
-                <div className="certificate-skeleton-responsive" />
+                <div className="cert-preview-skeleton" />
               ) : certificateImageUrl ? (
                 <img
                   src={certificateImageUrl}
                   alt="Certificate Preview"
-                  className="certificate-image-preview-responsive"
+                  className="cert-preview-img"
                 />
               ) : hasCertificatePdf ? (
-                <div className="certificate-dummy-preview-responsive">
-                  <img src="/certificate.svg" alt="Certificate" className="certificate-dummy-icon-responsive" />
+                <div className="cert-dummy-preview">
+                  <img src="/certificate.svg" alt="Certificate" className="cert-dummy-icon" />
                   <strong>Certificate Ready</strong>
                   <span>Click the button below to view or download your certificate.</span>
                   <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -336,8 +355,8 @@ const DocumentsSection = ({ user }) => {
                   </div>
                 </div>
               ) : (
-                <div className="certificate-dummy-preview-responsive">
-                  <img src="/certificate.svg" alt="Dummy certificate" className="certificate-dummy-icon-responsive" />
+                <div className="cert-dummy-preview">
+                  <img src="/certificate.svg" alt="Dummy certificate" className="cert-dummy-icon" />
                   <strong>No Certificate Generated</strong>
                   <span>Complete your details and get your certificate.</span>
                 </div>
@@ -358,10 +377,7 @@ const DocumentsSection = ({ user }) => {
               ) : (
                 <div className="certificate-detail-grid">
                   {certificateFields.map((field) => (
-                    <div
-                      className="certificate-detail-item"
-                      key={field.key}
-                    >
+                    <div className="certificate-detail-item" key={field.key}>
                       <span>{field.label}</span>
                       <strong>{field.value}</strong>
                     </div>
@@ -369,6 +385,7 @@ const DocumentsSection = ({ user }) => {
                 </div>
               )}
             </aside>
+
           </div>
 
           <h3 className="certificate-section-title">Important Information</h3>
