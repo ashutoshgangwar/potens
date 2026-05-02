@@ -201,7 +201,7 @@ const DashboardPage = () => {
 				]);
 
 				if (mounted) {
-					console.log('[DashboardPage] profileDetails:', details);
+					// console.log('[DashboardPage] profileDetails:', details);
 					setProfileDetails(details);
 					setOnboardingProgress(progress);
 				}

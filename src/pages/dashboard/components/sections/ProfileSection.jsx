@@ -104,9 +104,11 @@ const PaymentModal = ({ onClose, accessToken }) => {
         width: '100vw', height: '100vh',
         zIndex: 2100,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         background: 'rgba(0,0,0,0.45)',
+        padding: '12px',
+        overflowY: 'auto',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
@@ -114,11 +116,13 @@ const PaymentModal = ({ onClose, accessToken }) => {
         background: '#fff',
         padding: '32px 28px 24px',
         borderRadius: 12,
-        minWidth: 340,
-        maxWidth: 480,
-        width: '100%',
+        width: 'min(480px, calc(100vw - 24px))',
+        minWidth: 0,
+        maxHeight: 'calc(100vh - 24px)',
+        overflowY: 'auto',
         boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
         position: 'relative',
+        margin: 'auto 0',
       }}>
         {/* Close button */}
         <button
@@ -359,7 +363,7 @@ const ProfileSection = ({
         const details = await fetchAuthProfilePayload(token);
         setProfileDetails(details);
 
-        console.log('Fetched profile details:', details);
+        // console.log('Fetched profile details:', details);
         setFullName(details?.user?.name || details?.fullName || '');
       } finally {
         setLoading(false);
@@ -425,7 +429,7 @@ const ProfileSection = ({
 
   // Payment details from profileDetails.payment or similar
   // Debug: log payment details structure
-  console.log('ProfileSection payment details:', profileDetails?.payment, profileDetails);
+  // console.log('ProfileSection payment details:', profileDetails?.payment, profileDetails);
   const paymentDetails = profileDetails?.payment || {};
   const paymentRows = [
     { label: 'Payment Mode', value: getDisplayValue(paymentPreferenceLabel) },
@@ -668,7 +672,6 @@ const ProfileSection = ({
               { label: 'Amount', value: profileDetails.payment.amount },
               { label: 'Transaction Number', value: profileDetails.payment.transaction_number },
               { label: 'Status', value: profileDetails.payment.status },
-              { label: 'Payment Proof', value: profileDetails.payment.payment_proof },
             ].filter(row => row.value !== undefined && row.value !== ''))}
           </Card>
         )}

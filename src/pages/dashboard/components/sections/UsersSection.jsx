@@ -35,7 +35,7 @@ const UsersSection = () => {
         const response = await axios.get(`${API_BASE_URL}/api/auth/admin/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('Fetched users:', response.data);
+        // console.log('Fetched users:', response.data);
         setUsers(
           Array.isArray(response.data)
             ? response.data

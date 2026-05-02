@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 
 const STATUS_COLORS = {
@@ -38,6 +38,8 @@ const formatAmount = (amt) => {
   return `₹${Number(amt).toLocaleString('en-IN')}`;
 };
 
+const RECORDS_PER_PAGE = 12;
+
 const PaymentsSection = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -46,6 +48,8 @@ const PaymentsSection = () => {
   const [actionResult, setActionResult]   = useState({}); 
   const [actionModal, setActionModal] = useState({ open: false, paymentId: null, action: null });
   const [remark, setRemark] = useState('');
+  const [proofModal, setProofModal] = useState({ open: false, url: '' });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const accessToken = localStorage.getItem('POTENS_admin_access_token') || '';
   const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -73,7 +77,7 @@ const PaymentsSection = () => {
               ? data.data
               : [];
         setPayments(records);
-        console.log('REOCRED PAYMENT', records);
+        // console.log('REOCRED PAYMENT', records);
         
       } catch (err) {
         setError(err.message || 'Failed to load payment records.');
@@ -147,6 +151,41 @@ const PaymentsSection = () => {
     setRemark('');
   };
 
+  const getPaymentProofUrl = (payment) =>
+    payment?.payment_proof_url || payment?.paymentProofUrl || payment?.proofUrl || '';
+
+  const getPartnerFullName = (payment) =>
+    payment?.partner_full_name ||
+    payment?.user_full_name ||
+    payment?.partnerFullName ||
+    payment?.userFullName ||
+    payment?.full_name ||
+    payment?.user?.full_name ||
+    payment?.user?.name ||
+    '—';
+
+  const openProofModal = (url) => {
+    if (!url) return;
+    setProofModal({ open: true, url });
+  };
+
+  const closeProofModal = () => {
+    setProofModal({ open: false, url: '' });
+  };
+
+  const totalPages = Math.max(1, Math.ceil(payments.length / RECORDS_PER_PAGE));
+
+  const paginatedPayments = useMemo(() => {
+    const start = (currentPage - 1) * RECORDS_PER_PAGE;
+    return payments.slice(start, start + RECORDS_PER_PAGE);
+  }, [payments, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const confirmAction = async () => {
     if (!actionModal.paymentId || !actionModal.action) return;
     await handleAction(actionModal.paymentId, actionModal.action, remark);
@@ -217,7 +256,7 @@ const PaymentsSection = () => {
   // ── Skeleton loader ───────────────────────────────────────────────────────
   const SkeletonRow = () => (
     <tr>
-      {[1,2,3,4,5,6,7].map((i) => (
+      {[1,2,3,4,5,6,7,8,9,10].map((i) => (
         <td key={i}>
           <div style={{ height: 14, background: '#f0f0f0', borderRadius: 4, animation: 'shimmer 1.4s infinite' }} />
         </td>
@@ -401,6 +440,46 @@ const PaymentsSection = () => {
           resize: vertical;
           box-sizing: border-box;
         }
+
+        .payment-proof-image {
+          width: 100%;
+          max-height: 72vh;
+          object-fit: contain;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
+        }
+
+        .payments-pagination {
+          margin-top: 16px;
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .payments-pagination-btn {
+          padding: 6px 10px;
+          border: 1px solid #d0d7de;
+          border-radius: 6px;
+          background: #fff;
+          color: #444;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .payments-pagination-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .payments-pagination-meta {
+          font-size: 0.82rem;
+          color: #666;
+          font-weight: 600;
+        }
       `}</style>
 
       <div className="payments-root" style={{ padding: 32 }}>
@@ -443,10 +522,12 @@ const PaymentsSection = () => {
                 <th>#</th>
                 <th>UTR Number</th>
                 <th>Account Number</th>
+                <th>Partner Name</th>
                 <th>Amount</th>
                 <th>Transaction Date</th>
                 <th>Action Date</th>
                 <th>Approved By</th>
+                <th>Payment Proof</th>
                 <th>Status / Action</th>
               </tr>
             </thead>
@@ -455,15 +536,17 @@ const PaymentsSection = () => {
                 [1,2,3].map((i) => <SkeletonRow key={i} />)
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="payments-empty">No payment records found.</td>
+                  <td colSpan={10} className="payments-empty">No payment records found.</td>
                 </tr>
               ) : (
-                payments.map((payment, idx) => {
+                paginatedPayments.map((payment, idx) => {
                   const id   = payment.id || payment._id || idx;
-                  const user = payment.user || {};
+                  const proofUrl = getPaymentProofUrl(payment);
+                  const partnerName = getPartnerFullName(payment);
+                  const serialNumber = (currentPage - 1) * RECORDS_PER_PAGE + idx + 1;
                   return (
                     <tr key={id}>
-                      <td style={{ color: '#aaa', fontSize: '0.82rem' }}>{idx + 1}</td>
+                      <td style={{ color: '#aaa', fontSize: '0.82rem' }}>{serialNumber}</td>
                       <td>
                         <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#2d72d2' }}>
                           {payment.transaction_number || '—'}
@@ -472,12 +555,33 @@ const PaymentsSection = () => {
                       <td style={{ fontFamily: 'monospace' }}>
                         {payment.accountNumber || payment.account_number || '—'}
                       </td>
+                      <td style={{ color: '#444' }}>{partnerName}</td>
                       <td style={{ fontWeight: 600 }}>
                         {formatAmount(payment.amount)}
                       </td>
                       <td style={{ color: '#666' }}>{formatDate(payment.payment_date || payment.date || payment.created_at)}</td>
                       <td style={{ color: '#666' }}>{formatDate(payment.approval_action_at)}</td>
                       <td style={{ color: '#666' }}>{payment.approved_by?.full_name || '—'}</td>
+                      <td>
+                        {proofUrl ? (
+                          <button
+                            onClick={() => openProofModal(proofUrl)}
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: 6,
+                              border: '1px solid #d0d7de',
+                              background: '#fff',
+                              color: '#2d72d2',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            View
+                          </button>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td>
                         <ActionButtons payment={payment} />
                       </td>
@@ -502,14 +606,17 @@ const PaymentsSection = () => {
           ) : payments.length === 0 ? (
             <div className="payments-empty">No payment records found.</div>
           ) : (
-            payments.map((payment, idx) => {
+            paginatedPayments.map((payment, idx) => {
               const id   = payment.id || payment._id || idx;
               const user = payment.user || {};
+              const proofUrl = getPaymentProofUrl(payment);
+              const partnerName = getPartnerFullName(payment);
+              const serialNumber = (currentPage - 1) * RECORDS_PER_PAGE + idx + 1;
               return (
                 <div key={id} className="payments-card">
                   <div className="payments-card-header">
                     <span className="payments-card-utr">
-                      {payment.utr || payment.utr_number || `Record #${idx + 1}`}
+                      {payment.utr || payment.utr_number || `Record #${serialNumber}`}
                     </span>
                     <StatusBadge status={payment.approval_status || payment.status || 'pending'} />
                   </div>
@@ -526,6 +633,11 @@ const PaymentsSection = () => {
                     <span className="payments-card-value" style={{ fontFamily: 'monospace' }}>
                       {payment.accountNumber || payment.account_number || '—'}
                     </span>
+                  </div>
+
+                  <div className="payments-card-row">
+                    <span className="payments-card-label">Partner Name</span>
+                    <span className="payments-card-value">{partnerName}</span>
                   </div>
 
                   <div className="payments-card-row">
@@ -569,6 +681,24 @@ const PaymentsSection = () => {
                   </div>
 
                   <div className="payments-card-actions">
+                    {proofUrl && (
+                      <div style={{ marginBottom: 10 }}>
+                        <button
+                          onClick={() => openProofModal(proofUrl)}
+                          style={{
+                            padding: '7px 12px',
+                            borderRadius: 7,
+                            border: '1px solid #d0d7de',
+                            background: '#fff',
+                            color: '#2d72d2',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          View Payment Proof
+                        </button>
+                      </div>
+                    )}
                     <ActionButtons payment={payment} />
                   </div>
                 </div>
@@ -582,6 +712,28 @@ const PaymentsSection = () => {
           <p style={{ marginTop: 16, fontSize: '0.82rem', color: '#aaa', textAlign: 'right' }}>
             {payments.length} record{payments.length !== 1 ? 's' : ''} found
           </p>
+        )}
+
+        {!loading && payments.length > 0 && (
+          <div className="payments-pagination">
+            <button
+              className="payments-pagination-btn"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="payments-pagination-meta">
+              Page {currentPage} of {totalPages} · {RECORDS_PER_PAGE} per page
+            </span>
+            <button
+              className="payments-pagination-btn"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
         )}
       </div>
 
@@ -626,6 +778,36 @@ const PaymentsSection = () => {
                   : actionModal.action === 'approve'
                   ? 'Approve'
                   : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {proofModal.open && (
+        <div className="payments-modal-overlay" onClick={closeProofModal}>
+          <div className="payments-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#1a1a2e' }}>Payment Proof</h3>
+            <p style={{ margin: '8px 0 12px', color: '#666', fontSize: '0.9rem' }}>
+              Uploaded payment proof image preview.
+            </p>
+
+            <img src={proofModal.url} alt="Payment Proof" className="payment-proof-image" />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+              <button
+                onClick={closeProofModal}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 7,
+                  border: '1px solid #d0d7de',
+                  background: '#fff',
+                  color: '#444',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Close
               </button>
             </div>
           </div>

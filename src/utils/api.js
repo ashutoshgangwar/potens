@@ -27,17 +27,17 @@ export const apiApprovePartner = async ({ token, userId, action, approvalType, r
   if (action === 'approved' && remark) body.remark = remark;
   if (action === 'rejected' && rejectionReason) body.rejectionReason = rejectionReason;
   // Debug: log the request payload
-  console.log('[apiApprovePartner] Request:', { url: '/auth/admin/partner-action', body, token });
+  // console.log('[apiApprovePartner] Request:', { url: '/auth/admin/partner-action', body, token });
   try {
     const response = await apiClient.post('/auth/admin/partner-action', body, {
       headers: { Authorization: `Bearer ${token}` },
     });
     // Debug: log the response
-    console.log('[apiApprovePartner] Response:', response.data);
+    // console.log('[apiApprovePartner] Response:', response.data);
     return response.data;
   } catch (error) {
     // Debug: log the error
-    console.error('[apiApprovePartner] Error:', error?.response?.data || error);
+    // console.error('[apiApprovePartner] Error:', error?.response?.data || error);
     throw new Error(error?.response?.data?.message || 'Failed to approve/reject partner.');
   }
 };
@@ -88,15 +88,15 @@ export const apiVerifyPan = async ({ panNumber, userId }) => {
 // Aadhaar Verification API
 export const apiVerifyAadhaar = async ({ aadhaarNumber, userId }) => {
   try {
-    console.log('[apiVerifyAadhaar] Request:', { aadhaarNumber, userId });
+    // console.log('[apiVerifyAadhaar] Request:', { aadhaarNumber, userId });
     const response = await apiClient.post('/verify/aadhaar', {
       aadhaarNumber,
       userId,
     });
-    console.log('[apiVerifyAadhaar] Response:', response.data);
+    // console.log('[apiVerifyAadhaar] Response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('[apiVerifyAadhaar] Error:', error);
+    // console.error('[apiVerifyAadhaar] Error:', error);
     throw new Error(getApiErrorMessage(error, 'Aadhaar verification failed.'));
   }
 };
@@ -106,6 +106,7 @@ const MOCK_PROFILES_KEY = 'POTENS_admin_profiles';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PDF_API_BASE_URL = import.meta.env.VITE_PDF_API_BASE_URL;
 const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
+const PDF_SERVICE_BASE_URL = (PDF_API_BASE_URL || API_BASE_URL || '').replace(/\/$/, '');
 
 const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -234,7 +235,7 @@ const getRegisterAsByRole = (roleValue = '') => {
     return 'Mini Pump';
   }
 
-  return 'FDP Driver';
+  return 'FDP';
 };
 
 const isBrowserFile = (value) =>
@@ -634,7 +635,7 @@ export const fetchAuthProfilePayload = async (authToken) => {
     headers: { Authorization: `Bearer ${authToken}` },
   });
   // Log the profile API response for debugging
-  console.log('[Profile API] Response:', response.data);
+  // console.log('[Profile API] Response:', response.data);
   return response.data || {};
 };
 
@@ -852,7 +853,7 @@ export const apiOnboard = async ({ token, payload, professional, address, docume
     if (src.document_details) formData.append('document_details', JSON.stringify(src.document_details));
 
     // Log the onboarding API call details
-    console.log('[apiOnboard] POST', `${API_BASE_URL}/api/auth/onboard`, formData);
+    // console.log('[apiOnboard] POST', `${API_BASE_URL}/api/auth/onboard`, formData);
 
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/onboard`,
@@ -894,7 +895,7 @@ export const apiGetOnboardingProgress = async (token) => {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     data = response.data?.data || response.data || {};
-    console.log('datta', data);
+    // console.log('datta', data);
     
   } catch (error) {
     throw new Error(getApiErrorMessage(error, 'Could not fetch onboarding progress.'));
@@ -959,6 +960,40 @@ const getPdfApiError = (error, fallbackMessage) => {
   return getApiErrorMessage(error, fallbackMessage);
 };
 
+const getPdfServiceBaseUrl = () => {
+  if (!PDF_SERVICE_BASE_URL) {
+    throw new Error('PDF API base URL is not configured. Set VITE_PDF_API_BASE_URL or VITE_API_BASE_URL.');
+  }
+
+  return PDF_SERVICE_BASE_URL;
+};
+
+const normalizeCertificateResponse = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+
+  const nestedData = payload.data && typeof payload.data === 'object' ? payload.data : {};
+
+  return {
+    ...payload,
+    ...nestedData,
+  };
+};
+
+const normalizeAgreementResponse = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+
+  const nestedData = payload.data && typeof payload.data === 'object' ? payload.data : {};
+
+  return {
+    ...payload,
+    ...nestedData,
+  };
+};
+
 /**
  * Step 1: Generate agreement PDF
  * Endpoint: POST /api/pdf/generate-agreement
@@ -971,8 +1006,9 @@ export const apiGenerateAgreementPdf = async (userId) => {
   }
 
   try {
+    const pdfBaseUrl = getPdfServiceBaseUrl();
     const response = await axios.post(
-      `${PDF_API_BASE_URL}/api/pdf/generate-agreement`,
+      `${pdfBaseUrl}/api/pdf/generate-agreement`,
       { userId },
       { timeout: 10000 }
     );
@@ -983,51 +1019,76 @@ export const apiGenerateAgreementPdf = async (userId) => {
 };
 
 /**
- * Step 2: Get agreement PDF details (URL + agreement info)
- * Endpoint: GET /api/pdf/agreement/:userId
- * @param {string} userId
+ * Step 2: Get authenticated user's agreement PDF details
+ * Endpoint: GET /api/pdf/my-agreement
  * @returns {Promise<object>}
  */
-export const apiGetAgreementPdfDetails = async ({ userId, token }) => {
-  if (!userId) {
-    throw new Error('User ID is required to fetch agreement details.');
+export const apiGetAgreementPdfDetails = async ({ token } = {}) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  if (!authToken) {
+    throw new Error('Authentication token is required to fetch agreement details.');
   }
+
   try {
+    const pdfBaseUrl = getPdfServiceBaseUrl();
+
+    // console.log('[apiGetAgreementPdfDetails] Request:', {
+    //   url: `${pdfBaseUrl}/api/pdf/my-agreement`,
+    //   hasToken: Boolean(authToken),
+    // });
+
     const response = await axios.get(
-      `${PDF_API_BASE_URL}/api/pdf/agreement/${encodeURIComponent(userId)}`,
+      `${pdfBaseUrl}/api/pdf/my-agreement`,
       {
         timeout: 8000,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${authToken}` },
       }
     );
-    return response.data?.data || response.data || {};
+
+    // console.log('[apiGetAgreementPdfDetails] Response:', response.data);
+
+    return normalizeAgreementResponse(response.data);
   } catch (error) {
+    console.error('[apiGetAgreementPdfDetails] Error:', error?.response?.data || error);
     throw new Error(getPdfApiError(error, 'Failed to fetch agreement details.'));
   }
 };
 
 /**
- * Step 3: Download agreement PDF file
- * Endpoint: GET /api/pdf/agreement/:userId?download=true
- * @param {string} userId
+ * Step 3: Download authenticated user's agreement PDF file
+ * Endpoint: GET /api/pdf/my-agreement?download=true
+ * @param {{ token?: string } | string} [options]
  * @returns {Promise<{ blob: Blob, fileName: string, downloadUrl: string }>} 
  */
-export const apiDownloadAgreementPdfFile = async (userId) => {
-  if (!userId) {
-    throw new Error('User ID is required to download agreement PDF.');
+export const apiDownloadAgreementPdfFile = async (options = {}) => {
+  const authToken =
+    typeof options === 'string'
+      ? options || localStorage.getItem(ACCESS_TOKEN_KEY) || ''
+      : options.token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  if (!authToken) {
+    throw new Error('Authentication token is required to download agreement PDF.');
   }
 
-  const downloadUrl = `${PDF_API_BASE_URL}/api/pdf/agreement/${encodeURIComponent(userId)}?download=true`;
+  const pdfBaseUrl = getPdfServiceBaseUrl();
+  const downloadUrl = `${pdfBaseUrl}/api/pdf/my-agreement?download=true`;
 
   try {
+    // console.log('[apiDownloadAgreementPdfFile] Request:', {
+    //   url: downloadUrl,
+    //   hasToken: Boolean(authToken),
+    // });
+
     const response = await axios.get(downloadUrl, {
       responseType: 'blob',
       timeout: 15000,
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     const disposition = response?.headers?.['content-disposition'] || '';
     const fileNameMatch = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-    const fileName = decodeURIComponent(fileNameMatch?.[1] || `agreement-${userId}.pdf`);
+    const fileName = decodeURIComponent(fileNameMatch?.[1] || 'my-agreement.pdf');
 
     return {
       blob: response.data,
@@ -1035,6 +1096,7 @@ export const apiDownloadAgreementPdfFile = async (userId) => {
       downloadUrl,
     };
   } catch (error) {
+    console.error('[apiDownloadAgreementPdfFile] Error:', error?.response?.data || error);
     throw new Error(getPdfApiError(error, 'Failed to download agreement PDF.'));
   }
 };
@@ -1049,8 +1111,9 @@ export const apiGenerateCertificatePdf = async (userId) => {
   }
 
   try {
+    const pdfBaseUrl = getPdfServiceBaseUrl();
     const response = await axios.post(
-      `${PDF_API_BASE_URL}/api/pdf/generate-certificate`,
+      `${pdfBaseUrl}/api/pdf/generate-certificate`,
       { userId },
       { timeout: 10000 }
     );
@@ -1061,62 +1124,79 @@ export const apiGenerateCertificatePdf = async (userId) => {
 };
 
 /**
- * Optional certificate details flow
- * GET /api/pdf/:userId?pdfType=certificate
+ * Fetch authenticated user's certificate details
+ * GET /api/pdf/my-certificate
  */
-export const apiGetCertificatePdfDetails = async ({ userId, token }) => {
-  if (!userId) {
-    throw new Error('User ID is required to fetch certificate details.');
+export const apiGetCertificatePdfDetails = async ({ token } = {}) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  if (!authToken) {
+    throw new Error('Authentication token is required to fetch certificate details.');
   }
 
   try {
+    const pdfBaseUrl = getPdfServiceBaseUrl();
+
+    // console.log('[apiGetCertificatePdfDetails] Request:', {
+    //   url: `${pdfBaseUrl}/api/pdf/my-certificate`,
+    //   hasToken: Boolean(authToken),
+    // });
+
     const response = await axios.get(
-      `${PDF_API_BASE_URL}/api/pdf/${encodeURIComponent(userId)}?pdfType=certificate`,
+      `${pdfBaseUrl}/api/pdf/my-certificate`,
       {
         timeout: 8000,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${authToken}` },
       }
     );
-    console.log('apiGetCertificatePdfDetails: raw response', response.data);
-    // Unwrap if needed
-    if (response.data && typeof response.data === 'object') {
-      if (response.data.data && typeof response.data.data === 'object') {
-        return response.data.data;
-      }
-      return response.data;
-    }
-    return {};
+
+    // console.log('[apiGetCertificatePdfDetails] Response:', response.data);
+
+    return normalizeCertificateResponse(response.data);
   } catch (error) {
+    console.error('[apiGetCertificatePdfDetails] Error:', error?.response?.data || error);
     throw new Error(getPdfApiError(error, 'Failed to fetch certificate details.'));
   }
 };
 
 // Backward-compatible exports
 export const apiGetAgreementPdfMetadata = apiGetAgreementPdfDetails;
-export const getAgreementPdfDownloadUrl = (userId) => `${PDF_API_BASE_URL}/api/pdf/agreement/${encodeURIComponent(userId)}?download=true`;
+export const getAgreementPdfDownloadUrl = () => `${getPdfServiceBaseUrl()}/api/pdf/my-agreement?download=true`;
 
 /**
- * Download certificate PDF file
- * Endpoint: GET /api/pdf/certificate/:userId?download=true
- * @param {string} userId
+ * Download authenticated user's certificate PDF file
+ * Endpoint: GET /api/pdf/my-certificate?download=true
+ * @param {{ token?: string } | string} [options]
  * @returns {Promise<{ blob: Blob, fileName: string, downloadUrl: string }>}
  */
-export const apiDownloadCertificatePdfFile = async (userId) => {
-  if (!userId) {
-    throw new Error('User ID is required to download certificate PDF.');
+export const apiDownloadCertificatePdfFile = async (options = {}) => {
+  const authToken =
+    typeof options === 'string'
+      ? options || localStorage.getItem(ACCESS_TOKEN_KEY) || ''
+      : options.token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  if (!authToken) {
+    throw new Error('Authentication token is required to download certificate PDF.');
   }
 
-  const downloadUrl = `${PDF_API_BASE_URL}/api/pdf/certificate/${encodeURIComponent(userId)}?download=true`;
+  const pdfBaseUrl = getPdfServiceBaseUrl();
+  const downloadUrl = `${pdfBaseUrl}/api/pdf/my-certificate?download=true`;
 
   try {
+    // console.log('[apiDownloadCertificatePdfFile] Request:', {
+    //   url: downloadUrl,
+    //   hasToken: Boolean(authToken),
+    // });
+
     const response = await axios.get(downloadUrl, {
       responseType: 'blob',
       timeout: 15000,
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     const disposition = response?.headers?.['content-disposition'] || '';
     const fileNameMatch = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-    const fileName = decodeURIComponent(fileNameMatch?.[1] || `certificate-${userId}.pdf`);
+    const fileName = decodeURIComponent(fileNameMatch?.[1] || 'my-certificate.pdf');
 
     return {
       blob: response.data,
@@ -1124,6 +1204,7 @@ export const apiDownloadCertificatePdfFile = async (userId) => {
       downloadUrl,
     };
   } catch (error) {
+    console.error('[apiDownloadCertificatePdfFile] Error:', error?.response?.data || error);
     throw new Error(getPdfApiError(error, 'Failed to download certificate PDF.'));
   }
 };

@@ -4,6 +4,8 @@ import { apiApprovePartner } from '../../../../utils/api';
 import { useAuth } from '../../../../context/AuthContext';
 import './ApprovalsSection.css';
 
+const RECORDS_PER_PAGE = 12;
+
 const ApprovalsSection = () => {
   const { token } = useAuth();
   const [partners, setPartners] = useState([]);
@@ -13,6 +15,7 @@ const ApprovalsSection = () => {
   const [actionModal, setActionModal] = useState({ open: false, partner: null, action: null });
   const [remarks, setRemarks] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchPartners = async () => {
     setLoading(true);
@@ -20,7 +23,7 @@ const ApprovalsSection = () => {
     try {
       const data = await apiGetPartners(token);
       setPartners(data);
-      console.log('Fetched partners:', data);
+      // console.log('Fetched partners:', data);
     } catch (err) {
       setError(err.message || 'Failed to load partners');
     } finally {
@@ -85,6 +88,47 @@ const ApprovalsSection = () => {
     const permanentCity = address?.permanent_address?.city;
     return businessCity || permanentCity || '-';
   };
+
+  const getLatestTimestamp = (partner) => {
+    const dateCandidates = [
+      partner?.created_at,
+      partner?.createdAt,
+      partner?.updated_at,
+      partner?.updatedAt,
+      partner?.submitted_at,
+      partner?.submittedAt,
+    ];
+
+    for (const value of dateCandidates) {
+      if (!value) continue;
+      const ts = new Date(value).getTime();
+      if (!Number.isNaN(ts)) return ts;
+    }
+
+    const mongoId = partner?._id;
+    if (typeof mongoId === 'string' && mongoId.length >= 8) {
+      const seconds = Number.parseInt(mongoId.slice(0, 8), 16);
+      if (!Number.isNaN(seconds)) return seconds * 1000;
+    }
+
+    return 0;
+  };
+
+  const sortedPartners = [...partners].sort(
+    (a, b) => getLatestTimestamp(b) - getLatestTimestamp(a),
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sortedPartners.length / RECORDS_PER_PAGE));
+  const paginatedPartners = sortedPartners.slice(
+    (currentPage - 1) * RECORDS_PER_PAGE,
+    currentPage * RECORDS_PER_PAGE,
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const StatusBadge = ({ status }) => {
     const cls =
@@ -169,7 +213,7 @@ const ApprovalsSection = () => {
                 </tr>
               </thead>
               <tbody>
-                {partners.map((p) => (
+                {paginatedPartners.map((p) => (
                   <tr key={p._id}>
                     <td>{p.full_name}</td>
                     <td>{p.email}</td>
@@ -190,7 +234,7 @@ const ApprovalsSection = () => {
 
           {/* ── Mobile card list ── */}
           <div className="approvals-card-list">
-            {partners.map((p) => (
+            {paginatedPartners.map((p) => (
               <div key={p._id} className="partner-card">
                 <div className="partner-card__header">
                   <div className="partner-card__avatar">
@@ -229,6 +273,35 @@ const ApprovalsSection = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 8,
+              flexWrap: 'wrap',
+            }}
+          >
+            <button
+              className="approvals-action-btn view"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span style={{ fontSize: '0.82rem', color: '#666', fontWeight: 600 }}>
+              Page {currentPage} of {totalPages} · {RECORDS_PER_PAGE} per page
+            </span>
+            <button
+              className="approvals-action-btn view"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
           </div>
         </>
       )}

@@ -55,7 +55,7 @@ const deriveRoleCapabilities = (roleOrRoles) => {
     isAdmin: has(['admin', 'super-admin', 'sub-admin']),
     isManager: has(['logistics-manager', 'ops-manager']),
     isAccount: has(['account-executive', 'accountant']),
-    isField: has(['field-officer', 'fdp-driver', 'bowser', 'mini-pump']),
+    isField: has(['field-officer', 'fdp', 'bowser', 'mini-pump']),
     // generic approval permission for managers and admins
     canApprove: has(['logistics-manager', 'ops-manager', 'admin', 'super-admin', 'sub-admin']),
     // show wallet/payment-related UI
