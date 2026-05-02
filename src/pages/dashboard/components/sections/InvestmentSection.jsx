@@ -159,12 +159,12 @@ const InvestmentSection = () => {
               <strong>{getFormattedDate(agreementDetails.validUntil)}</strong>
             </div>
           )}
-          {agreementDetails.agreementType && (
+          {/* {agreementDetails.agreementType && (
             <div className="certificate-detail-item">
               <span>Agreement Type</span>
               <strong>{agreementDetails.agreementType}</strong>
             </div>
-          )}
+          )} */}
         </div>
 
         <h3 className="certificate-section-title">Important Information</h3>
