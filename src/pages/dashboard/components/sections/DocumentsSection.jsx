@@ -25,19 +25,51 @@ const DocumentsSection = ({ user }) => {
     });
   };
 
-  // Convert PDF to image using pdfjs
+  // Convert PDF to image using pdfjs — crops out blank bottom area
   const renderPdfToImage = async (pdfUrl) => {
     try {
       const loadingTask = pdfjsLib.getDocument(pdfUrl);
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 1.5 });
+      const viewport = page.getViewport({ scale: 2.5 }); // higher scale = sharper
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       await page.render({ canvasContext: context, viewport }).promise;
-      return canvas.toDataURL('image/png');
+
+      // Crop: scan from bottom to find last non-white/non-black row
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const { data, width, height } = imageData;
+      let lastContentRow = height;
+      for (let y = height - 1; y >= 0; y--) {
+        let rowHasContent = false;
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          // not white/near-white AND not black/near-black (black = pdf.js default blank bg)
+          const isWhite = r > 240 && g > 240 && b > 240;
+          const isBlack = r < 15 && g < 15 && b < 15;
+          if (!isWhite && !isBlack) {
+            rowHasContent = true;
+            break;
+          }
+        }
+        if (rowHasContent) {
+          lastContentRow = y + 1;
+          break;
+        }
+      }
+
+      // Draw cropped result
+      const cropped = document.createElement('canvas');
+      cropped.width = canvas.width;
+      cropped.height = lastContentRow;
+      const croppedCtx = cropped.getContext('2d');
+      croppedCtx.drawImage(canvas, 0, 0);
+      return cropped.toDataURL('image/png');
     } catch (err) {
       console.error('PDF to image conversion failed:', err);
       return null;
@@ -60,14 +92,7 @@ const DocumentsSection = ({ user }) => {
       if (user?.id) {
         const token = localStorage.getItem('POTENS_admin_access_token') || '';
 
-        // console.log('[DocumentsSection] Fetching certificate:', {
-        //   userId: user.id,
-        //   hasToken: Boolean(token),
-        // });
-
         const certRes = await apiGetCertificatePdfDetails({ token });
-
-        // console.log('[DocumentsSection] Certificate response:', certRes);
 
         setCertificateDetails(certRes || {});
 
@@ -76,23 +101,17 @@ const DocumentsSection = ({ user }) => {
             const { blob } = await apiDownloadCertificatePdfFile({ token });
             const blobPreviewUrl = window.URL.createObjectURL(blob);
 
-            // console.log('[DocumentsSection] Certificate blob preview URL created');
-
             updatePreviewPdfUrl(blobPreviewUrl);
 
             const imgUrl = await renderPdfToImage(blobPreviewUrl);
-            // console.log('[DocumentsSection] Certificate preview rendered:', Boolean(imgUrl));
             setCertificateImageUrl(imgUrl);
           } catch (previewError) {
-            // console.error('[DocumentsSection] Blob preview generation failed:', previewError);
             updatePreviewPdfUrl(null);
 
             const imgUrl = await renderPdfToImage(certRes.certificateUrl);
-            // console.log('[DocumentsSection] Fallback certificate preview rendered:', Boolean(imgUrl));
             setCertificateImageUrl(imgUrl);
           }
         } else {
-          // console.log('[DocumentsSection] No certificateUrl returned from API');
           updatePreviewPdfUrl(null);
           setCertificateImageUrl(null);
         }
@@ -102,7 +121,6 @@ const DocumentsSection = ({ user }) => {
         setCertificateImageUrl(null);
       }
     } catch (err) {
-      // console.error('[DocumentsSection] fetchCertificateDetails error:', err);
       setCertificateDetails({});
       updatePreviewPdfUrl(null);
       setCertificateImageUrl(null);
@@ -125,10 +143,6 @@ const DocumentsSection = ({ user }) => {
     try {
       const token = localStorage.getItem('POTENS_admin_access_token') || '';
 
-      // console.log('[DocumentsSection] Downloading certificate via API:', {
-      //   hasToken: Boolean(token),
-      // });
-
       const { blob, fileName } = await apiDownloadCertificatePdfFile({ token });
       const objectUrl = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -150,7 +164,6 @@ const DocumentsSection = ({ user }) => {
       return;
     }
 
-    // console.log('[DocumentsSection] Viewing certificate in new tab:', previewUrl);
     window.open(previewUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -184,9 +197,6 @@ const DocumentsSection = ({ user }) => {
     },
   ];
 
-
-  // No loading message, just render empty or fallback UI if needed
-
   if (!user?.id) {
     return (
       <div tabIndex={0} style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -198,159 +208,180 @@ const DocumentsSection = ({ user }) => {
   }
 
   return (
-    <div tabIndex={0}>
+    <>
+      {/* Responsive styles injected inline so no external CSS file change needed */}
+      <style>{`
+        .certificate-preview-responsive-wrap {
+          width: 100%;
+          max-width: 860px;
+          margin: 0 auto 32px;
+          border-radius: 16px;
+          overflow: hidden;
+          border: 1.5px solid #d0e4f7;
+          background: #fff;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+        .certificate-image-preview-responsive {
+          width: 100%;
+          height: auto;
+          display: block;
+          border-radius: 0;
+        }
+        .certificate-skeleton-responsive {
+          width: 100%;
+          aspect-ratio: 1.414 / 1;
+          background: linear-gradient(90deg, #f0f4f8 25%, #e2eaf2 50%, #f0f4f8 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.4s infinite;
+          border-radius: 12px;
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .certificate-dummy-preview-responsive {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 48px 24px;
+          text-align: center;
+          color: #6b7c93;
+          min-height: 260px;
+        }
+        .certificate-dummy-icon-responsive {
+          width: 56px;
+          height: 56px;
+          opacity: 0.5;
+        }
+        @media (max-width: 600px) {
+          .certificate-preview-responsive-wrap {
+            border-radius: 10px;
+            margin-bottom: 20px;
+          }
+          .certificate-preview-header-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+        }
+      `}</style>
 
-      <Card padding="md" shadow="sm" className="certificate-section-card">
-        <div className="certificate-content-wrap">
-          <div className="certificate-hero">
-            <div>
-              <div className="certificate-hero-chip">Verified Document</div>
-              <div className="card-header-row certificate-header-row">
-                <h2 className="card-section-title">Certificate</h2>
-                <span className={`certificate-status-badge ${hasCertificatePdf ? 'certificate-status-badge--active' : 'certificate-status-badge--pending'}`}>
-                  {certificateStatus}
-                </span>
-              </div>
-              <p className="certificate-hero-subtitle">
-                View your certificate details, validity dates.
-              </p>
-            </div>
-            <div className="certificate-hero-meta">
-              {/* <span className="certificate-hero-meta-label">Holder</span> */}
-              <strong>{certificateDetails.name || user?.name || '—'}</strong>
-              <span>{certificateDetails.certificateType || 'Certificate details available below'}</span>
-            </div>
-          </div>
-
-          {loading && (
-            <p className="certificate-loading-copy">Loading certificate details...</p>
-          )}
-
-          <div className="certificate-preview-header">
-            <div>
-              <h3 className="certificate-section-title">Certificate Preview</h3>
-              <p className="certificate-preview-copy">Your certificate is shown directly on screen below.</p>
-            </div>
-            {hasCertificatePdf && (
-              <Button variant="primary" size="sm" onClick={handleViewCertificate}>
-                <img src="/download-button.svg" alt="" aria-hidden="true" className="certificate-download-icon" />
-                Download Certificate
-              </Button>
-            )}
-          </div>
-
-          {/* Certificate Preview at the top */}
-          <div className={`certificate-preview-wrap${!loading ? ' certificate-preview-wrap--loaded' : ''}`} style={{ marginBottom: 32 }}>
-            {loading ? (
-              <div className="certificate-preview-skeleton" />
-            ) : certificateImageUrl ? (
-              <img
-                src={certificateImageUrl}
-                alt="Certificate Preview"
-                className="certificate-image-preview"
-              />
-            ) : hasCertificatePdf ? (
-              <iframe
-                src={previewPdfUrl || certificateDetails.certificateUrl}
-                title="Certificate Preview"
-                className="certificate-pdf-preview"
-              >
-                <div className="certificate-dummy-preview">
-                  <img src="/certificate.svg" alt="Certificate" className="certificate-dummy-icon" />
-                  <strong>Certificate PDF preview not supported in this browser.</strong>
-                  <span>Tap “Download Certificate PDF” to open it in a new tab.</span>
+      <div tabIndex={0}>
+        <Card padding="md" shadow="sm" className="certificate-section-card">
+          <div className="certificate-content-wrap">
+            <div className="certificate-hero">
+              <div>
+                <div className="certificate-hero-chip">Verified Document</div>
+                <div className="card-header-row certificate-header-row">
+                  <h2 className="card-section-title">Certificate</h2>
+                  <span className={`certificate-status-badge ${hasCertificatePdf ? 'certificate-status-badge--active' : 'certificate-status-badge--pending'}`}>
+                    {certificateStatus}
+                  </span>
                 </div>
-              </iframe>
-            ) : (
-              <div className="certificate-dummy-preview">
-                <img src="/certificate.svg" alt="Dummy certificate" className="certificate-dummy-icon" />
-                <strong>No Certificate Generated</strong>
-                <span>Complete your details and get your certificate.</span>
+                <p className="certificate-hero-subtitle">
+                  View your certificate details, validity dates.
+                </p>
               </div>
+              <div className="certificate-hero-meta">
+                <strong>{certificateDetails.name || user?.name || '—'}</strong>
+                <span>{certificateDetails.certificateType || 'Certificate details available below'}</span>
+              </div>
+            </div>
+
+            {loading && (
+              <p className="certificate-loading-copy">Loading certificate details...</p>
             )}
-          </div>
 
-          {/* <div className="certificate-summary-grid">
-            <div className="certificate-summary-card certificate-summary-card--primary">
-              <span>Certifaaaicate Number</span>
-              <strong>{certificateDetails.certificateNumber || '—'}</strong>
-            </div>
-            <div className="certificate-summary-card">
-              <span>Issue Date</span>
-              <strong>{certificateDetails.issueDate ? formatDate(certificateDetails.issueDate) : '—'}</strong>
-            </div>
-            <div className="certificate-summary-card">
-              <span>Expiry Date</span>
-              <strong>{certificateDetails.validUntil ? formatDate(certificateDetails.validUntil) : '—'}</strong>
-            </div>
-          </div> */}
-
-          {/* Certificate Details below preview */}
-          <aside className="certificate-sidebar-section certificate-sidebar-section--enhanced" style={{ marginBottom: 24 }}>
-            <div className="certificate-section-heading-row">
-              <h3 className="certificate-section-title">Certificate Details</h3>
-              {/* <span className="certificate-section-note">Synced from your latest API response</span> */}
-            </div>
-            {Object.keys(certificateDetails).length === 0 ? (
-              <div className="certificate-detail-grid">
-                <div className="certificate-detail-item">
-                  <span>No certificate data available.</span>
-                </div>
+            {/* Certificate Preview Header */}
+            <div
+              className="certificate-preview-header certificate-preview-header-row"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}
+            >
+              <div>
+                <h3 className="certificate-section-title">Certificate Preview</h3>
+                <p className="certificate-preview-copy">Your certificate is shown directly on screen below.</p>
               </div>
-            ) : (
-              <div className="certificate-detail-grid">
-                {certificateFields.map((field) => (
-                  <div
-                    className="certificate-detail-item"
-                    key={field.key}
-                  >
-                    <span>{field.label}</span>
-                    <strong>{field.value}</strong>
+              {hasCertificatePdf && (
+                <Button variant="primary" size="sm" onClick={handleDownloadCertificate}>
+                  <img src="/download-button.svg" alt="" aria-hidden="true" className="certificate-download-icon" />
+                  Download Certificate
+                </Button>
+              )}
+            </div>
+
+            {/* Certificate Preview — responsive, cropped */}
+            <div className="certificate-preview-responsive-wrap">
+              {loading ? (
+                <div className="certificate-skeleton-responsive" />
+              ) : certificateImageUrl ? (
+                <img
+                  src={certificateImageUrl}
+                  alt="Certificate Preview"
+                  className="certificate-image-preview-responsive"
+                />
+              ) : hasCertificatePdf ? (
+                <div className="certificate-dummy-preview-responsive">
+                  <img src="/certificate.svg" alt="Certificate" className="certificate-dummy-icon-responsive" />
+                  <strong>Certificate Ready</strong>
+                  <span>Click the button below to view or download your certificate.</span>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <Button variant="primary" size="sm" onClick={handleDownloadCertificate}>
+                      Download Certificate
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={handleViewCertificate}>
+                      View in New Tab
+                    </Button>
                   </div>
-                ))}
+                </div>
+              ) : (
+                <div className="certificate-dummy-preview-responsive">
+                  <img src="/certificate.svg" alt="Dummy certificate" className="certificate-dummy-icon-responsive" />
+                  <strong>No Certificate Generated</strong>
+                  <span>Complete your details and get your certificate.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Certificate Details */}
+            <aside className="certificate-sidebar-section certificate-sidebar-section--enhanced" style={{ marginBottom: 24 }}>
+              <div className="certificate-section-heading-row">
+                <h3 className="certificate-section-title">Certificate Details</h3>
               </div>
-            )}
-          </aside>
+              {Object.keys(certificateDetails).length === 0 ? (
+                <div className="certificate-detail-grid">
+                  <div className="certificate-detail-item">
+                    <span>No certificate data available.</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="certificate-detail-grid">
+                  {certificateFields.map((field) => (
+                    <div
+                      className="certificate-detail-item"
+                      key={field.key}
+                    >
+                      <span>{field.label}</span>
+                      <strong>{field.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </aside>
+          </div>
 
-          {/* Status and Actions below details
-          <div className="certificate-status-panel">
-            <span className="certificate-status-label">Certificaaaate Status</span>
-            <strong className="certificate-status-value">{certificateStatus}</strong>
-            <p className="certificate-status-copy">
-              {hasCertificatePdf
-                ? 'Your certificate is active and valid.'
-                : 'Certificate PDF not uploaded yet. Showing dummy certificate preview.'}
-            </p>
-          </div> */}
-
-          {/* <div className="certificate-cta-row certificate-cta-row--document">
-            {hasCertificatePdf && (
-              <Button variant="secondary" size="sm" onClick={handleViewCertificate}>
-                Open Full Preview
-              </Button>
-            )}
-            <Button variant="primary" size="sm" onClick={handleDownloadCertificate}>
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1" />
-              </svg>
-              Download Certificate PDF
-            </Button>
-          </div> */}
-        </div>
-
-
-
-        <h3 className="certificate-section-title">Important Information</h3>
-        <ul className="certificate-info-list">
-          <li>This certificate is valid for {certificateDetails.validityPeriod || 'the configured validity period'} from the date of issuance.</li>
-          <li>The certificate includes a QR code for public verification.</li>
-          <li>Keep this certificate safe and present it when required.</li>
-          <li>For any certificate-related issues, please contact support.</li>
-
-        </ul>
-      </Card>
-    </div>
+          <h3 className="certificate-section-title">Important Information</h3>
+          <ul className="certificate-info-list">
+            <li>This certificate is valid for {certificateDetails.validityPeriod || 'the configured validity period'} from the date of issuance.</li>
+            <li>The certificate includes a QR code for public verification.</li>
+            <li>Keep this certificate safe and present it when required.</li>
+            <li>For any certificate-related issues, please contact support.</li>
+          </ul>
+        </Card>
+      </div>
+    </>
   );
-}
+};
 
 export default DocumentsSection;
