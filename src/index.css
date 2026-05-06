@@ -609,6 +609,11 @@ img, svg { display: block; max-width: 100%; }
 }
 
 .forgot-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
   font-size: 0.875rem;
   color: var(--color-primary);
   font-weight: 500;

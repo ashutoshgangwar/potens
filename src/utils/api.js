@@ -771,6 +771,34 @@ export const apiLogin = async ({ email, phone, password }) => {
 };
 
 /**
+ * Forgot password API call
+ * @param {{ email?: string, phone?: string, password: string, confirmPassword: string }} payload
+ * @returns {Promise<{ message: string }>}
+ */
+export const apiForgotPassword = async ({ email, phone, password, confirmPassword }) => {
+  if (!email && !phone) {
+    throw new Error('Please provide email or phone number.');
+  }
+
+  const requestBody = {
+    password,
+    confirm_password: confirmPassword,
+  };
+
+  if (email) requestBody.email = email;
+  if (phone) requestBody.phone = phone;
+
+  try {
+    const response = await apiClient.post('/auth/forgot-password', requestBody);
+    return {
+      message: response.data?.message || 'Password updated successfully.',
+    };
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Failed to reset password.'));
+  }
+};
+
+/**
  * Logout API call
  * @param {string} token - Bearer token
  * @returns {Promise<{ message: string }>}

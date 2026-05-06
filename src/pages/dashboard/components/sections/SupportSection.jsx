@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Card } from '../../../../components/ui/index.js';
 
-const SUPPORT_EMAIL = ' info@potensgreenengineering.in';
+const SUPPORT_EMAIL = 'info@potensgreenengineering.in';
 
 const SupportSection = () => {
   const [showEmailForm, setShowEmailForm] = useState(false);

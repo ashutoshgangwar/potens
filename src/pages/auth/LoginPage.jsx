@@ -4,10 +4,18 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import useForm from "../../hooks/useForm.js";
 import { validators } from "../../utils/validators.js";
 import { Button, Input, Card, Alert } from "../../components/ui/index.js";
+import { apiForgotPassword } from "../../utils/api.js";
 
 const validationRules = {
   email: validators.email,
   password: validators.required,
+};
+
+const forgotValidationRules = {
+  identifier: validators.required,
+  password: validators.password,
+  confirmPassword: (value, allValues) =>
+    validators.confirmPassword(allValues.password)(value),
 };
 
 const LoginPage = () => {
@@ -15,11 +23,41 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
 
   const { values, errors, handleChange, handleBlur, validateAll } = useForm(
     { email: "", password: "" },
     validationRules,
   );
+
+  const {
+    values: forgotValues,
+    errors: forgotErrors,
+    handleChange: handleForgotChange,
+    handleBlur: handleForgotBlur,
+    validateAll: validateForgotAll,
+    reset: resetForgotForm,
+    setErrors: setForgotErrors,
+  } = useForm(
+    { identifier: "", password: "", confirmPassword: "" },
+    forgotValidationRules,
+  );
+
+  const openForgotModal = () => {
+    setForgotError("");
+    setForgotSuccess("");
+    resetForgotForm();
+    setIsForgotModalOpen(true);
+  };
+
+  const closeForgotModal = () => {
+    setIsForgotModalOpen(false);
+    setForgotError("");
+    setForgotSuccess("");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,6 +83,53 @@ const LoginPage = () => {
       setApiError(err.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotSuccess("");
+
+    if (!validateForgotAll()) return;
+
+    const rawIdentifier = forgotValues.identifier.trim();
+    const normalizedPhone = rawIdentifier.replace(/\D/g, "");
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawIdentifier);
+    const isPhone = /^\d{10}$/.test(normalizedPhone);
+
+    if (!isEmail && !isPhone) {
+      setForgotErrors((prev) => ({
+        ...prev,
+        identifier: "Enter a valid email address or 10-digit phone number.",
+      }));
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const payload = {
+        password: forgotValues.password,
+        confirmPassword: forgotValues.confirmPassword,
+      };
+
+      if (isEmail) {
+        payload.email = rawIdentifier;
+      } else {
+        payload.phone = normalizedPhone;
+      }
+
+      const response = await apiForgotPassword(payload);
+      setForgotSuccess(
+        response?.message || "Password reset successful. You can now sign in.",
+      );
+      resetForgotForm();
+      closeForgotModal();
+      navigate("/login", { replace: true });
+    } catch (err) {
+      setForgotError(err.message || "Failed to reset password. Please try again.");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -230,6 +315,88 @@ const LoginPage = () => {
             font-size: 1.25rem;
           }
         }
+
+        /* Forgot password modal */
+        .forgot-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1rem;
+          z-index: 50;
+          backdrop-filter: blur(4px);
+        }
+
+        .forgot-modal-card {
+          width: 100%;
+          max-width: 520px;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+          padding: 1.4rem;
+        }
+
+        .forgot-modal-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .forgot-modal-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 0.2rem;
+        }
+
+        .forgot-modal-subtitle {
+          font-size: 0.92rem;
+          color: #6b7280;
+          line-height: 1.4;
+        }
+
+        .forgot-modal-close {
+          border: 0;
+          background: transparent;
+          font-size: 1.45rem;
+          line-height: 1;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 0.15rem;
+        }
+
+        .forgot-modal-close:hover {
+          color: #111827;
+        }
+
+        .forgot-modal-form {
+          display: flex;
+          flex-direction: column;
+          gap: 0.95rem;
+        }
+
+        .forgot-modal-actions {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          margin-top: 0.2rem;
+        }
+
+        @media (max-width: 480px) {
+          .forgot-modal-card {
+            padding: 1rem;
+            border-radius: 14px;
+          }
+
+          .forgot-modal-actions {
+            flex-direction: column;
+          }
+        }
       `}</style>
 
       <div className="login-root auth-page">
@@ -282,14 +449,14 @@ const LoginPage = () => {
             <p className="login-brand-support">
               For help, contact{" "}
               <a
-                href="mailto:support@potensenergy.in"
+                href="mailto:info@potensgreenengineering.in"
                 style={{
                   color: "#000",
                   textDecoration: "underline",
                   fontWeight: 600,
                 }}
               >
-                support@potensenergy.in
+                info@potensgreenengineering.in
               </a>
             </p>
           </div>
@@ -376,9 +543,13 @@ const LoginPage = () => {
                 />
 
                 <div className="auth-forgot">
-                  <a href="#" className="forgot-link">
+                  <button
+                    type="button"
+                    className="forgot-link"
+                    onClick={openForgotModal}
+                  >
                     Forgot password?
-                  </a>
+                  </button>
                 </div>
 
                 <Button type="submit" fullWidth loading={loading} size="lg">
@@ -400,6 +571,114 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
+
+      {isForgotModalOpen && (
+        <div
+          className="forgot-modal-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeForgotModal();
+          }}
+          role="presentation"
+        >
+          <Card className="forgot-modal-card">
+            <div className="forgot-modal-header">
+              <div>
+                <h3 className="forgot-modal-title">Forgot password</h3>
+                <p className="forgot-modal-subtitle">
+                  Enter your email or phone number and set a new password.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="forgot-modal-close"
+                aria-label="Close forgot password"
+                onClick={closeForgotModal}
+              >
+                ×
+              </button>
+            </div>
+
+            {forgotError && (
+              <Alert
+                type="error"
+                message={forgotError}
+                onClose={() => setForgotError("")}
+                className="mb-4"
+              />
+            )}
+
+            {forgotSuccess && (
+              <Alert
+                type="success"
+                message={forgotSuccess}
+                onClose={() => setForgotSuccess("")}
+                className="mb-4"
+              />
+            )}
+
+            <form
+              onSubmit={handleForgotSubmit}
+              noValidate
+              className="forgot-modal-form"
+            >
+              <Input
+                id="identifier"
+                name="identifier"
+                label="Email or phone"
+                type="text"
+                placeholder="user@example.com or 9876543210"
+                value={forgotValues.identifier}
+                onChange={handleForgotChange}
+                onBlur={handleForgotBlur}
+                error={forgotErrors.identifier}
+                required
+              />
+
+              <Input
+                id="forgotPassword"
+                name="password"
+                label="New password"
+                type="password"
+                placeholder="Enter new password"
+                value={forgotValues.password}
+                onChange={handleForgotChange}
+                onBlur={handleForgotBlur}
+                error={forgotErrors.password}
+                required
+                autoComplete="new-password"
+              />
+
+              <Input
+                id="confirmForgotPassword"
+                name="confirmPassword"
+                label="Confirm new password"
+                type="password"
+                placeholder="Re-enter new password"
+                value={forgotValues.confirmPassword}
+                onChange={handleForgotChange}
+                onBlur={handleForgotBlur}
+                error={forgotErrors.confirmPassword}
+                required
+                autoComplete="new-password"
+              />
+
+              <div className="forgot-modal-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={closeForgotModal}
+                  disabled={forgotLoading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" loading={forgotLoading}>
+                  Reset password
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </>
   );
 };
