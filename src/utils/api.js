@@ -86,17 +86,40 @@ export const apiVerifyPan = async ({ panNumber, userId }) => {
 };
 
 // Aadhaar Verification API
-export const apiVerifyAadhaar = async ({ aadhaarNumber, userId }) => {
+// Sends multipart/form-data: userId, aadhaarNumber, optional aadhaar_card_file
+export const apiVerifyAadhaar = async ({ aadhaarNumber, userId, aadhaarFile, token }) => {
   try {
-    // console.log('[apiVerifyAadhaar] Request:', { aadhaarNumber, userId });
-    const response = await apiClient.post('/verify/aadhaar', {
-      aadhaarNumber,
+    const formData = new FormData();
+    formData.append('userId', userId);
+    formData.append('aadhaarNumber', aadhaarNumber);
+    if (aadhaarFile) {
+      formData.append('aadhaar_card_file', aadhaarFile);
+    }
+    const accessToken = token || localStorage.getItem('POTENS_admin_access_token') || '';
+    console.log('[apiVerifyAadhaar] Request', {
+      endpoint: '/api/verify/aadhaar',
       userId,
+      aadhaarNumber,
+      hasFile: !!aadhaarFile,
+      hasToken: !!accessToken,
     });
-    // console.log('[apiVerifyAadhaar] Response:', response.data);
+    const response = await apiClient.post('verify/aadhaar', formData, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        // Do NOT set Content-Type; browser sets multipart/form-data boundary automatically
+      },
+    });
+    console.log('[apiVerifyAadhaar] Response', {
+      status: response?.status,
+      data: response?.data,
+    });
     return response.data;
   } catch (error) {
-    // console.error('[apiVerifyAadhaar] Error:', error);
+    console.error('[apiVerifyAadhaar] Error', {
+      status: error?.response?.status,
+      data: error?.response?.data,
+      message: error?.message,
+    });
     throw new Error(getApiErrorMessage(error, 'Aadhaar verification failed.'));
   }
 };

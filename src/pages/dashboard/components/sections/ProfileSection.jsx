@@ -342,13 +342,17 @@ const ProfileSection = ({
   const [verifyAadhaarLoading, setVerifyAadhaarLoading] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);  // ← NEW
+  const [showAadhaarVerifyModal, setShowAadhaarVerifyModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // Aadhaar inline verify state
+  const [aadhaarVerifyResult, setAadhaarVerifyResult] = useState(null);
+  const [aadhaarVerifyError, setAadhaarVerifyError] = useState('');
 
   // Blur background when any modal is open
   useEffect(() => {
-    setBodyBlur(showVerifyModal || showPaymentModal);
+    setBodyBlur(showVerifyModal || showAadhaarVerifyModal || showPaymentModal);
     return () => setBodyBlur(false);
-  }, [showVerifyModal, showPaymentModal]);
+  }, [showVerifyModal, showAadhaarVerifyModal, showPaymentModal]);
 
   const [verifyError, setVerifyError] = useState('');
   const [editDocFields, setEditDocFields] = useState(false);
@@ -473,6 +477,7 @@ const ProfileSection = ({
 
   const panNumber = documents?.pan_card?.number || '';
   const userId = apiUser?.id || apiUser?._id || apiUser?.user_id || profileDetails?.userId || '';
+  const accessToken = localStorage.getItem('POTENS_admin_access_token') || '';
 
   const handleVerifyPan = async (e) => {
     e.preventDefault();
@@ -488,6 +493,30 @@ const ProfileSection = ({
       setShowVerifyModal(true);
     } finally {
       setVerifyPanLoading(false);
+    }
+  };
+
+  const aadhaarNumber = documents?.aadhaar_card && typeof documents?.aadhaar_card === 'object'
+    ? (documents.aadhaar_card.number || '')
+    : '';
+
+  const handleVerifyAadhaar = async () => {
+    setVerifyAadhaarLoading(true);
+    setAadhaarVerifyResult(null);
+    setAadhaarVerifyError('');
+    try {
+      const res = await apiVerifyAadhaar({
+        aadhaarNumber,
+        userId,
+        token: accessToken,
+      });
+      setAadhaarVerifyResult(res);
+      setShowAadhaarVerifyModal(true);
+    } catch (err) {
+      setAadhaarVerifyError(err.message || 'Aadhaar verification failed.');
+      setShowAadhaarVerifyModal(true);
+    } finally {
+      setVerifyAadhaarLoading(false);
     }
   };
 
@@ -517,14 +546,46 @@ const ProfileSection = ({
                   Verified ✓
                 </Button>
               ) : (
-                <Button size="xs" style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }} loading={verifyAadhaarLoading} onClick={handleVerifyPan} disabled={verifyAadhaarLoading}>
-                  Verify
-                </Button>
+                <>
+                  <Button
+                    size="xs"
+                    style={{ marginLeft: 8, minWidth: 60, padding: '4px 10px', fontSize: '0.85rem' }}
+                    loading={verifyAadhaarLoading}
+                    onClick={handleVerifyAadhaar}
+                    disabled={verifyAadhaarLoading}
+                  >
+                    {verifyAadhaarLoading ? 'Verifying…' : 'Verify'}
+                  </Button>
+                </>
               )
             )}
           </div>
         );
       })}
+
+      {/* Aadhaar Verify Modal */}
+      {showAadhaarVerifyModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', padding: 24, borderRadius: 8, minWidth: 320, maxWidth: 480, boxShadow: '0 2px 16px rgba(0,0,0,0.2)' }}>
+            <h4 style={{ marginTop: 0 }}>Aadhaar Verification</h4>
+            {aadhaarVerifyResult && aadhaarVerifyResult.success ? (
+              <div style={{ color: '#27ae60', fontWeight: 500, margin: '16px 0' }}>
+                Aadhaar verified successfully!
+              </div>
+            ) : (
+              <div style={{ color: 'red', fontWeight: 500, margin: '16px 0' }}>
+                {aadhaarVerifyError || aadhaarVerifyResult?.message || 'Aadhaar verification failed.'}
+              </div>
+            )}
+            <button
+              style={{ marginTop: 16, padding: '6px 18px', background: '#2d72d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+              onClick={() => { setShowAadhaarVerifyModal(false); window.location.reload(); }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* PAN Verify Modal */}
       {showVerifyModal && (
@@ -603,9 +664,6 @@ const ProfileSection = ({
     .map(({ label }) => label);
 
   const showProfileAlert = missingSections.length > 0 && (typeof profileCompletion === 'number' ? profileCompletion < 100 : true);
-
-  // Access token for payment API
-  const accessToken = localStorage.getItem('POTENS_admin_access_token') || '';
 
   return (
     <div className="profile-section">
