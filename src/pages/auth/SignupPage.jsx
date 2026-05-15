@@ -53,6 +53,7 @@ const SignupPage = () => {
   const [otpError, setOtpError] = useState('');
   const [otpSuccess, setOtpSuccess] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [otpVerified, setOtpVerified] = useState(false);
   const digitRefs = useRef([]);
 
   // Fetch roles
@@ -525,7 +526,10 @@ const SignupPage = () => {
                       label="Phone number"
                       placeholder="9876543210"
                       value={values.phone}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setOtpVerified(false);
+                      }}
                       onBlur={handleBlur}
                       error={errors.phone}
                       required
@@ -556,6 +560,7 @@ const SignupPage = () => {
                       onClick={async () => {
                         setOtpError('');
                         setOtpSuccess('');
+                        setOtpVerified(false);
                         if (!values.phone || values.phone.trim().length !== 10) {
                           setOtpError('Enter a valid 10-digit phone number.');
                           return;
@@ -586,9 +591,9 @@ const SignupPage = () => {
                 {otpError && (
                   <Alert type="error" message={otpError} onClose={() => setOtpError('')} className="mt-3" />
                 )}
-                {otpSuccess && (
+                {/* {otpSuccess && (
                   <Alert type="success" message={otpSuccess} onClose={() => setOtpSuccess('')} className="mt-3" />
-                )}
+                )} */}
 
                 {otpSent && (
                   <div className="mt-3">
@@ -604,6 +609,7 @@ const SignupPage = () => {
                             const next = [...otpDigits];
                             next[i] = v;
                             setOtpDigits(next);
+                            setOtpVerified(false);
                             if (v && i < 5) digitRefs.current[i + 1]?.focus?.();
                           }}
                           onKeyDown={(e) => {
@@ -632,6 +638,7 @@ const SignupPage = () => {
                         <Button
                           type="button"
                           onClick={async () => {
+                            if (otpVerified) return;
                             setOtpError('');
                             setOtpSuccess('');
                             const otp = otpDigits.join('');
@@ -643,17 +650,38 @@ const SignupPage = () => {
                             try {
                               const resp = await apiVerifyOtp({ phone: values.phone.trim(), otp });
                               setOtpSuccess(resp.message || 'Phone verified successfully.');
+                              setOtpVerified(true);
                             } catch (err) {
                               setOtpError(err.message || 'OTP verification failed');
+                              setOtpVerified(false);
                             } finally {
                               setVerifyingOtp(false);
                             }
                           }}
                           loading={verifyingOtp}
+                          disabled={otpVerified}
+                          variant={otpVerified ? 'success' : 'primary'}
                           size="sm"
+                          className={`whitespace-nowrap ${otpVerified ? 'pointer-events-none' : ''}`}
                           fullWidth
                         >
-                          Verify OTP
+                          {otpVerified ? (
+                            <>
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                aria-hidden="true"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              Verified
+                            </>
+                          ) : (
+                            'Verify OTP'
+                          )}
                         </Button>
                       </div>
                     </div>
