@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useForm from '../../hooks/useForm.js';
 import { validators } from '../../utils/validators.js';
 import { Button, Input, Alert, Spinner } from '../../components/ui/index.js';
-import { apiGetRoles } from '../../utils/api.js';
+import { apiSendOtp, apiVerifyOtp, apiGetRoles } from '../../utils/api.js';
+
 
 const validationRules = {
   fullName: validators.name,
@@ -22,10 +23,6 @@ const validationRules = {
   },
 };
 
-/**
- * Group a flat roles array by their `category` field.
- * Falls back gracefully if the API shape varies.
- */
 const groupRolesByCategory = (roles) => {
   const map = {};
   for (const r of roles) {
@@ -49,9 +46,16 @@ const SignupPage = () => {
     { fullName: '', email: '', phone: '', role: '', password: '', confirmPassword: '' },
     validationRules
   );
+  // OTP states
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccess, setOtpSuccess] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const digitRefs = useRef([]);
 
-  // Fetch roles from API — fires the moment this page mounts (i.e. when the
-  // user clicks "Create account" on the login screen and lands here).
+  // Fetch roles
   const fetchRoles = () => {
     setRolesLoading(true);
     setRolesError('');
@@ -90,15 +94,13 @@ const SignupPage = () => {
         confirmPassword: values.confirmPassword,
         role: values.role,
       });
-      // Log the created user for debugging
-      // eslint-disable-next-line no-console
-      // console.log('Signup success:', user);
-      // After signup, check if onboarding is needed
+
       if (user?.needs_onboarding || user?.is_onboarded === false) {
         navigate('/profile-completion', { replace: true });
-          background: 'var(--color-surface)',
-        navigate('/dashboard', { replace: true });
+        return;
       }
+
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setApiError(err.message || 'Sign up failed. Please try again.');
     } finally {
@@ -120,6 +122,29 @@ const SignupPage = () => {
           display: flex;
           min-height: 100vh;
           flex-direction: row;
+        }
+
+        /* ── OTP input styling ── */
+        .otp-row {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+          flex-wrap: nowrap;
+        }
+        .otp-input {
+          width: 3rem;
+          height: 3rem;
+          text-align: center;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          font-size: 1.05rem;
+          background: #fff;
+          flex-shrink: 0;
+        }
+        .otp-input:focus {
+          outline: none;
+          border-color: rgba(99,102,241,1);
+          box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
         }
 
         /* ── Branding panel ── */
@@ -218,6 +243,23 @@ const SignupPage = () => {
           background: var(--color-bg);
         }
 
+        /* ── Phone + Send OTP row ── */
+        .phone-otp-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.625rem;
+        }
+        .phone-otp-row .phone-input-wrap {
+          flex: 1;
+          min-width: 0;
+        }
+        .phone-otp-row .send-otp-wrap {
+          width: 7.5rem;
+          flex-shrink: 0;
+          /* Align button vertically with input (label ~1.375rem + gap) */
+          padding-top: 1.625rem;
+        }
+
         /* ────────────────────────────────────────────
            MOBILE  ≤ 768 px
         ──────────────────────────────────────────── */
@@ -226,66 +268,126 @@ const SignupPage = () => {
             flex-direction: column;
           }
 
-          /* Brand panel becomes a compact top banner */
+          /* ── Brand panel → compact top banner ── */
           .signup-brand {
             position: relative;
             width: 100%;
             height: auto;
-            padding: 2rem 1rem 1.6rem;
+            padding: 1.25rem 1rem 1rem;
           }
 
           .signup-brand-card {
             width: 100%;
             max-width: 100%;
-            padding: 1.6rem 1.2rem 1.2rem;
-            border-radius: 20px;
+            padding: 1.25rem 1rem 1rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.18);
+            /* Row layout: logo left, text right */
+            flex-direction: row;
+            align-items: center;
+            gap: 0.875rem;
+            text-align: left;
           }
 
           .signup-brand-logo {
-            max-height: 80px;
-            margin-bottom: 1rem;
+            max-height: 56px;
+            margin-bottom: 0;
+            flex-shrink: 0;
+          }
+
+          /* Text column inside the card on mobile */
+          .signup-brand-text-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+            flex: 1;
+            min-width: 0;
           }
 
           .signup-brand-title {
-            font-size: 1.5rem;
-            margin-bottom: 0.4rem;
+            font-size: 1.05rem;
+            margin-bottom: 0;
+            letter-spacing: -0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
 
           .signup-brand-subtitle {
-            font-size: 0.97rem;
-            margin-bottom: 1rem;
+            font-size: 0.78rem;
+            margin-bottom: 0;
+            line-height: 1.35;
           }
 
-          .signup-brand-links {
-            gap: 0.8rem;
-            margin-bottom: 0.9rem;
-          }
-
-          .signup-brand-link {
-            font-size: 0.93rem;
-          }
-
+          /* Hide decorative links & support email on mobile to keep banner tight */
+          .signup-brand-links,
           .signup-brand-support {
-            font-size: 0.9rem;
+            display: none;
           }
 
-          /* Form panel takes full width below the banner */
+          /* ── Form panel ── */
           .signup-form-panel {
             margin-left: 0;
             width: 100%;
             min-height: unset;
           }
+
+          /* ── Phone + OTP button row ── */
+          .phone-otp-row {
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+          .phone-otp-row .phone-input-wrap {
+            flex: 1;
+            min-width: 0;
+          }
+          .phone-otp-row .send-otp-wrap {
+            width: 5.5rem;
+            padding-top: 1.625rem;
+          }
+
+          /* ── OTP digit boxes ── */
+          .otp-input {
+            width: 2.4rem;
+            height: 2.4rem;
+            font-size: 0.95rem;
+          }
+
+          .otp-row {
+            gap: 0.3rem;
+          }
+
+          /* Verify button inside OTP row */
+          .otp-verify-wrap {
+            flex-shrink: 0;
+          }
         }
 
-        /* Extra-small phones */
+        /* ── Extra-small phones ≤ 400 px ── */
         @media (max-width: 400px) {
           .signup-brand-card {
-            padding: 1.2rem 0.8rem;
-            border-radius: 14px;
+            padding: 1rem 0.75rem;
+            border-radius: 12px;
           }
 
           .signup-brand-title {
-            font-size: 1.25rem;
+            font-size: 0.9rem;
+          }
+
+          .signup-brand-subtitle {
+            font-size: 0.72rem;
+          }
+
+          .otp-input {
+            width: 2.1rem;
+            height: 2.1rem;
+            font-size: 0.88rem;
+            border-radius: 6px;
+          }
+
+          .phone-otp-row .send-otp-wrap {
+            width: 5rem;
           }
         }
       `}</style>
@@ -299,31 +401,21 @@ const SignupPage = () => {
               alt="Potens Energy Logo"
               className="signup-brand-logo"
             />
-            <h1 className="signup-brand-title">
-              Welcome to <span>Potens Portal</span>
-            </h1>
-            <p className="signup-brand-subtitle">
-              Manage your energy journey with confidence.
-              <br />
-              <strong>Secure, unified, and built for scale.</strong>
-              <br />
-              <span style={{ fontWeight: 500 }}>
-                Support Contact: 18003135280
-              </span>
-            </p>
-            {/* <a
-              href="https://wa.me/918003135280?text=Hello%20I%20need%20support"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontWeight: 700,
-                color: "#25D366",
-                marginBottom: "1rem",
-                display: "inline-block",
-              }}
-            >
-              💬 Need help? Chat on WhatsApp
-            </a> */}
+            {/* Text column — on desktop these styles are overridden by flex-column on the card */}
+            <div className="signup-brand-text-col">
+              <h1 className="signup-brand-title">
+                Welcome to <span>Potens Portal</span>
+              </h1>
+              <p className="signup-brand-subtitle">
+                Manage your energy journey with confidence.
+                <br />
+                <strong>Secure, unified, and built for scale.</strong>
+                <br />
+                <span style={{ fontWeight: 500 }}>
+                  Support: 18003135280
+                </span>
+              </p>
+            </div>
             <div className="signup-brand-links">
               <a href="#" className="signup-brand-link">
                 YouTube
@@ -402,36 +494,149 @@ const SignupPage = () => {
                   }
                 />
 
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  label="Phone number"
-                  placeholder="9876543210"
-                  value={values.phone}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.phone}
-                  required
-                  autoComplete="tel"
-                  inputMode="numeric"
-                  maxLength={10}
-                  leftIcon={
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                {/* ── Phone + Send OTP ── */}
+                <div className="phone-otp-row">
+                  <div className="phone-input-wrap">
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      label="Phone number"
+                      placeholder="9876543210"
+                      value={values.phone}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={errors.phone}
+                      required
+                      autoComplete="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      leftIcon={
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 5a2 2 0 012-2h3.28a2 2 0 011.895 1.368l1.02 3.06a2 2 0 01-.457 2.11l-1.373 1.373a16.042 16.042 0 006.586 6.586l1.373-1.373a2 2 0 012.11-.457l3.06 1.02A2 2 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                          />
+                        </svg>
+                      }
+                    />
+                  </div>
+
+                  <div className="send-otp-wrap">
+                    <Button
+                      type="button"
+                      onClick={async () => {
+                        setOtpError('');
+                        setOtpSuccess('');
+                        if (!values.phone || values.phone.trim().length !== 10) {
+                          setOtpError('Enter a valid 10-digit phone number.');
+                          return;
+                        }
+                        setSendingOtp(true);
+                        try {
+                          const resp = await apiSendOtp({ phone: values.phone.trim() });
+                          setOtpSent(true);
+                          setOtpDigits(['', '', '', '', '', '']);
+                          setOtpSuccess(resp.message || 'OTP sent to your phone.');
+                          setTimeout(() => digitRefs.current[0]?.focus?.(), 60);
+                        } catch (err) {
+                          setOtpError(err.message || 'Failed to send OTP');
+                        } finally {
+                          setSendingOtp(false);
+                        }
+                      }}
+                      loading={sendingOtp}
+                      size="sm"
+                      fullWidth
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 5a2 2 0 012-2h3.28a2 2 0 011.895 1.368l1.02 3.06a2 2 0 01-.457 2.11l-1.373 1.373a16.042 16.042 0 006.586 6.586l1.373-1.373a2 2 0 012.11-.457l3.06 1.02A2 2 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                      />
-                    </svg>
-                  }
-                />
+                      Send OTP
+                    </Button>
+                  </div>
+                </div>
+
+                {otpError && (
+                  <Alert type="error" message={otpError} onClose={() => setOtpError('')} className="mt-3" />
+                )}
+                {otpSuccess && (
+                  <Alert type="success" message={otpSuccess} onClose={() => setOtpSuccess('')} className="mt-3" />
+                )}
+
+                {otpSent && (
+                  <div className="mt-3">
+                    <label className="text-sm font-medium text-gray-700">Enter OTP</label>
+                    <div className="otp-row mt-2">
+                      {otpDigits.map((d, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => (digitRefs.current[i] = el)}
+                          value={d}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[^0-9]/g, '').slice(-1);
+                            const next = [...otpDigits];
+                            next[i] = v;
+                            setOtpDigits(next);
+                            if (v && i < 5) digitRefs.current[i + 1]?.focus?.();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Backspace' && !otpDigits[i] && i > 0) {
+                              digitRefs.current[i - 1]?.focus?.();
+                            }
+                          }}
+                          onPaste={(e) => {
+                            const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
+                            const nums = paste.replace(/\D/g, '').slice(0, 6).split('');
+                            if (nums.length) {
+                              const next = ['','','','','',''];
+                              nums.forEach((ch, idx) => { next[idx] = ch; });
+                              setOtpDigits(next);
+                              setTimeout(() => digitRefs.current[Math.min(nums.length,5)]?.focus?.(), 0);
+                            }
+                            e.preventDefault();
+                          }}
+                          inputMode="numeric"
+                          maxLength={1}
+                          className="otp-input"
+                        />
+                      ))}
+
+                      <div className="otp-verify-wrap w-28">
+                        <Button
+                          type="button"
+                          onClick={async () => {
+                            setOtpError('');
+                            setOtpSuccess('');
+                            const otp = otpDigits.join('');
+                            if (otp.length !== 6) {
+                              setOtpError('Enter the 6-digit OTP.');
+                              return;
+                            }
+                            setVerifyingOtp(true);
+                            try {
+                              const resp = await apiVerifyOtp({ phone: values.phone.trim(), otp });
+                              setOtpSuccess(resp.message || 'Phone verified successfully.');
+                            } catch (err) {
+                              setOtpError(err.message || 'OTP verification failed');
+                            } finally {
+                              setVerifyingOtp(false);
+                            }
+                          }}
+                          loading={verifyingOtp}
+                          size="sm"
+                          fullWidth
+                        >
+                          Verify OTP
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <Input
                   id="email"

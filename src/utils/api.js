@@ -767,6 +767,48 @@ export const apiSignUp = async ({ fullName, email, phone, password, confirmPassw
 };
 
 /**
+ * Send OTP to phone
+ * POST /api/auth/send-otp
+ * @param {{ phone: string }} params
+ * @returns {Promise<{ message: string }>} API response
+ */
+export const apiSendOtp = async ({ phone } = {}) => {
+  if (!phone) {
+    throw new Error('Phone number is required.');
+  }
+
+  try {
+    const response = await apiClient.post('/auth/send-otp', { phone });
+    return { message: response.data?.message || 'OTP sent.' };
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Failed to send OTP.'));
+  }
+};
+
+/**
+ * Verify OTP for phone
+ * POST /api/auth/verify-otp
+ * @param {{ phone: string, otp: string }} params
+ * @returns {Promise<{ message: string, verified: boolean, data?: object }>} API response
+ */
+export const apiVerifyOtp = async ({ phone, otp } = {}) => {
+  if (!phone || !otp) {
+    throw new Error('Phone and OTP are required.');
+  }
+
+  try {
+    const response = await apiClient.post('/auth/verify-otp', { phone, otp });
+    return {
+      message: response.data?.message || 'OTP verified.',
+      verified: Boolean(response.data?.verified ?? true),
+      data: response.data,
+    };
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'OTP verification failed.'));
+  }
+};
+
+/**
  * Login API call
  * @param {{ email?: string, phone?: string, password: string }} payload
  * @returns {Promise<{ message: string, user: object, token: string }>}
