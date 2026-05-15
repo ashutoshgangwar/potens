@@ -451,14 +451,14 @@ const SignupPage = () => {
             <p className="signup-brand-support">
               For help, contact{" "}
               <a
-                href="mailto:support@potensenergy.in"
+                href="mailto:info@potensgreenengineering.in"
                 style={{
                   color: "#000",
                   textDecoration: "underline",
                   fontWeight: 600,
                 }}
               >
-                support@potensenergy.in
+                info@potensgreenengineering.in
               </a>
             </p>
           </div>
