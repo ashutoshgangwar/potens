@@ -247,14 +247,14 @@ const SignupPage = () => {
         .phone-otp-row {
           display: flex;
           align-items: flex-start;
-          gap: 0.625rem;
+          gap: 0.525rem;
         }
         .phone-otp-row .phone-input-wrap {
           flex: 1;
           min-width: 0;
         }
         .phone-otp-row .send-otp-wrap {
-          width: 7.5rem;
+          width: 7rem;
           flex-shrink: 0;
           /* Align button vertically with input (label ~1.375rem + gap) */
           padding-top: 1.625rem;
@@ -343,7 +343,7 @@ const SignupPage = () => {
             min-width: 0;
           }
           .phone-otp-row .send-otp-wrap {
-            width: 5.5rem;
+            width: 7rem;
             padding-top: 1.625rem;
           }
 
@@ -387,7 +387,7 @@ const SignupPage = () => {
           }
 
           .phone-otp-row .send-otp-wrap {
-            width: 5rem;
+            width: 7rem;
           }
         }
       `}</style>
@@ -554,6 +554,7 @@ const SignupPage = () => {
                       }}
                       loading={sendingOtp}
                       size="sm"
+                      className="whitespace-nowrap"
                       fullWidth
                     >
                       Send OTP
