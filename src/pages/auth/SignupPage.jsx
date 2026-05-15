@@ -154,6 +154,8 @@ const SignupPage = () => {
           left: 0;
           width: 50vw;
           height: 100vh;
+          overflow-y: auto;
+          overflow-x: hidden;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -273,25 +275,28 @@ const SignupPage = () => {
             position: relative;
             width: 100%;
             height: auto;
-            padding: 1.25rem 1rem 1rem;
+            max-height: 58vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding: 1.5rem 1rem 1.2rem;
           }
 
           .signup-brand-card {
             width: 100%;
             max-width: 100%;
-            padding: 1.25rem 1rem 1rem;
-            border-radius: 16px;
+            padding: 1.35rem 1rem 1rem;
+            border-radius: 20px;
             box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.18);
-            /* Row layout: logo left, text right */
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
-            gap: 0.875rem;
-            text-align: left;
+            gap: 0.65rem;
+            text-align: center;
           }
 
           .signup-brand-logo {
-            max-height: 56px;
-            margin-bottom: 0;
+            max-height: 88px;
+            margin-bottom: 0.15rem;
             flex-shrink: 0;
           }
 
@@ -299,30 +304,41 @@ const SignupPage = () => {
           .signup-brand-text-col {
             display: flex;
             flex-direction: column;
-            gap: 0.125rem;
+            align-items: center;
+            gap: 0.2rem;
             flex: 1;
-            min-width: 0;
+            width: 100%;
           }
 
           .signup-brand-title {
-            font-size: 1.05rem;
-            margin-bottom: 0;
+            font-size: 1.25rem;
+            margin-bottom: 0.1rem;
             letter-spacing: -0.5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
           }
 
           .signup-brand-subtitle {
-            font-size: 0.78rem;
-            margin-bottom: 0;
-            line-height: 1.35;
+            font-size: 0.98rem;
+            margin-bottom: 0.45rem;
+            line-height: 1.45;
           }
 
-          /* Hide decorative links & support email on mobile to keep banner tight */
-          .signup-brand-links,
+          .signup-brand-links {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            justify-content: center;
+          }
+
+          .signup-brand-link {
+            font-size: 0.93rem;
+          }
+
           .signup-brand-support {
-            display: none;
+            display: block;
+            font-size: 0.9rem;
           }
 
           /* ── Form panel ── */
@@ -330,6 +346,10 @@ const SignupPage = () => {
             margin-left: 0;
             width: 100%;
             min-height: unset;
+            flex: 0 0 auto;
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding: 0.65rem 0.95rem 1.35rem;
           }
 
           /* ── Phone + OTP button row ── */
@@ -372,11 +392,12 @@ const SignupPage = () => {
           }
 
           .signup-brand-title {
-            font-size: 0.9rem;
+            font-size: 1.05rem;
           }
 
           .signup-brand-subtitle {
-            font-size: 0.72rem;
+            font-size: 0.86rem;
+            line-height: 1.4;
           }
 
           .otp-input {
