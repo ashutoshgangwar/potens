@@ -38,6 +38,10 @@ const formatAmount = (amt) => {
   return `₹${Number(amt).toLocaleString('en-IN')}`;
 };
 
+const isImageProofUrl = (url) =>
+  /\.(png|jpe?g|gif|webp|bmp|svg|avif|apng|tif|tiff|ico|jfif|pjpeg|pjp|heic|heif)(\?|#|$)/i.test(url || '') ||
+  (url || '').startsWith('data:image/');
+
 const RECORDS_PER_PAGE = 12;
 
 const PaymentsSection = () => {
@@ -450,6 +454,14 @@ const PaymentsSection = () => {
           background: #fff;
         }
 
+        .payment-proof-frame {
+          width: 100%;
+          height: 72vh;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: #fff;
+        }
+
         .payments-pagination {
           margin-top: 16px;
           display: flex;
@@ -789,10 +801,18 @@ const PaymentsSection = () => {
           <div className="payments-modal" onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#1a1a2e' }}>Payment Proof</h3>
             <p style={{ margin: '8px 0 12px', color: '#666', fontSize: '0.9rem' }}>
-              Uploaded payment proof image preview.
+              Uploaded payment proof preview.
             </p>
 
-            <img src={proofModal.url} alt="Payment Proof" className="payment-proof-image" />
+            {isImageProofUrl(proofModal.url) ? (
+              <img src={proofModal.url} alt="Payment Proof" className="payment-proof-image" />
+            ) : (
+              <iframe
+                src={proofModal.url}
+                title="Payment Proof"
+                className="payment-proof-frame"
+              />
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
               <button
