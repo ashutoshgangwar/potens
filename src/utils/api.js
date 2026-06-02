@@ -770,7 +770,7 @@ export const apiSignUp = async ({ fullName, email, phone, password, confirmPassw
  * Send OTP to phone
  * POST /api/auth/send-otp
  * @param {{ phone: string }} params
- * @returns {Promise<{ message: string }>} API response
+ * @returns {Promise<{ message: string }>}
  */
 export const apiSendOtp = async ({ phone } = {}) => {
   if (!phone) {
