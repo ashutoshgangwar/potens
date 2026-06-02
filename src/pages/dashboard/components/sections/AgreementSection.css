@@ -1,0 +1,349 @@
+/* AgreementSection Styles */
+
+.agreement-section {
+  padding: 20px;
+  max-width: 900px;
+}
+
+/* Loading State */
+.agreement-section.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 20px;
+}
+
+.agreement-section.loading-container p {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Header */
+.agreement-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.agreement-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+/* Status Badge */
+.agreement-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.agreement-status-badge.signed {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.agreement-status-badge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+.agreement-status-badge.draft {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.badge-icon {
+  font-size: 14px;
+}
+
+/* Cards */
+.agreement-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.agreement-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f7 100%);
+  padding: 20px;
+  border-bottom: 1px solid #e0e6ed;
+}
+
+.card-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-content {
+  padding: 25px;
+}
+
+.card-content > p:first-child {
+  color: #666;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+/* Signed Card */
+.signed-card .card-header {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border-bottom-color: #b1dfbb;
+}
+
+.signed-card .card-header h3 {
+  color: #155724;
+}
+
+/* Pending Card */
+.pending-card .card-header {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+  border-bottom-color: #ffe69c;
+}
+
+.pending-card .card-header h3 {
+  color: #856404;
+}
+
+/* Draft Card */
+.draft-card .card-header {
+  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+  border-bottom-color: #a8dce8;
+}
+
+.draft-card .card-header h3 {
+  color: #0c5460;
+}
+
+/* Agreement Details */
+.agreement-details {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 20px 0;
+  border-left: 4px solid #007bff;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin: 10px 0;
+  gap: 15px;
+}
+
+.detail-item:first-child {
+  margin-top: 0;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #333;
+  min-width: 140px;
+}
+
+.detail-value {
+  color: #666;
+  flex: 1;
+  word-break: break-all;
+}
+
+.detail-value.url-text {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  color: #0066cc;
+}
+
+/* Sections */
+.draft-preview-section,
+.esign-section,
+.confirm-signing-section {
+  margin: 25px 0;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.draft-preview-section {
+  border-left-color: #6c757d;
+}
+
+.esign-section {
+  border-left-color: #28a745;
+}
+
+.confirm-signing-section {
+  border-left-color: #ffc107;
+  background: #fffbf0;
+}
+
+.section-label {
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+.draft-note,
+.esign-note,
+.note-text,
+.info-text {
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.confirm-label {
+  font-weight: 600;
+  color: #856404;
+  margin: 0 0 12px 0;
+}
+
+.signing-info {
+  background: white;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 15px 0;
+  border-left: 4px solid #28a745;
+}
+
+/* Buttons */
+.agreement-card button {
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.agreement-card button:last-of-type {
+  margin-right: 0;
+}
+
+/* Debug Info */
+.agreement-debug {
+  margin-top: 30px;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border: 1px dashed #ccc;
+}
+
+.agreement-debug summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #666;
+  padding: 5px;
+  user-select: none;
+}
+
+.agreement-debug summary:hover {
+  color: #333;
+}
+
+.agreement-debug pre {
+  background: white;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  margin: 10px 0 0 0;
+  border: 1px solid #ddd;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .agreement-section {
+    padding: 15px;
+  }
+
+  .agreement-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .agreement-header h2 {
+    font-size: 20px;
+  }
+
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-content {
+    padding: 15px;
+  }
+
+  .draft-preview-section,
+  .esign-section,
+  .confirm-signing-section {
+    padding: 15px;
+    margin: 15px 0;
+  }
+
+  .detail-value.url-text {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .agreement-section {
+    padding: 10px;
+  }
+
+  .agreement-card {
+    margin-bottom: 15px;
+  }
+
+  .card-header {
+    padding: 15px;
+  }
+
+  .card-content {
+    padding: 12px;
+  }
+
+  .agreement-header h2 {
+    font-size: 18px;
+  }
+
+  .card-header h3 {
+    font-size: 16px;
+  }
+}
