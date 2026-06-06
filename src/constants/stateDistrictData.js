@@ -73,6 +73,7 @@ export const STATE_DISTRICT_DATA = [
     "Udalguri"
   ],
 },
+
   {
     state: "Bihar",
     districts: [
