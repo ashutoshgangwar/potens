@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { apiGetPartners } from '../../../../utils/api';
-import { apiApprovePartner } from '../../../../utils/api';
-import { useAuth } from '../../../../context/AuthContext';
-import './ApprovalsSection.css';
+import React, { useEffect, useState } from "react";
+import { apiGetPartners } from "../../../../utils/api";
+import { apiApprovePartner } from "../../../../utils/api";
+import { useAuth } from "../../../../context/AuthContext";
+import "./ApprovalsSection.css";
 
 const RECORDS_PER_PAGE = 12;
 
@@ -12,8 +12,12 @@ const ApprovalsSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPartner, setSelectedPartner] = useState(null);
-  const [actionModal, setActionModal] = useState({ open: false, partner: null, action: null });
-  const [remarks, setRemarks] = useState('');
+  const [actionModal, setActionModal] = useState({
+    open: false,
+    partner: null,
+    action: null,
+  });
+  const [remarks, setRemarks] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -25,7 +29,7 @@ const ApprovalsSection = () => {
       setPartners(data);
       // console.log('Fetched partners:', data);
     } catch (err) {
-      setError(err.message || 'Failed to load partners');
+      setError(err.message || "Failed to load partners");
     } finally {
       setLoading(false);
     }
@@ -37,12 +41,12 @@ const ApprovalsSection = () => {
 
   const openActionModal = (partner, action) => {
     setActionModal({ open: true, partner, action });
-    setRemarks('');
+    setRemarks("");
   };
 
   const closeActionModal = () => {
     setActionModal({ open: false, partner: null, action: null });
-    setRemarks('');
+    setRemarks("");
   };
 
   const handleAction = async () => {
@@ -50,16 +54,21 @@ const ApprovalsSection = () => {
     setActionLoading(true);
     setError(null);
     try {
-      const action = actionModal.action === 'approve' ? 'approved' : 'rejected';
-      const approvalType = 'admin';
-      const apiPayload = { token, userId: actionModal.partner._id, action, approvalType };
-      if (action === 'approved') apiPayload.remark = remarks;
-      if (action === 'rejected') apiPayload.rejectionReason = remarks;
+      const action = actionModal.action === "approve" ? "approved" : "rejected";
+      const approvalType = "admin";
+      const apiPayload = {
+        token,
+        userId: actionModal.partner._id,
+        action,
+        approvalType,
+      };
+      if (action === "approved") apiPayload.remark = remarks;
+      if (action === "rejected") apiPayload.rejectionReason = remarks;
       await apiApprovePartner(apiPayload);
       await fetchPartners();
       closeActionModal();
     } catch (err) {
-      setError(err.message || 'Failed to process action');
+      setError(err.message || "Failed to process action");
     } finally {
       setActionLoading(false);
     }
@@ -72,21 +81,21 @@ const ApprovalsSection = () => {
     const roles = partner?.roles;
     if (Array.isArray(roles) && roles.length) {
       const names = roles
-        .map((r) => (typeof r === 'string' ? r : r?.name || r?.role))
+        .map((r) => (typeof r === "string" ? r : r?.name || r?.role))
         .filter(Boolean);
-      return names.length ? names.join(', ') : '-';
+      return names.length ? names.join(", ") : "-";
     }
-    if (typeof roles === 'string' && roles.trim()) return roles;
-    return '-';
+    if (typeof roles === "string" && roles.trim()) return roles;
+    return "-";
   };
 
   const getCity = (partner) => {
     const address = partner?.address;
-    if (!address) return '-';
+    if (!address) return "-";
     // Prefer business_address city, fall back to permanent_address city
     const businessCity = address?.business_address?.city;
     const permanentCity = address?.permanent_address?.city;
-    return businessCity || permanentCity || '-';
+    return businessCity || permanentCity || "-";
   };
 
   const getLatestTimestamp = (partner) => {
@@ -106,7 +115,7 @@ const ApprovalsSection = () => {
     }
 
     const mongoId = partner?._id;
-    if (typeof mongoId === 'string' && mongoId.length >= 8) {
+    if (typeof mongoId === "string" && mongoId.length >= 8) {
       const seconds = Number.parseInt(mongoId.slice(0, 8), 16);
       if (!Number.isNaN(seconds)) return seconds * 1000;
     }
@@ -118,7 +127,10 @@ const ApprovalsSection = () => {
     (a, b) => getLatestTimestamp(b) - getLatestTimestamp(a),
   );
 
-  const totalPages = Math.max(1, Math.ceil(sortedPartners.length / RECORDS_PER_PAGE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedPartners.length / RECORDS_PER_PAGE),
+  );
   const paginatedPartners = sortedPartners.slice(
     (currentPage - 1) * RECORDS_PER_PAGE,
     currentPage * RECORDS_PER_PAGE,
@@ -132,30 +144,37 @@ const ApprovalsSection = () => {
 
   const StatusBadge = ({ status }) => {
     const cls =
-      status === 'approved'
-        ? 'badge badge--approved'
-        : status === 'rejected'
-        ? 'badge badge--rejected'
-        : 'badge badge--pending';
-    return <span className={cls}>{status || 'pending'}</span>;
+      status === "approved"
+        ? "badge badge--approved"
+        : status === "rejected"
+          ? "badge badge--rejected"
+          : "badge badge--pending";
+    return <span className={cls}>{status || "pending"}</span>;
   };
 
   const PartnerActions = ({ p }) => (
     <>
-      <button className="approvals-action-btn view" onClick={() => handleView(p)}>
+      <button
+        className="approvals-action-btn view"
+        onClick={() => handleView(p)}
+      >
         View
       </button>
-      {p.approval_status === 'approved' ? (
+      {p.approval_status === "approved" ? (
         <span className="approved-tag">✔ Approved</span>
-      ) : p.approval_status === 'rejected' ? (
+      ) : p.approval_status === "rejected" ? (
         <>
           <button
             className="approvals-action-btn approve"
-            onClick={() => openActionModal(p, 'approve')}
+            onClick={() => openActionModal(p, "approve")}
           >
             Approve
           </button>
-          <button className="approvals-action-btn reject" disabled style={{ opacity: 0.5 }}>
+          <button
+            className="approvals-action-btn reject"
+            disabled
+            style={{ opacity: 0.5 }}
+          >
             Rejected
           </button>
           {p.rejection_reason && (
@@ -168,13 +187,13 @@ const ApprovalsSection = () => {
         <>
           <button
             className="approvals-action-btn approve"
-            onClick={() => openActionModal(p, 'approve')}
+            onClick={() => openActionModal(p, "approve")}
           >
             Approve
           </button>
           <button
             className="approvals-action-btn reject"
-            onClick={() => openActionModal(p, 'reject')}
+            onClick={() => openActionModal(p, "reject")}
           >
             Reject
           </button>
@@ -220,7 +239,7 @@ const ApprovalsSection = () => {
                     <td>{p.email}</td>
                     <td>{p.phone}</td>
                     <td>{getRoleName(p)}</td>
-                     <td>
+                    <td>
                       <StatusBadge status={p.approval_status} />
                     </td>
                     <td>{getCity(p)}</td>
@@ -268,6 +287,14 @@ const ApprovalsSection = () => {
                       {getCity(p)}
                     </span>
                   </div>
+                   <div className="partner-card__meta-row">
+                    <span className="partner-card__meta-label">
+                      Reviewed By
+                    </span>
+                    <span className="partner-card__meta-value">
+                      {p.approved_by || "-"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="partner-card__actions">
@@ -280,11 +307,11 @@ const ApprovalsSection = () => {
           <div
             style={{
               marginTop: 14,
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
               gap: 8,
-              flexWrap: 'wrap',
+              flexWrap: "wrap",
             }}
           >
             <button
@@ -294,12 +321,16 @@ const ApprovalsSection = () => {
             >
               Previous
             </button>
-            <span style={{ fontSize: '0.82rem', color: '#666', fontWeight: 600 }}>
+            <span
+              style={{ fontSize: "0.82rem", color: "#666", fontWeight: 600 }}
+            >
               Page {currentPage} of {totalPages} · {RECORDS_PER_PAGE} per page
             </span>
             <button
               className="approvals-action-btn view"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
               disabled={currentPage === totalPages}
             >
               Next
