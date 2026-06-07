@@ -92,9 +92,12 @@ export const useAgreement = (token, userId, userDetails = {}) => {
           signType,
           config: {
             auth_mode: '1',
-            reason: 'Contract Signing',
+            reason: "Contract signing with - Potens Green Engineering Solutions Pvt. Ltd.",
             positions: customPositions || {
-              1: [{ x: 200, y: 300 }],
+              1: [{ x: 300, y: 60 }], 
+              2: [{ x: 300, y: 60 }],
+             3: [{ x: 300, y: 60 }],
+             4: [{ x: 300, y: 640 }],
             },
           },
           prefill_options: {
