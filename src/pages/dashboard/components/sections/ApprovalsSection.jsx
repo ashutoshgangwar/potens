@@ -209,6 +209,7 @@ const ApprovalsSection = () => {
                   <th>Role</th>
                   <th>Status</th>
                   <th>City</th>
+                  <th>Reviewed By</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -219,10 +220,11 @@ const ApprovalsSection = () => {
                     <td>{p.email}</td>
                     <td>{p.phone}</td>
                     <td>{getRoleName(p)}</td>
-                    <td>
+                     <td>
                       <StatusBadge status={p.approval_status} />
                     </td>
                     <td>{getCity(p)}</td>
+                    <td>{p.approved_by || "-"}</td>
                     <td className="actions-cell">
                       <PartnerActions p={p} />
                     </td>
