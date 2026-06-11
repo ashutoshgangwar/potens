@@ -1090,6 +1090,38 @@ const normalizeAgreementResponse = (payload) => {
 };
 
 /**
+ * PDF document stats (admin dashboard)
+ * Endpoint: GET /api/pdf/stats/counts
+ * @param {{ token?: string } | string} [options]
+ * @returns {Promise<{ total: number, agreement: number, certificate: number, counts: Object }>}
+ */
+export const apiGetPdfStatsCounts = async (options = {}) => {
+  const authToken =
+    typeof options === 'string'
+      ? options || localStorage.getItem(ACCESS_TOKEN_KEY) || ''
+      : options.token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  try {
+    const pdfBaseUrl = getPdfServiceBaseUrl();
+    const response = await axios.get(`${pdfBaseUrl}/api/pdf/stats/counts`, {
+      timeout: 8000,
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    });
+
+    const data = response.data || {};
+    return {
+      total: data.total ?? 0,
+      agreement: data.agreement ?? data.counts?.agreement ?? 0,
+      certificate: data.certificate ?? data.counts?.certificate ?? 0,
+      counts:
+        data.counts && typeof data.counts === 'object' ? data.counts : {},
+    };
+  } catch (error) {
+    throw new Error(getPdfApiError(error, 'Failed to fetch PDF stats.'));
+  }
+};
+
+/**
  * Step 1: Generate agreement PDF
  * Endpoint: POST /api/pdf/generate-agreement
  * @param {string} userId

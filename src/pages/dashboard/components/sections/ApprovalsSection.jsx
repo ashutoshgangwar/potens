@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiGetPartners } from "../../../../utils/api";
 import { apiApprovePartner } from "../../../../utils/api";
+import { apiGetPdfStatsCounts } from "../../../../utils/api";
 import { useAuth } from "../../../../context/AuthContext";
 import "./ApprovalsSection.css";
 
@@ -40,6 +41,17 @@ const ApprovalsSection = () => {
   const [remarks, setRemarks] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pdfStats, setPdfStats] = useState(null);
+
+  const fetchPdfStats = async () => {
+    try {
+      const stats = await apiGetPdfStatsCounts(token);
+      setPdfStats(stats);
+    } catch {
+      // stats are non-critical; silently ignore so the list still renders
+      setPdfStats(null);
+    }
+  };
 
   const fetchPartners = async () => {
     setLoading(true);
@@ -58,6 +70,11 @@ const ApprovalsSection = () => {
     if (token) fetchPartners();
     // refetch whenever the auth token or the status filter changes
   }, [token, statusFilter]);
+
+  useEffect(() => {
+    if (token) fetchPdfStats();
+    // document stats only depend on auth
+  }, [token]);
 
   // jump back to the first page whenever the filter changes
   useEffect(() => {
@@ -287,6 +304,47 @@ const ApprovalsSection = () => {
       <p className="approvals-subtitle">
         Onboarding requests for review.
       </p>
+
+      {pdfStats && (
+        <div className="stats-grid">
+          {[
+            // {
+            //   label: "Total Documents",
+            //   value: pdfStats.total,
+            //   icon: "/file-download.svg",
+            //   variant: "indigo",
+            // },
+            {
+              label: "Agreements",
+              value: pdfStats.agreement,
+              icon: "/agreement.svg",
+              variant: "green",
+            },
+            {
+              label: "Certificates",
+              value: pdfStats.certificate,
+              icon: "/certificate.svg",
+              variant: "amber",
+            },
+            // {
+            //   label: "ID Cards",
+            //   value: pdfStats.counts?.id_card ?? 0,
+            //   icon: "/user-account.svg",
+            //   variant: "blue",
+            // },
+          ].map((s) => (
+            <div key={s.label} className={`stat-card stat-card--${s.variant}`}>
+              <span className="stat-card__icon">
+                <img src={s.icon} alt="" aria-hidden="true" />
+              </span>
+              <span className="stat-card__body">
+                <span className="stat-card__value">{s.value ?? 0}</span>
+                <span className="stat-card__label">{s.label}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="approvals-toolbar">
         <div className="status-tabs" role="tablist" aria-label="Filter by status">

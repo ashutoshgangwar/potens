@@ -16,6 +16,23 @@ const initialForm = {
   full_name: '',
 };
 
+const SearchIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    width="18"
+    height="18"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 const UsersSection = () => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -25,6 +42,7 @@ const UsersSection = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -105,6 +123,15 @@ const UsersSection = () => {
       .map((w) => w[0]?.toUpperCase() || '')
       .join('');
 
+  const query = search.trim().toLowerCase();
+  const filteredUsers = query
+    ? users.filter((u) =>
+        [u.full_name, u.name, u.email, u.phone, u.assigned_city, getRoleName(u)]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(query))
+      )
+    : users;
+
   return (
     <div className="users-section">
       {/* ── Header ── */}
@@ -114,15 +141,49 @@ const UsersSection = () => {
           <p className="users-section__subtitle">Manage internal staff and role assignments.</p>
         </div>
         <button className="users-create-btn" onClick={openModal}>
-          + Create User
+          <span className="users-create-btn__plus" aria-hidden="true">+</span>
+          Create User
         </button>
+      </div>
+
+      {/* ── Toolbar: search + count ── */}
+      <div className="users-toolbar">
+        <div className="users-search">
+          <span className="users-search__icon">
+            <SearchIcon />
+          </span>
+          <input
+            className="users-search__input"
+            type="text"
+            placeholder="Search by name, email, phone or city…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              className="users-search__clear"
+              onClick={() => setSearch('')}
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {!fetchLoading && (
+          <span className="users-count">
+            {filteredUsers.length}{' '}
+            {filteredUsers.length === 1 ? 'user' : 'users'}
+          </span>
+        )}
       </div>
 
       {/* ── Desktop table ── */}
       {fetchLoading ? (
-        <div className="users-loading">Loading users...</div>
+        <div className="users-loading">Loading users…</div>
       ) : users.length === 0 ? (
         <div className="users-empty">No users found.</div>
+      ) : filteredUsers.length === 0 ? (
+        <div className="users-empty">No users match “{search}”.</div>
       ) : (
         <>
           <div className="users-table-wrap">
@@ -137,9 +198,18 @@ const UsersSection = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u, idx) => (
+                {filteredUsers.map((u, idx) => (
                   <tr key={u._id || u.id || idx}>
-                    <td>{u.full_name || u.name || '—'}</td>
+                    <td>
+                      <div className="user-name-cell">
+                        <span className="user-name-cell__avatar">
+                          {getInitials(u.full_name || u.name) || '?'}
+                        </span>
+                        <span className="user-name-cell__name">
+                          {u.full_name || u.name || '—'}
+                        </span>
+                      </div>
+                    </td>
                     <td>{u.email || '—'}</td>
                     <td>
                       {getRoleName(u) ? (
@@ -156,7 +226,7 @@ const UsersSection = () => {
 
           {/* ── Mobile card list ── */}
           <div className="users-card-list">
-            {users.map((u, idx) => (
+            {filteredUsers.map((u, idx) => (
               <div key={u._id || u.id || idx} className="user-card">
                 <div className="user-card__header">
                   <div className="user-card__avatar">
@@ -198,7 +268,7 @@ const UsersSection = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="create-user-form">
-              <div className="form-field">
+              <div className="form-field form-field--full">
                 <label className="form-label">Full name *</label>
                 <input
                   name="full_name"
@@ -210,7 +280,7 @@ const UsersSection = () => {
                 />
               </div>
 
-              <div className="form-field">
+              <div className="form-field form-field--full">
                 <label className="form-label">Email *</label>
                 <input
                   name="email"
@@ -293,15 +363,17 @@ const UsersSection = () => {
                 />
               </div>
 
-              {error && <p className="form-error">{error}</p>}
-              {success && <p className="form-success">{success}</p>}
+              {error && <p className="form-error form-field--full">{error}</p>}
+              {success && (
+                <p className="form-success form-field--full">{success}</p>
+              )}
 
               <button
                 type="submit"
-                className="form-submit-btn"
+                className="form-submit-btn form-field--full"
                 disabled={loading}
               >
-                {loading ? 'Creating...' : 'Create user'}
+                {loading ? 'Creating…' : 'Create user'}
               </button>
             </form>
           </div>

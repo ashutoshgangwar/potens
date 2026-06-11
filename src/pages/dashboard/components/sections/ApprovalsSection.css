@@ -19,6 +19,98 @@
   font-size: 15px;
 }
 
+/* ─── Stats grid (PDF document counts) ─────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e3e8ee;
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(60, 72, 88, 0.06);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(60, 72, 88, 0.1);
+}
+
+.stat-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 12px;
+}
+
+.stat-card__icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.stat-card__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-card__value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #0f172a;
+}
+
+.stat-card__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Accent variants — tinted icon tile + left border */
+.stat-card--indigo {
+  border-left: 4px solid #6366f1;
+}
+.stat-card--indigo .stat-card__icon {
+  background: #eef2ff;
+}
+
+.stat-card--green {
+  border-left: 4px solid #22c55e;
+}
+.stat-card--green .stat-card__icon {
+  background: #dcfce7;
+}
+
+.stat-card--amber {
+  border-left: 4px solid #f59e0b;
+}
+.stat-card--amber .stat-card__icon {
+  background: #fef3c7;
+}
+
+.stat-card--blue {
+  border-left: 4px solid #0ea5e9;
+}
+.stat-card--blue .stat-card__icon {
+  background: #e0f2fe;
+}
+
 /* ─── Toolbar (status filter + count) ──────────────────────────────────────── */
 .approvals-toolbar {
   display: flex;
@@ -191,6 +283,7 @@
   border-collapse: separate;
   border-spacing: 0;
   background: #fff;
+  border: 1px solid #d7deea;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 6px rgba(60, 72, 88, 0.06);
@@ -202,6 +295,12 @@
   padding: 13px 14px;
   text-align: left;
   font-size: 14px;
+  border-right: 1px solid #e3e8ee;
+}
+
+.approvals-table th:last-child,
+.approvals-table td:last-child {
+  border-right: none;
 }
 
 .approvals-table th {
@@ -588,6 +687,10 @@
   .actions-cell {
     min-width: 190px;
   }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Mobile: hide table, show cards */
@@ -599,6 +702,26 @@
 
   .approvals-title {
     font-size: 18px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .stat-card__icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
+  .stat-card__value {
+    font-size: 20px;
   }
 
   .approvals-toolbar {
