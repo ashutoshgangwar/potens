@@ -228,6 +228,7 @@ const ApprovalsSection = () => {
                   <th>Role</th>
                   <th>Status</th>
                   <th>City</th>
+                  <th>Field Officer</th>
                   <th>Reviewed By</th>
                   <th>Actions</th>
                 </tr>
@@ -243,6 +244,7 @@ const ApprovalsSection = () => {
                       <StatusBadge status={p.approval_status} />
                     </td>
                     <td>{getCity(p)}</td>
+                    <td>{p.field_officer_name || "-"}</td>
                     <td>{p.approved_by || "-"}</td>
                     <td className="actions-cell">
                       <PartnerActions p={p} />
@@ -403,6 +405,7 @@ const ApprovalsSection = () => {
                         ).toLocaleDateString()
                       : null,
                   ],
+                   ["Email Id", selectedPartner.email],
                   [
                     "Business address",
                     selectedPartner.address?.business_address
