@@ -19,6 +19,56 @@
   font-size: 15px;
 }
 
+/* ─── Toolbar (status filter + count) ──────────────────────────────────────── */
+.approvals-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.status-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: #eef2f7;
+  border-radius: 10px;
+  border: 1px solid #e3e8ee;
+}
+
+.status-tab {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.status-tab:hover:not(.is-active) {
+  color: #1a237e;
+  background: #e3e8ee;
+}
+
+.status-tab.is-active {
+  background: #fff;
+  color: #1a237e;
+  box-shadow: 0 1px 4px rgba(60, 72, 88, 0.12);
+}
+
+.approvals-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
 .approvals-loading,
 .approvals-empty {
   padding: 24px 0;
@@ -182,9 +232,138 @@
 .actions-cell {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-  min-width: 200px;
+  min-width: 205px;
+}
+
+/* ─── Icon action buttons (desktop table) ──────────────────────────────────── */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s,
+    transform 0.05s;
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.icon-btn__img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
+.icon-btn--view {
+  background: #eef2f7;
+  border-color: #e3e8ee;
+}
+
+.icon-btn--view:hover {
+  background: #dbe3ee;
+  border-color: #cdd8e6;
+}
+
+.icon-btn--approve {
+  background: #0f6b1b;
+  border-color: #cdeccf;
+}
+
+.icon-btn--approve:hover {
+  background: #40aa4c;
+  border-color: #abdfb0;
+}
+
+.icon-btn--reject {
+  background: #fdecea;
+  border-color: #f6cfcb;
+}
+
+.icon-btn--reject:hover {
+  background: #fad4cf;
+  border-color: #f0b3ac;
+}
+
+/* Inline status tag shown next to icons (Approved / Rejected) */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.status-tag .icon-btn__img {
+  width: 15px;
+  height: 15px;
+}
+
+/* Inline status icon (just the tick / cross) shown in the actions row */
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+}
+
+.status-icon .icon-btn__img {
+  width: 18px;
+  height: 18px;
+}
+
+.status-icon--approved {
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.status-icon--rejected {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.status-tag--approved {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.status-tag--rejected {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+/* Rejection reason drops to its own full-width line below the icons */
+.actions-cell .rejection-reason {
+  flex-basis: 100%;
+  max-width: 100%;
+  margin: 2px 0 0;
 }
 
 /* ─── Mobile card list (hidden on desktop) ─────────────────────────────────── */
@@ -407,7 +586,7 @@
   }
 
   .actions-cell {
-    min-width: 160px;
+    min-width: 190px;
   }
 }
 
@@ -420,6 +599,21 @@
 
   .approvals-title {
     font-size: 18px;
+  }
+
+  .approvals-toolbar {
+    align-items: stretch;
+  }
+
+  .status-tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .status-tab {
+    flex: 1;
+    min-width: max-content;
   }
 
   /* Hide desktop table entirely */

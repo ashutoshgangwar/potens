@@ -6,9 +6,29 @@ import "./ApprovalsSection.css";
 
 const RECORDS_PER_PAGE = 12;
 
+const STATUS_FILTERS = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+];
+
+const EyeIcon = () => (
+  <img src="/eye-svg.svg" alt="" aria-hidden="true" className="icon-btn__img" />
+);
+
+const CheckIcon = () => (
+  <img src="/checkbox.svg" alt="" aria-hidden="true" className="icon-btn__img" />
+);
+
+const CrossIcon = () => (
+  <img src="/cross-circle.svg" alt="" aria-hidden="true" className="icon-btn__img" />
+);
+
 const ApprovalsSection = () => {
   const { token } = useAuth();
   const [partners, setPartners] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPartner, setSelectedPartner] = useState(null);
@@ -25,9 +45,8 @@ const ApprovalsSection = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiGetPartners(token);
+      const data = await apiGetPartners(token, statusFilter);
       setPartners(data);
-      // console.log('Fetched partners:', data);
     } catch (err) {
       setError(err.message || "Failed to load partners");
     } finally {
@@ -37,7 +56,13 @@ const ApprovalsSection = () => {
 
   useEffect(() => {
     if (token) fetchPartners();
-  }, [token]);
+    // refetch whenever the auth token or the status filter changes
+  }, [token, statusFilter]);
+
+  // jump back to the first page whenever the filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
 
   const openActionModal = (partner, action) => {
     setActionModal({ open: true, partner, action });
@@ -202,12 +227,87 @@ const ApprovalsSection = () => {
     </>
   );
 
+  // Compact icon-button actions for the desktop table
+  const ActionIcons = ({ p }) => (
+    <>
+      <button
+        className="icon-btn icon-btn--view"
+        title="View details"
+        aria-label="View details"
+        onClick={() => handleView(p)}
+      >
+        <EyeIcon />
+      </button>
+
+      {p.approval_status === "approved" ? (
+        <span className="status-tag status-tag--approved">Approved</span>
+      ) : p.approval_status === "rejected" ? (
+        <>
+          <button
+            className="icon-btn icon-btn--approve"
+            title="Approve"
+            aria-label="Approve"
+            onClick={() => openActionModal(p, "approve")}
+          >
+            <CheckIcon />
+          </button>
+          <span className="status-tag status-tag--rejected">Rejected</span>
+          {p.rejection_reason && (
+            <p className="rejection-reason">
+              <b>Reason:</b> {p.rejection_reason}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <button
+            className="icon-btn icon-btn--approve"
+            title="Approve"
+            aria-label="Approve"
+            onClick={() => openActionModal(p, "approve")}
+          >
+            <CheckIcon />
+          </button>
+          <button
+            className="icon-btn icon-btn--reject"
+            title="Reject"
+            aria-label="Reject"
+            onClick={() => openActionModal(p, "reject")}
+          >
+            <CrossIcon />
+          </button>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="approvals-list-wrap">
       <h3 className="approvals-title">Onboarding Approvals</h3>
       <p className="approvals-subtitle">
-        Pending onboarding requests for review.
+        Onboarding requests for review.
       </p>
+
+      <div className="approvals-toolbar">
+        <div className="status-tabs" role="tablist" aria-label="Filter by status">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              role="tab"
+              aria-selected={statusFilter === f.value}
+              className={`status-tab${statusFilter === f.value ? " is-active" : ""}`}
+              onClick={() => setStatusFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {!loading && !error && (
+          <span className="approvals-count">
+            {partners.length} {partners.length === 1 ? "result" : "results"}
+          </span>
+        )}
+      </div>
 
       {loading ? (
         <div className="approvals-loading">Loading...</div>
@@ -223,7 +323,6 @@ const ApprovalsSection = () => {
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Email</th>
                   <th>Phone</th>
                   <th>Role</th>
                   <th>Status</th>
@@ -237,7 +336,6 @@ const ApprovalsSection = () => {
                 {paginatedPartners.map((p) => (
                   <tr key={p._id}>
                     <td>{p.full_name}</td>
-                    <td>{p.email}</td>
                     <td>{p.phone}</td>
                     <td>{getRoleName(p)}</td>
                     <td>
@@ -247,7 +345,7 @@ const ApprovalsSection = () => {
                     <td>{p.field_officer_name || "-"}</td>
                     <td>{p.approved_by || "-"}</td>
                     <td className="actions-cell">
-                      <PartnerActions p={p} />
+                      <ActionIcons p={p} />
                     </td>
                   </tr>
                 ))}

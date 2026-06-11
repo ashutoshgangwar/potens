@@ -42,18 +42,20 @@ export const apiApprovePartner = async ({ token, userId, action, approvalType, r
   }
 };
 /**
- * Fetch all partners (admin)
- * GET /api/auth/admin/partners
+ * Fetch partners (admin) with optional status filter
+ * GET /api/auth/admin/partners?status=all|pending|approved|rejected
  * @param {string} token - Bearer token
+ * @param {string} [status] - optional status filter ('all' is treated as no filter)
  * @returns {Promise<Array>} partners
  */
-export const apiGetPartners = async (token) => {
+export const apiGetPartners = async (token, status) => {
   if (!token) {
     throw new Error('Not authorized.');
   }
   try {
     const response = await apiClient.get('/auth/admin/partners', {
       headers: { Authorization: `Bearer ${token}` },
+      params: status && status !== 'all' ? { status } : {},
     });
     // Always return an array, even if API returns null/undefined
     const partners = response.data?.partners ?? response.data?.users ?? [];
