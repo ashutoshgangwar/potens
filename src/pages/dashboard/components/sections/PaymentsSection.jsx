@@ -292,6 +292,7 @@ const PaymentsSection = () => {
           border-collapse: collapse;
           min-width: 800px;
           background: #fff;
+          border: 1px solid #cdd5e8;
         }
 
         .payments-table th {
@@ -302,7 +303,8 @@ const PaymentsSection = () => {
           color: #555;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          border-bottom: 2px solid #e8eaed;
+          border-bottom: 2px solid #d3dbeb;
+          border-right: 1px solid #d3dbeb;
           white-space: nowrap;
           text-align: left;
         }
@@ -310,10 +312,16 @@ const PaymentsSection = () => {
         .payments-table td {
           padding: 12px 10px;
           border-bottom: 1px solid #f0f0f0;
+          border-right: 1px solid #e3e8ee;
           font-size: 0.9rem;
           color: #333;
           white-space: nowrap;
           vertical-align: middle;
+        }
+
+        .payments-table th:last-child,
+        .payments-table td:last-child {
+          border-right: none;
         }
 
         .payments-table tbody tr:last-child td {

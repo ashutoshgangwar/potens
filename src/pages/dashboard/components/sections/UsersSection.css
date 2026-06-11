@@ -213,7 +213,7 @@
 
 .users-table th,
 .users-table td {
-  border-right: 1px solid #e3eafc;
+  border-right: 1px solid #d3dbeb;
 }
 
 /* Header separators need a darker line to show against the tinted thead */

@@ -380,6 +380,7 @@ const ApprovalsSection = () => {
             <table className="approvals-table">
               <thead>
                 <tr>
+                  <th className="sr-no-col">Sr No</th>
                   <th>Name</th>
                   <th>Phone</th>
                   <th>Role</th>
@@ -391,8 +392,11 @@ const ApprovalsSection = () => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedPartners.map((p) => (
+                {paginatedPartners.map((p, idx) => (
                   <tr key={p._id}>
+                    <td className="sr-no-col">
+                      {(currentPage - 1) * RECORDS_PER_PAGE + idx + 1}
+                    </td>
                     <td>{p.full_name}</td>
                     <td>{p.phone}</td>
                     <td>{getRoleName(p)}</td>

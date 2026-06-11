@@ -179,6 +179,9 @@
 .payments-table table { width: 100%; border-collapse: collapse; }
 .payments-table {
   overflow-x: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #cdd5e8;
   border-radius: 0.7rem;
   box-shadow: 0 1px 6px rgba(31,58,95,0.07);
   background: #fff;
@@ -186,4 +189,21 @@
 .payments-table thead th { padding: 10px; text-align: left; color: var(--color-text-muted); font-size: 0.9rem; }
 .payments-table td { padding: 12px 10px; }
 .payments-table tr:hover td { background: rgba(31,58,95,0.02); }
+
+/* Grid borders (outer + column separators + row lines) */
+.payments-table th,
+.payments-table td {
+  border-right: 1px solid #d3dbeb;
+  border-bottom: 1px solid #e3e8ee;
+}
+.payments-table th:last-child,
+.payments-table td:last-child {
+  border-right: none;
+}
+.payments-table thead th {
+  border-bottom: 2px solid #c5cae9;
+}
+.payments-table tbody tr:last-child td {
+  border-bottom: none;
+}
 

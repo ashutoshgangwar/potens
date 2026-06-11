@@ -303,6 +303,14 @@
   border-right: none;
 }
 
+/* Serial-number column */
+.approvals-table .sr-no-col {
+  width: 56px;
+  text-align: center;
+  color: #64748b;
+  font-weight: 600;
+}
+
 .approvals-table th {
   background: #f1f5f9;
   font-weight: 700;
