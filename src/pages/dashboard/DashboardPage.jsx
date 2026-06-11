@@ -1,18 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import { apiGetOnboardingProgress, apiGetProfileDetails } from '../../utils/api.js';
 import DashboardSidebar from './components/DashboardSidebar.jsx';
 import OverviewSection from './components/sections/OverviewSection.jsx';
-import TransactionSection from './components/sections/TransactionSection.jsx';
-import ProfileSection from './components/sections/ProfileSection.jsx';
-import InvestmentSection from './components/sections/InvestmentSection.jsx';
-import PaymentsSection from './components/sections/PaymentsSection.jsx';
-import WalletSection from './components/sections/WalletSection.jsx';
-import DocumentsSection from './components/sections/DocumentsSection.jsx';
-import ApprovalsSection from './components/sections/ApprovalsSection.jsx';
-import SupportSection from './components/sections/SupportSection.jsx';
-import UsersSection from './components/sections/UsersSection.jsx';
+// Non-default tabs are code-split — their chunks (notably the 2.1MB PDF engine
+// inside DocumentsSection) load only when the user actually opens that tab.
+const TransactionSection = lazy(() => import('./components/sections/TransactionSection.jsx'));
+const ProfileSection = lazy(() => import('./components/sections/ProfileSection.jsx'));
+const InvestmentSection = lazy(() => import('./components/sections/InvestmentSection.jsx'));
+const PaymentsSection = lazy(() => import('./components/sections/PaymentsSection.jsx'));
+const WalletSection = lazy(() => import('./components/sections/WalletSection.jsx'));
+const DocumentsSection = lazy(() => import('./components/sections/DocumentsSection.jsx'));
+const ApprovalsSection = lazy(() => import('./components/sections/ApprovalsSection.jsx'));
+const SupportSection = lazy(() => import('./components/sections/SupportSection.jsx'));
+const UsersSection = lazy(() => import('./components/sections/UsersSection.jsx'));
 import { SIDEBAR_CONFIG } from '../../constants/sidebarConfig.js';
 import { getAllowedSidebarKeys } from '../../constants/roleAccess.js';
 
@@ -366,7 +368,7 @@ const DashboardPage = () => {
 			})
 			.filter(Boolean);
 
-	if (loadingProfile || profileDetails) {
+	if (loadingProfile) {
 		return <div style={{padding: '2rem', textAlign: 'center'}}>Loading profile...</div>;
 	}
 
@@ -505,7 +507,11 @@ const DashboardPage = () => {
 		</nav>
 
 			{/* Main content */}
-			   <main className="dashboard-main dashboard-responsive-main">{sectionsByKey[activeSection] || sectionsByKey.dashboard}</main>
+			   <main className="dashboard-main dashboard-responsive-main">
+			      <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading…</div>}>
+			         {sectionsByKey[activeSection] || sectionsByKey.dashboard}
+			      </Suspense>
+			   </main>
 		</div>
 	);
 };

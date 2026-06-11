@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGetBowserCapacities } from '../utils/apiBowserCapacities.js';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import useForm from '../hooks/useForm.js';
-import { apiGetProfileDetails } from '../utils/api.js';
+import { apiGetProfileDetails, fetchAuthProfilePayload } from '../utils/api.js';
 import { apiGenerateAgreementPdf, apiGenerateCertificatePdf } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
 
 const USER_ROLE_KEY = 'POTENS_admin_user_role';
+const ACCESS_TOKEN_KEY = 'POTENS_admin_access_token';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const STATE_OPTIONS = STATE_DISTRICT_DATA.map((entry) => entry.state);
@@ -23,6 +24,17 @@ const GENDER_OPTIONS = [
   { value: 'female', label: 'Female' },
   { value: 'other', label: 'Other' },
 ];
+
+// Permanent → Business field mapping used by the "same as permanent" toggle.
+const ADDRESS_FIELD_PAIRS = [
+  ['permanentAddressLine1', 'businessAddressLine1'],
+  ['permanentAddressLine2', 'businessAddressLine2'],
+  ['permanentState', 'businessState'],
+  ['permanentDistrict', 'businessDistrict'],
+  ['permanentCity', 'businessCity'],
+  ['permanentPincode', 'businessPincode'],
+];
+const BUSINESS_ADDRESS_FIELD_NAMES = ADDRESS_FIELD_PAIRS.map(([, business]) => business);
 
 const ALLOWED_DOCUMENT_FILE_TYPES = [
   'image/jpeg',
@@ -896,6 +908,10 @@ function ReviewSection({ step, values, onEdit, currentRole, bowserCapacityOption
 
 const ProfileCompletion = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Optional deep-link target passed from the dashboard "Re-upload missing details"
+  // button — focus the matching step instead of the first incomplete one.
+  const focusSection = location.state?.focusSection || null;
   const { user } = useAuth();
 
   const currentUserRole = useMemo(() => {
@@ -959,6 +975,8 @@ const ProfileCompletion = () => {
   const [apiError, setApiError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [paymentStepManuallyCompleted, setPaymentStepManuallyCompleted] = useState(false);
+  // "Business address same as permanent address" toggle
+  const [sameAsPermanent, setSameAsPermanent] = useState(false);
 
   const {
     values,
@@ -979,10 +997,37 @@ const ProfileCompletion = () => {
         const existingProfile = await apiGetProfileDetails(user?.id);
         if (!isMounted) return;
 
+        // Resolve the authoritative saved name. The account `user.name` can be
+        // stale, so prefer the previously-saved onboarding name (professional
+        // full_name / user full_name from the auth profile) when available.
+        let savedFullName =
+          existingProfile?.fullName ||
+          existingProfile?.full_name ||
+          existingProfile?.professional?.full_name ||
+          existingProfile?.user?.full_name ||
+          user?.name ||
+          '';
+        try {
+          const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+          if (token) {
+            const profilePayload = await fetchAuthProfilePayload(token);
+            savedFullName =
+              profilePayload?.professional?.full_name ||
+              profilePayload?.user?.full_name ||
+              profilePayload?.user?.name ||
+              savedFullName;
+          }
+        } catch {
+          // Non-fatal — fall back to savedFullName resolved above.
+        }
+        if (!isMounted) return;
+
         const mergedValues = {
           ...INITIAL_VALUES,
-          fullName: user?.name || '',
           ...existingProfile,
+          // Seed after the spread so the resolved name is not clobbered, while
+          // the field remains fully editable for the user.
+          fullName: savedFullName,
         };
 
         const completed = getCompletedStepIndexes(mergedValues, currentUserRole, false);
@@ -990,9 +1035,21 @@ const ProfileCompletion = () => {
           (_, index) => !completed.includes(index)
         );
 
+        // Prefer an explicitly-requested section (deep-link from the dashboard);
+        // otherwise land on the first incomplete step.
+        const requestedStep = focusSection
+          ? EDITABLE_STEPS.findIndex((step) => step.id === focusSection)
+          : -1;
+
         setValues(mergedValues);
         setCompletedSteps(completed);
-        setCurrentStep(firstIncompleteStep === -1 ? PROFILE_STEPS.length - 1 : firstIncompleteStep);
+        setCurrentStep(
+          requestedStep !== -1
+            ? requestedStep
+            : firstIncompleteStep === -1
+              ? PROFILE_STEPS.length - 1
+              : firstIncompleteStep
+        );
       } catch (error) {
         if (isMounted) setApiError(error.message || 'Could not load profile details.');
       } finally {
@@ -1002,7 +1059,7 @@ const ProfileCompletion = () => {
 
     loadProfile();
     return () => { isMounted = false; };
-  }, [currentUserRole, setValues, user?.id, user?.name]);
+  }, [currentUserRole, setValues, user?.id, user?.name, focusSection]);
 
   const progressCount = completedSteps.filter(
     (stepIndex) => stepIndex < EDITABLE_STEPS.length
@@ -1094,6 +1151,46 @@ const ProfileCompletion = () => {
     setSuccessMessage('');
     setCurrentStep((previous) => Math.max(previous - 1, 0));
   };
+
+  // Copy permanent address values into the business address fields.
+  const copyPermanentToBusiness = (source) =>
+    ADDRESS_FIELD_PAIRS.reduce(
+      (acc, [permanent, business]) => ({ ...acc, [business]: source[permanent] ?? '' }),
+      {}
+    );
+
+  const handleSameAsPermanentToggle = (event) => {
+    const checked = event.target.checked;
+    setSameAsPermanent(checked);
+    if (checked) {
+      setValues((previous) => ({ ...previous, ...copyPermanentToBusiness(previous) }));
+      // Clear any stale validation errors on the now-mirrored business fields.
+      setErrors((previous) => {
+        const next = { ...previous };
+        BUSINESS_ADDRESS_FIELD_NAMES.forEach((name) => { next[name] = ''; });
+        return next;
+      });
+    }
+  };
+
+  // Keep business address mirrored while the toggle is on and permanent values change.
+  useEffect(() => {
+    if (!sameAsPermanent) return;
+    setValues((previous) => {
+      const mirrored = copyPermanentToBusiness(previous);
+      const changed = BUSINESS_ADDRESS_FIELD_NAMES.some((name) => previous[name] !== mirrored[name]);
+      return changed ? { ...previous, ...mirrored } : previous;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    sameAsPermanent,
+    values.permanentAddressLine1,
+    values.permanentAddressLine2,
+    values.permanentState,
+    values.permanentDistrict,
+    values.permanentCity,
+    values.permanentPincode,
+  ]);
 
   const handleSubmit = async () => {
     setApiError('');
@@ -1295,6 +1392,30 @@ const ProfileCompletion = () => {
                   <p>{section.description}</p>
                 </div>
 
+                {section.title === 'Business Address' && (
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      cursor: 'pointer',
+                      margin: '0 0 16px',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: '#1a1a2e',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={sameAsPermanent}
+                      onChange={handleSameAsPermanentToggle}
+                      style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#2d72d2' }}
+                    />
+                    Business address is same as permanent address
+                  </label>
+                )}
+
                 {section.customContent && (
                   <div className="profile-completion__custom-content">
                     {section.customContent}
@@ -1369,6 +1490,11 @@ const ProfileCompletion = () => {
                               ? field.label
                               : `${field.label} (Select state first)`,
                           };
+                        }
+
+                        // Mirror & lock business address fields when "same as permanent" is on.
+                        if (sameAsPermanent && BUSINESS_ADDRESS_FIELD_NAMES.includes(field.name)) {
+                          fieldConfig = { ...fieldConfig, disabled: true };
                         }
 
                         return (

@@ -552,35 +552,30 @@ const findFirstObjectByKeys = (candidates = [], keys = []) => {
   return {};
 };
 
-const resolveProfilePayload = (responseData = {}) => {
+// Normalize the /auth/profile response into a single object that carries BOTH
+// the nested sections (user/professional/address/documents/payment/vehicle —
+// consumed by the dashboard) AND the flat camelCase field keys the
+// ProfileCompletion form binds to (so existing data pre-fills on re-upload).
+const normalizeProfileResponse = (responseData = {}) => {
   const candidates = getCandidatePayloads(responseData);
 
-  for (const candidate of candidates) {
-    if (
-      isPlainObject(candidate?.user) ||
-      isPlainObject(candidate?.professional) ||
-      isPlainObject(candidate?.professional_details) ||
-      isPlainObject(candidate?.address) ||
-      isPlainObject(candidate?.address_details) ||
-      isPlainObject(candidate?.documents) ||
-      isPlainObject(candidate?.document_details) ||
-      isPlainObject(candidate?.payment) ||
-      isPlainObject(candidate?.payment_details) ||
-      isPlainObject(candidate?.vehicle) ||
-      isPlainObject(candidate?.vehicle_details)
-    ) {
-      // ...existing code...
-      // If you need to call an API here, do it inside this block
-      // Example:
-      // try {
-      //   const response = await apiClient.post('/verify/pan', { panNumber, fullName, userId });
-      //   return response.data;
-      // } catch (error) {
-      //   throw new Error(getApiErrorMessage(error, 'PAN verification failed.'));
-      // }
-      return candidate;
-    }
-  }
+  // The payload object that actually carries the profile sections (used for
+  // role resolution); falls back to the raw response.
+  const source =
+    candidates.find(
+      (candidate) =>
+        isPlainObject(candidate?.user) ||
+        isPlainObject(candidate?.professional) ||
+        isPlainObject(candidate?.professional_details) ||
+        isPlainObject(candidate?.address) ||
+        isPlainObject(candidate?.address_details) ||
+        isPlainObject(candidate?.documents) ||
+        isPlainObject(candidate?.document_details) ||
+        isPlainObject(candidate?.payment) ||
+        isPlainObject(candidate?.payment_details) ||
+        isPlainObject(candidate?.vehicle) ||
+        isPlainObject(candidate?.vehicle_details)
+    ) || responseData;
 
   const user = findFirstObjectByKeys(candidates, ['user', 'user_details', 'account', 'account_details']);
   const professional = findFirstObjectByKeys(candidates, ['professional', 'professional_details']);
@@ -594,7 +589,7 @@ const resolveProfilePayload = (responseData = {}) => {
 
   const normalizedUser = {
     ...normalizeAuthUser(user),
-    role: normalizeRoleValue(getRoleFromApiUser(user, payload)),
+    role: normalizeRoleValue(getRoleFromApiUser(user, source)),
   };
 
   return {
@@ -639,7 +634,11 @@ const resolveProfilePayload = (responseData = {}) => {
     ifscCode: payment?.ifsc_code || '',
     bankBranch: payment?.branch_name || '',
     paymentOtherDetails: payment?.other_details || '',
-    // Removed top-level document numbers to avoid confusion; always use nested values
+    // Document reference numbers — needed so the form pre-fills existing values.
+    panNumber: documents?.pan_card?.number || '',
+    aadhaarNumber: documents?.aadhaar_card?.number || '',
+    drivingLicenseNumber: documents?.driving_license?.number || '',
+    vehicleRcNumber: documents?.vehicle_rc?.number || '',
     panFileUrl: documents?.pan_card?.file_url || documents?.pan_card?.url || '',
     aadhaarFileUrl: documents?.aadhaar_card?.file_url || documents?.aadhaar_card?.url || '',
     drivingLicenseFileUrl: documents?.driving_license?.file_url || documents?.driving_license?.url || '',
@@ -1003,6 +1002,72 @@ export const apiGetOnboardingProgress = async (token) => {
     isProfileCompleted: Boolean(data?.is_profile_completed),
     sections: data?.sections || {},
     pendingDetails: data?.pending_details || {},
+  };
+};
+
+/**
+ * Fetch onboarding completion status for the logged-in partner.
+ * GET /auth/onboarding-status (auth-protected).
+ *
+ * Returns overall_percentage, is_complete / needs_resubmission booleans,
+ * a flat pending_fields list, and a per-section breakdown
+ * (professional, address, documents, vehicle). Payment details are excluded
+ * from this check. Non-partner users get onboarding_required: false at 100%.
+ *
+ * @param {string} [token]
+ * @returns {Promise<{
+ *   onboardingRequired: boolean,
+ *   overallPercentage: number,
+ *   isComplete: boolean,
+ *   needsResubmission: boolean,
+ *   pendingCount: number,
+ *   pendingFields: Array<{ section: string, key: string, label: string }>,
+ *   sections: object,
+ *   note: string,
+ * }>}
+ */
+export const apiGetOnboardingStatus = async (token) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY);
+
+  if (!authToken) {
+    throw new Error('Not authorized.');
+  }
+
+  let data;
+  try {
+    const response = await apiClient.get('/auth/onboarding-status', {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    data = response.data?.data || response.data || {};
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Could not fetch onboarding status.'));
+  }
+
+  const percentValue = Number(data?.overall_percentage);
+  const sections = data?.sections || {};
+
+  // Prefer the flat top-level pending_fields; otherwise flatten each section's
+  // own `pending` array, tagging items with their section name.
+  let pendingFields = Array.isArray(data?.pending_fields) ? data.pending_fields : [];
+  if (!pendingFields.length) {
+    pendingFields = Object.entries(sections).flatMap(([sectionKey, sec]) =>
+      (Array.isArray(sec?.pending) ? sec.pending : []).map((item) => ({
+        section: item.section || sectionKey,
+        key: item.key,
+        label: item.label,
+      }))
+    );
+  }
+
+  return {
+    onboardingRequired: data?.onboarding_required !== false,
+    overallPercentage: Number.isFinite(percentValue) ? percentValue : 0,
+    isComplete: Boolean(data?.is_complete),
+    needsResubmission: Boolean(data?.needs_resubmission),
+    pendingCount: Number(data?.pending_count) || pendingFields.length,
+    pendingFields,
+    sections,
+    note: data?.note || '',
   };
 };
 

@@ -1,16 +1,35 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import LoginPage from './pages/auth/LoginPage.jsx';
-import SignupPage from './pages/auth/SignupPage.jsx';
-import DashboardPage from './pages/dashboard/DashboardPage.jsx';
-import ProfileCompletion from './components/ProfileCompletion.jsx';
+
+// Route-level code splitting: each page ships in its own chunk so logging in
+// only downloads the screen being shown — the dashboard and the heavy PDF
+// engine no longer load behind the login page.
+const LoginPage = lazy(() => import('./pages/auth/LoginPage.jsx'));
+const SignupPage = lazy(() => import('./pages/auth/SignupPage.jsx'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage.jsx'));
+const ProfileCompletion = lazy(() => import('./components/ProfileCompletion.jsx'));
+
+const RouteFallback = () => (
+  <div
+    style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#64748b',
+    }}
+  >
+    Loading…
+  </div>
+);
 
 const App = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -49,6 +68,7 @@ const App = () => {
             }
           />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );

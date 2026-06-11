@@ -11,7 +11,7 @@ const setBodyBlur = (active) => {
 
 import React, { useEffect, useState, useRef } from 'react';
 import { fetchAuthProfilePayload } from '../../../../utils/api.js';
-import { apiVerifyPan, apiVerifyAadhaar } from '../../../../utils/api.js';
+import { apiVerifyPan, apiVerifyAadhaar, apiGetOnboardingStatus } from '../../../../utils/api.js';
 import { Button, Card } from '../../../../components/ui/index.js';
 import { useAuth } from '../../../../context/AuthContext.jsx';
 
@@ -325,6 +325,281 @@ const inputStyle = {
 };
 // ────────────────────────────────────────────────────────────────────────────
 
+// ─── Onboarding Completion Status Card ──────────────────────────────────────
+const SECTION_LABELS = {
+  professional: 'Professional',
+  address: 'Address',
+  documents: 'Documents',
+  vehicle: 'Vehicle',
+};
+
+const SECTION_ICONS = {
+  professional: '👤',
+  address: '📍',
+  documents: '📄',
+  vehicle: '🚗',
+};
+
+// Humanize a status-map key (e.g. "passport_size_photo" → "Passport Size Photo").
+const humanizeKey = (key) =>
+  String(key || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+const ProgressBar = ({ percentage, color }) => (
+  <div style={{ background: '#e8edf2', borderRadius: 999, height: 6, overflow: 'hidden', width: '100%' }}>
+    <div
+      style={{
+        width: `${Math.max(0, Math.min(100, Number(percentage) || 0))}%`,
+        height: '100%',
+        background: color,
+        borderRadius: 999,
+        transition: 'width 0.4s ease',
+      }}
+    />
+  </div>
+);
+
+// Circular progress ring used in the card header.
+const ProgressRing = ({ percentage, color, size = 72 }) => {
+  const pct = Math.max(0, Math.min(100, Number(percentage) || 0));
+  const stroke = 7;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (pct / 100) * circumference;
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#eef1f4" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+        />
+      </svg>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1rem',
+          fontWeight: 800,
+          color,
+        }}
+      >
+        {pct}%
+      </div>
+    </div>
+  );
+};
+
+const OnboardingStatusCard = ({ status, navigate }) => {
+  const {
+    overallPercentage = 0,
+    isComplete = false,
+    needsResubmission = false,
+    pendingFields = [],
+    sections = {},
+    note = '',
+  } = status || {};
+
+  const accent = isComplete ? '#27ae60' : needsResubmission ? '#e67e22' : '#2d72d2';
+  const sectionEntries = Object.entries(sections);
+
+  // First section that still needs attention — used to deep-link the user straight
+  // into the right step of the profile-completion form (data is auto-filled there).
+  const firstIncompleteSection =
+    sectionEntries.find(([, sec]) => !sec?.is_complete)?.[0] || pendingFields[0]?.section || null;
+
+  // Jump into the completion form, optionally focusing a specific section.
+  const goToCompletion = (section) =>
+    navigate('/profile-completion', section ? { state: { focusSection: section } } : undefined);
+
+  return (
+    <Card padding="md" shadow="sm" className="profile-details-card profile-details-card--wide" style={{ marginBottom: 18 }}>
+      {/* Header: ring + title */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+        <ProgressRing percentage={overallPercentage} color={accent} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h3 className="card-section-title" style={{ margin: 0 }}>Onboarding Completion</h3>
+          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#666' }}>
+            {isComplete
+              ? 'All required onboarding details are complete.'
+              : needsResubmission
+                ? 'Some required details are missing — please re-upload to continue.'
+                : 'Your onboarding is in progress.'}
+          </p>
+          {isComplete && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                marginTop: 8,
+                background: '#e8f7ee',
+                color: '#27ae60',
+                borderRadius: 999,
+                padding: '3px 12px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+              }}
+            >
+              ✓ All set
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Per-section breakdown — compact tiles */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+          gap: 12,
+          marginTop: 18,
+        }}
+      >
+        {sectionEntries.map(([key, sec]) => {
+          const pct = Number(sec?.percentage) || 0;
+          const secComplete = Boolean(sec?.is_complete);
+          const barColor = secComplete ? '#27ae60' : pct > 0 ? '#2d72d2' : '#c0392b';
+          const completed = Number(sec?.completed) || 0;
+          const total = Number(sec?.total) || 0;
+          // Per-field status map: { field_key: true|false }. Build labels from the
+          // section's own pending list when available, else humanize the key.
+          const statusMap = sec?.status && typeof sec.status === 'object' ? sec.status : null;
+          const pendingLabels = (Array.isArray(sec?.pending) ? sec.pending : []).reduce(
+            (acc, item) => { if (item?.key) acc[item.key] = item.label; return acc; },
+            {}
+          );
+          // Keep it short: when the section is complete, don't list every field —
+          // only surface the fields that still need attention.
+          const pendingEntries = statusMap
+            ? Object.entries(statusMap).filter(([, submitted]) => !submitted)
+            : [];
+
+          return (
+            <div
+              key={key}
+              style={{
+                border: `1px solid ${secComplete ? '#e1f0e7' : '#eef1f4'}`,
+                borderRadius: 12,
+                padding: '14px 16px',
+                background: secComplete ? '#fafdfb' : '#fafbfc',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: '1.05rem', lineHeight: 1 }}>{SECTION_ICONS[key] || '•'}</span>
+                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a2e', flex: 1, minWidth: 0 }}>
+                  {SECTION_LABELS[key] || key}
+                </span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: barColor, whiteSpace: 'nowrap' }}>
+                  {secComplete ? '✓ ' : ''}{pct}%
+                </span>
+              </div>
+
+              <ProgressBar percentage={pct} color={barColor} />
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                <span style={{ fontSize: '0.76rem', color: '#90a4ae' }}>
+                  {completed} / {total} fields
+                </span>
+                {secComplete && (
+                  <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#3c7a52' }}>Complete</span>
+                )}
+              </div>
+
+              {/* Only show fields that still need attention (keeps the card short) */}
+              {pendingEntries.length > 0 && (
+                <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'grid', gap: 4 }}>
+                  {pendingEntries.map(([fieldKey]) => (
+                    <li
+                      key={fieldKey}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: '0.77rem',
+                        color: '#c0392b',
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, width: 12, flexShrink: 0 }}>○</span>
+                      {pendingLabels[fieldKey] || humanizeKey(fieldKey)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Flat pending fields list */}
+      {pendingFields.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#c0392b', marginBottom: 8 }}>
+            Pending fields ({pendingFields.length})
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {pendingFields.map((field, idx) => (
+              <button
+                key={`${field.section}-${field.key}-${idx}`}
+                type="button"
+                onClick={() => goToCompletion(field.section)}
+                title="Click to complete this field"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#fff3f0',
+                  border: '1px solid #f5d6cd',
+                  color: '#c0392b',
+                  borderRadius: 999,
+                  padding: '4px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span style={{ color: '#90a4ae', fontWeight: 400 }}>
+                  {SECTION_LABELS[field.section] || field.section}:
+                </span>
+                {field.label || field.key}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Resubmission CTA — jumps straight to the first incomplete section */}
+      {needsResubmission && (
+        <div style={{ marginTop: 16 }}>
+          <Button size="sm" onClick={() => goToCompletion(firstIncompleteSection)}>
+            Re-upload missing details
+          </Button>
+        </div>
+      )}
+
+      {note && (
+        <p style={{ margin: '14px 0 0', fontSize: '0.76rem', color: '#90a4ae', fontStyle: 'italic' }}>
+          {note}
+        </p>
+      )}
+    </Card>
+  );
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 
 const ProfileSection = ({
   profileCompletion,
@@ -356,6 +631,8 @@ const ProfileSection = ({
 
   const [verifyError, setVerifyError] = useState('');
   const [editDocFields, setEditDocFields] = useState(false);
+  // Onboarding completion status (GET /auth/onboarding-status)
+  const [onboardingStatus, setOnboardingStatus] = useState(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -374,6 +651,22 @@ const ProfileSection = ({
       }
     };
     fetchProfile();
+  }, [user, authLoading]);
+
+  // Fetch onboarding completion status separately (payment excluded by API)
+  useEffect(() => {
+    if (authLoading || !user) return;
+    let active = true;
+    (async () => {
+      try {
+        const status = await apiGetOnboardingStatus();
+        if (active) setOnboardingStatus(status);
+      } catch {
+        // Non-blocking — onboarding status is informational only.
+        if (active) setOnboardingStatus(null);
+      }
+    })();
+    return () => { active = false; };
   }, [user, authLoading]);
 
   if (authLoading || !user || !user.id) {
@@ -680,7 +973,7 @@ const ProfileSection = ({
           <div>
             <p className="dashboard-kicker">My Profile</p>
             <h2 className="card-section-title">All fetched account details</h2>
-            <p className="dashboard-subtitle">View your auth and onboarding profile data in one place.</p>
+            <p className="dashboard-subtitle">View your onboarding profile data in one place.</p>
           </div>
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -692,12 +985,39 @@ const ProfileSection = ({
             >
               + Submit Payment
             </Button>
-            <Button size="sm" onClick={() => navigate('/profile-completion')}>
-              Update Profile
-            </Button>
+            {(Number(profileCompletion) >= 100
+              || onboardingStatus?.isComplete
+              || Number(onboardingStatus?.overallPercentage) >= 100) ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#e8f7ee',
+                  border: '1px solid #27ae60',
+                  color: '#27ae60',
+                  borderRadius: 8,
+                  padding: '6px 14px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'default',
+                }}
+              >
+                ✓ Completed
+              </span>
+            ) : (
+              <Button size="sm" onClick={() => navigate('/profile-completion')}>
+                Update Profile
+              </Button>
+            )}
           </div>
         </div>
       </Card>
+
+      {/* Onboarding Completion Status (payment excluded — see API note) */}
+      {onboardingStatus && onboardingStatus.onboardingRequired && (
+        <OnboardingStatusCard status={onboardingStatus} navigate={navigate} />
+      )}
 
       <div className="profile-cards-grid">
         <Card padding="md" shadow="sm" className="profile-details-card">
