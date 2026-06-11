@@ -682,6 +682,49 @@
   word-break: break-word;
 }
 
+/* ─── Generated documents (agreement / certificate) ───────────────────────── */
+.documents-block {
+  margin-top: 18px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+}
+
+.documents-block__title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.document-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.document-row + .document-row {
+  border-top: 1px solid #f1f5f9;
+}
+
+.document-row__label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+.document-row__message {
+  color: #64748b;
+  font-size: 13px;
+  text-align: right;
+}
+
+.document-row .approvals-action-btn.view {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 /* ─── Responsive breakpoints ───────────────────────────────────────────────── */
 
 /* Tablet: tighten table padding */

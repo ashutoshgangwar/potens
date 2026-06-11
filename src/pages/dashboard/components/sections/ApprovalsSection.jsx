@@ -194,6 +194,28 @@ const ApprovalsSection = () => {
     return <span className={cls}>{status || "pending"}</span>;
   };
 
+  // Renders a generated document: a View/Download link when the URL is ready,
+  // otherwise the status message explaining which step is still blocking it.
+  const DocumentRow = ({ label, url, message }) => (
+    <div className="document-row">
+      <span className="document-row__label">{label}</span>
+      {url ? (
+        <a
+          className="approvals-action-btn view"
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View / Download
+        </a>
+      ) : (
+        <span className="document-row__message">
+          {message || "Not available yet."}
+        </span>
+      )}
+    </div>
+  );
+
   const PartnerActions = ({ p }) => (
     <>
       <button
@@ -634,8 +656,35 @@ const ApprovalsSection = () => {
                     )}
                   </td>
                 </tr>
+
+                <tr>
+                  <td className="detail-table__label">Payment Approval</td>
+                  <td className="detail-table__value">
+                    {selectedPartner.payment_approval_status ? (
+                      <StatusBadge
+                        status={selectedPartner.payment_approval_status}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                </tr>
               </tbody>
             </table>
+
+            <div className="documents-block">
+              <h4 className="documents-block__title">Documents</h4>
+              <DocumentRow
+                label="Agreement"
+                url={selectedPartner.agreement_url}
+                message={selectedPartner.agreement_message}
+              />
+              <DocumentRow
+                label="Certificate"
+                url={selectedPartner.certificate_url}
+                message={selectedPartner.certificate_message}
+              />
+            </div>
 
             <button
               onClick={handleCloseModal}
