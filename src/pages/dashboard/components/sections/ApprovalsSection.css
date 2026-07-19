@@ -821,3 +821,14 @@
     font-size: 13px;
   }
 }
+/* Fully-paid marker used in the Pending column / card row */
+.paid-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #edfaf3;
+  color: #1a7f4b;
+  white-space: nowrap;
+}

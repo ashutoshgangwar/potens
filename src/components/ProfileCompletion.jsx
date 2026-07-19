@@ -3,7 +3,7 @@ import { apiGetBowserCapacities } from '../utils/apiBowserCapacities.js';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import useForm from '../hooks/useForm.js';
-import { apiGetProfileDetails, fetchAuthProfilePayload } from '../utils/api.js';
+import { apiGetProfileDetails, fetchAuthProfilePayload, apiSaveSalePrice } from '../utils/api.js';
 import { apiGenerateAgreementPdf, apiGenerateCertificatePdf } from '../utils/api.js';
 import { STATE_DISTRICT_DATA } from '../constants/stateDistrictData.js';
 import './ProfileCompletion.css';
@@ -135,6 +135,14 @@ const PROFILE_STEPS = [
             label: 'Investment Plan',
             type: 'text',
             placeholder: 'Example: 5-10 lakh',
+            required: true,
+          },
+          {
+            name: 'salePrice',
+            label: 'Sale Price (₹)',
+            type: 'number',
+            // Whole number only — no currency symbols or commas in the value sent.
+            placeholder: '100000',
             required: true,
           },
         ],
@@ -571,6 +579,14 @@ const validateProfileField = (field, value, allValues = {}, currentRole = '') =>
     }
     case 'investmentPlan':
       return trimmedValue.length >= 3 ? '' : 'Investment plan is required.';
+    case 'salePrice': {
+      // Backend rejects anything non-positive with a 400, so mirror that here.
+      const salePrice = Number(trimmedValue);
+      if (!Number.isFinite(salePrice) || salePrice <= 0) {
+        return 'Sale price must be a positive number.';
+      }
+      return Number.isInteger(salePrice) ? '' : 'Sale price must be a whole number.';
+    }
     case 'bankAccountNumber':
       return /^\d{9,18}$/.test(trimmedValue) ? '' : 'Account number must be 9 to 18 digits.';
     case 'ifscCode':
@@ -1288,6 +1304,13 @@ const ProfileCompletion = () => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Onboarding failed.');
+
+      // Sale price lives on the User document and is persisted by
+      // completeProfile, NOT by /auth/onboard — which ignores the field. It
+      // therefore needs its own call, sent as a sale_price-only submission.
+      if (normalizeValue(values.salePrice)) {
+        await apiSaveSalePrice({ token, salePrice: values.salePrice });
+      }
 
       setCompletedSteps(
         getCompletedStepIndexes(values, currentUserRole, paymentStepManuallyCompleted)

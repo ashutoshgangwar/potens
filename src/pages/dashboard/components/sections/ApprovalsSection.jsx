@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { apiGetPartners } from "../../../../utils/api";
 import { apiApprovePartner } from "../../../../utils/api";
 import { apiGetPdfStatsCounts } from "../../../../utils/api";
+import { apiSetUserSalePrice } from "../../../../utils/api";
 import { useAuth } from "../../../../context/AuthContext";
 import "./ApprovalsSection.css";
 
@@ -26,6 +27,29 @@ const CrossIcon = () => (
   <img src="/cross-circle.svg" alt="" aria-hidden="true" className="icon-btn__img" />
 );
 
+const formatAmount = (amt) => {
+  if (amt === undefined || amt === null || amt === "") return "-";
+  return `₹${Number(amt).toLocaleString("en-IN")}`;
+};
+
+// sale_price / paid_amount / pending_amount come flat off the partner record,
+// but fall back to payment_summary for the set-sale-price response shape.
+const getPaymentFigures = (p) => ({
+  salePrice: p?.sale_price ?? p?.payment_summary?.sale_price ?? null,
+  paidAmount: p?.paid_amount ?? p?.payment_summary?.paid_amount ?? null,
+  pendingAmount: p?.pending_amount ?? p?.payment_summary?.pending_amount ?? null,
+  isFullyPaid: p?.is_fully_paid ?? p?.payment_summary?.is_fully_paid ?? false,
+});
+
+const PendingAmount = ({ partner }) => {
+  const { pendingAmount, isFullyPaid, salePrice } = getPaymentFigures(partner);
+  if (salePrice === null || salePrice === undefined) return "-";
+  if (isFullyPaid || Number(pendingAmount) === 0) {
+    return <span className="paid-pill">Fully paid</span>;
+  }
+  return <span style={{ color: "#b45309", fontWeight: 600 }}>{formatAmount(pendingAmount)}</span>;
+};
+
 const ApprovalsSection = () => {
   const { token } = useAuth();
   const [partners, setPartners] = useState([]);
@@ -42,6 +66,11 @@ const ApprovalsSection = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pdfStats, setPdfStats] = useState(null);
+  // Sale price — the total a partner owes; installments are paid against it.
+  const [salePriceModal, setSalePriceModal] = useState({ open: false, partner: null });
+  const [salePriceValue, setSalePriceValue] = useState("");
+  const [salePriceLoading, setSalePriceLoading] = useState(false);
+  const [salePriceError, setSalePriceError] = useState("");
 
   const fetchPdfStats = async () => {
     try {
@@ -113,6 +142,59 @@ const ApprovalsSection = () => {
       setError(err.message || "Failed to process action");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const openSalePriceModal = (partner) => {
+    setSalePriceModal({ open: true, partner });
+    setSalePriceValue(
+      partner?.payment_summary?.sale_price ?? partner?.sale_price ?? ""
+    );
+    setSalePriceError("");
+  };
+
+  const closeSalePriceModal = () => {
+    setSalePriceModal({ open: false, partner: null });
+    setSalePriceValue("");
+    setSalePriceError("");
+  };
+
+  const handleSetSalePrice = async () => {
+    const partner = salePriceModal.partner;
+    if (!partner) return;
+
+    const numericValue = Number(salePriceValue);
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      setSalePriceError("sale_price must be a positive number.");
+      return;
+    }
+
+    setSalePriceLoading(true);
+    setSalePriceError("");
+    try {
+      const result = await apiSetUserSalePrice({
+        token,
+        userId: partner._id,
+        salePrice: numericValue,
+      });
+
+      // Reflect the new summary in the list without a full refetch.
+      setPartners((prev) =>
+        prev.map((p) =>
+          p._id === partner._id
+            ? {
+                ...p,
+                sale_price: numericValue,
+                payment_summary: result.paymentSummary ?? p.payment_summary,
+              }
+            : p
+        )
+      );
+      closeSalePriceModal();
+    } catch (err) {
+      setSalePriceError(err.message || "Failed to update sale price.");
+    } finally {
+      setSalePriceLoading(false);
     }
   };
 
@@ -278,6 +360,15 @@ const ApprovalsSection = () => {
         <EyeIcon />
       </button>
 
+      <button
+        className="icon-btn icon-btn--view"
+        title="Set sale price"
+        aria-label="Set sale price"
+        onClick={() => openSalePriceModal(p)}
+      >
+        ₹
+      </button>
+
       {p.approval_status === "approved" ? (
         <span className="status-tag status-tag--approved">Approved</span>
       ) : p.approval_status === "rejected" ? (
@@ -408,6 +499,9 @@ const ApprovalsSection = () => {
                   <th>Role</th>
                   <th>Status</th>
                   <th>City</th>
+                  <th>Sale Price</th>
+                  <th>Paid</th>
+                  <th>Pending</th>
                   <th>Field Officer</th>
                   <th>Reviewed By</th>
                   <th>Actions</th>
@@ -426,6 +520,9 @@ const ApprovalsSection = () => {
                       <StatusBadge status={p.approval_status} />
                     </td>
                     <td>{getCity(p)}</td>
+                    <td>{formatAmount(getPaymentFigures(p).salePrice)}</td>
+                    <td>{formatAmount(getPaymentFigures(p).paidAmount)}</td>
+                    <td><PendingAmount partner={p} /></td>
                     <td>{p.field_officer_name || "-"}</td>
                     <td>{p.approved_by || "-"}</td>
                     <td className="actions-cell">
@@ -469,6 +566,24 @@ const ApprovalsSection = () => {
                     <span className="partner-card__meta-label">City</span>
                     <span className="partner-card__meta-value">
                       {getCity(p)}
+                    </span>
+                  </div>
+                  <div className="partner-card__meta-row">
+                    <span className="partner-card__meta-label">Sale Price</span>
+                    <span className="partner-card__meta-value">
+                      {formatAmount(getPaymentFigures(p).salePrice)}
+                    </span>
+                  </div>
+                  <div className="partner-card__meta-row">
+                    <span className="partner-card__meta-label">Paid</span>
+                    <span className="partner-card__meta-value">
+                      {formatAmount(getPaymentFigures(p).paidAmount)}
+                    </span>
+                  </div>
+                  <div className="partner-card__meta-row">
+                    <span className="partner-card__meta-label">Pending</span>
+                    <span className="partner-card__meta-value">
+                      <PendingAmount partner={p} />
                     </span>
                   </div>
                    <div className="partner-card__meta-row">
@@ -562,6 +677,45 @@ const ApprovalsSection = () => {
               </button>
             </div>
             {error && <p className="modal-error">{error}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sale price modal (approver role) ── */}
+      {salePriceModal.open && (
+        <div className="modal-overlay" onClick={closeSalePriceModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Set sale price</h3>
+            <p className="modal-body">
+              Total sale price for <b>{salePriceModal.partner?.full_name}</b>.
+              Payments are recorded as installments against this amount.
+            </p>
+            <input
+              type="number"
+              className="modal-textarea"
+              style={{ minHeight: "auto", height: 42, resize: "none" }}
+              placeholder="e.g. 100000"
+              min="1"
+              value={salePriceValue}
+              onChange={(e) => setSalePriceValue(e.target.value)}
+              disabled={salePriceLoading}
+            />
+            <div className="modal-footer">
+              <button
+                className="approvals-action-btn approve"
+                onClick={handleSetSalePrice}
+                disabled={salePriceLoading || !`${salePriceValue}`.trim()}
+              >
+                {salePriceLoading ? "Saving..." : "Save"}
+              </button>
+              <button
+                className="approvals-action-btn view"
+                onClick={closeSalePriceModal}
+              >
+                Cancel
+              </button>
+            </div>
+            {salePriceError && <p className="modal-error">{salePriceError}</p>}
           </div>
         </div>
       )}

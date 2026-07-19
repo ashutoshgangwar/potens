@@ -11,7 +11,13 @@ const setBodyBlur = (active) => {
 
 import React, { useEffect, useState, useRef } from 'react';
 import { fetchAuthProfilePayload } from '../../../../utils/api.js';
-import { apiVerifyPan, apiVerifyAadhaar, apiGetOnboardingStatus } from '../../../../utils/api.js';
+import {
+  apiVerifyPan,
+  apiVerifyAadhaar,
+  apiGetOnboardingStatus,
+  apiGetOnboardingProgress,
+  apiSubmitPayment,
+} from '../../../../utils/api.js';
 import { Button, Card } from '../../../../components/ui/index.js';
 import { useAuth } from '../../../../context/AuthContext.jsx';
 
@@ -24,7 +30,23 @@ const getDisplayValue = (value, fallback = 'Not provided') => {
   return normalized || fallback;
 };
 
+// Whole-rupee display; `null` pending/sale price (legacy users) renders as "—".
+const formatMoney = (value) =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? `₹${value.toLocaleString('en-IN')}`
+    : '—';
+
+const PAYMENT_STATUS_COLORS = {
+  approved: '#27ae60',
+  rejected: '#c0392b',
+  pending: '#e67e22',
+};
+
+const statusColor = (status) => PAYMENT_STATUS_COLORS[String(status || '').toLowerCase()] || '#607d8b';
+
 // ─── Payment Modal Component ────────────────────────────────────────────────
+// Drives entirely off `payment_summary`: displays the pending amount and gates
+// the submit button on `can_add_payment`. Each submit creates a NEW installment.
 const PaymentModal = ({ onClose, accessToken }) => {
   const [utr, setUtr] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
@@ -35,7 +57,48 @@ const PaymentModal = ({ onClose, accessToken }) => {
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null); // { success, message }
+  const [summary, setSummary] = useState(null);
+  const [installments, setInstallments] = useState([]);
+  const [summaryLoading, setSummaryLoading] = useState(true);
   const fileInputRef = useRef(null);
+
+  // Load the summary + installment history when the modal opens.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const progress = await apiGetOnboardingProgress(accessToken);
+        if (!active) return;
+        setSummary(progress.paymentSummary);
+        setInstallments(progress.crewPaymentDetails || []);
+      } catch {
+        // Non-blocking: without a summary the form falls back to "no known
+        // pending cap" and lets the backend do the authoritative validation.
+        if (active) setSummary(null);
+      } finally {
+        if (active) setSummaryLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [accessToken]);
+
+  const salePrice = summary?.salePrice ?? null;
+  const pendingAmount = summary?.pendingAmount ?? null;
+  // Legacy users with no sale price set have a null pending amount and stay
+  // enabled — an admin sets their price separately.
+  const canAddPayment = summary ? summary.canAddPayment : true;
+
+  const amountValue = Number(amount);
+  const hasAmount = `${amount}`.trim() !== '' && Number.isFinite(amountValue);
+  const exceedsPending =
+    hasAmount && typeof pendingAmount === 'number' && amountValue > pendingAmount;
+  const amountError = !hasAmount
+    ? ''
+    : amountValue <= 0
+      ? 'Amount must be greater than 0.'
+      : exceedsPending
+        ? `Amount cannot exceed the pending amount (${formatMoney(pendingAmount)}).`
+        : '';
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -53,34 +116,28 @@ const PaymentModal = ({ onClose, accessToken }) => {
       return;
     }
 
+    if (amountError) {
+      setSubmitResult({ success: false, message: amountError });
+      return;
+    }
+
     setSubmitting(true);
     setSubmitResult(null);
 
     try {
-      const formData = new FormData();
-      formData.append('utr', utr.trim());
-      formData.append('accountNumber', accountNumber.trim());
-      formData.append('amount', Number(amount));
-      formData.append('screenshot', screenshot);
-      formData.append('bank_name', bankName.trim());
-      formData.append('payment_date', paymentDate);
-      const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-      const res = await fetch(`${BASE_URL}/api/payment/submit`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          // Do NOT set Content-Type for multipart/form-data; browser sets it automatically
-        },
-        body: formData,
+      const result = await apiSubmitPayment({
+        token: accessToken,
+        utr,
+        accountNumber,
+        amount,
+        bankName,
+        paymentDate,
+        screenshot,
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (res.ok) {
-        setSubmitResult({ success: true, message: data?.message || 'Payment submitted successfully!' });
-      } else {
-        setSubmitResult({ success: false, message: data?.message || `Error: ${res.status} ${res.statusText}` });
-      }
+      // Refresh the UI from the summary the server just recalculated.
+      if (result.paymentSummary) setSummary(result.paymentSummary);
+      setSubmitResult({ success: true, message: result.message });
     } catch (err) {
       setSubmitResult({ success: false, message: err.message || 'Payment submission failed.' });
     } finally {
@@ -95,6 +152,8 @@ const PaymentModal = ({ onClose, accessToken }) => {
       onClose();
     }
   };
+
+  const submitDisabled = submitting || summaryLoading || !canAddPayment || Boolean(amountError);
 
   return (
     <div
@@ -140,9 +199,105 @@ const PaymentModal = ({ onClose, accessToken }) => {
         <h4 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 700, color: '#1a1a2e' }}>
           Submit Payment
         </h4>
-        <p style={{ margin: '0 0 20px', fontSize: '0.85rem', color: '#666' }}>
+        <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: '#666' }}>
           Fill in your payment details and upload a screenshot proof.
         </p>
+
+        {/* ── Payment summary — drives the pending amount and the submit gate ── */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 1,
+            background: '#e8edf2',
+            border: '1px solid #e8edf2',
+            borderRadius: 10,
+            overflow: 'hidden',
+            marginBottom: 14,
+          }}
+        >
+          {[
+            { label: 'Sale Price', value: salePrice === null ? 'Not set' : formatMoney(salePrice), color: '#1a1a2e' },
+            { label: 'Total Paid', value: formatMoney(summary?.totalPaid ?? 0), color: '#1a7f4b' },
+            {
+              label: 'Pending',
+              value: pendingAmount === null ? '—' : formatMoney(pendingAmount),
+              color: pendingAmount === 0 ? '#1a7f4b' : '#c0392b',
+            },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: '#fff', padding: '10px 12px', minWidth: 0 }}>
+              <div style={{ fontSize: '0.72rem', color: '#90a4ae', fontWeight: 600, marginBottom: 3 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color, wordBreak: 'break-word' }}>
+                {summaryLoading ? '…' : value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Fully paid — the backend rejects further installments, so say so up front */}
+        {!summaryLoading && !canAddPayment && (
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: 8,
+              background: '#edfaf3',
+              color: '#1a7f4b',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              marginBottom: 14,
+            }}
+          >
+            ✓ The full sale price has already been paid. No further payments are needed.
+          </div>
+        )}
+
+        {/* ── Installment history (newest first) ── */}
+        {installments.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#444', marginBottom: 8 }}>
+              Payment history ({installments.length})
+            </div>
+            <div style={{ maxHeight: 168, overflowY: 'auto', display: 'grid', gap: 6 }}>
+              {installments.map((item, idx) => (
+                <div
+                  key={item.id || idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    padding: '8px 12px',
+                    border: '1px solid #eef1f4',
+                    borderRadius: 8,
+                    background: '#fafbfc',
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1a1a2e' }}>
+                      {formatMoney(item.amount)}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#90a4ae' }}>
+                      {item.paymentDate ? new Date(item.paymentDate).toLocaleDateString('en-IN') : '—'}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: statusColor(item.approvalStatus || item.status),
+                      textTransform: 'capitalize',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.approvalStatus || item.status || 'pending'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {submitResult ? (
           <div>
@@ -197,18 +352,24 @@ const PaymentModal = ({ onClose, accessToken }) => {
               />
             </div>
 
-            {/* Amount */}
+            {/* Amount — capped at the pending amount when one is known */}
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Amount (₹) <span style={{ color: 'red' }}>*</span></label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount"
+                placeholder={pendingAmount === null ? 'Enter amount' : `Up to ${pendingAmount}`}
                 min="1"
-                style={inputStyle}
-                disabled={submitting}
+                max={pendingAmount === null ? undefined : pendingAmount}
+                style={amountError ? { ...inputStyle, border: '1px solid #c0392b' } : inputStyle}
+                disabled={submitting || !canAddPayment}
               />
+              {amountError && (
+                <p style={{ margin: '5px 0 0', fontSize: '0.78rem', color: '#c0392b' }}>
+                  {amountError}
+                </p>
+              )}
             </div>
 
             {/* Bank Name */}
@@ -280,22 +441,26 @@ const PaymentModal = ({ onClose, accessToken }) => {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitDisabled}
               style={{
                 width: '100%',
                 padding: '11px 0',
-                background: submitting ? '#90a4ae' : '#2d72d2',
+                background: submitDisabled ? '#90a4ae' : '#2d72d2',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 6,
                 fontWeight: 600,
                 fontSize: '1rem',
-                cursor: submitting ? 'not-allowed' : 'pointer',
+                cursor: submitDisabled ? 'not-allowed' : 'pointer',
                 letterSpacing: 0.3,
                 transition: 'background 0.2s',
               }}
             >
-              {submitting ? 'Submitting…' : 'Submit Payment'}
+              {submitting
+                ? 'Submitting…'
+                : !canAddPayment
+                  ? 'Fully Paid'
+                  : 'Save Payment'}
             </button>
           </form>
         )}

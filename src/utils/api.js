@@ -213,6 +213,40 @@ const normalizeNumericValue = (value) => {
   return Number.isFinite(parsedValue) ? parsedValue : null;
 };
 
+// Normalize the backend `payment_summary` block — the single source of truth
+// for the payment UI. `salePrice`/`pendingAmount` stay null for legacy users
+// with no sale price set; the UI shows those as "Not set" and keeps the form
+// enabled (an admin sets their price separately).
+const normalizePaymentSummary = (summary) => {
+  if (!isPlainObject(summary)) {
+    return null;
+  }
+
+  return {
+    salePrice: normalizeNumericValue(summary.sale_price),
+    totalPaid: normalizeNumericValue(summary.total_paid) ?? 0,
+    pendingAmount: normalizeNumericValue(summary.pending_amount),
+    isFullyPaid: Boolean(summary.is_fully_paid),
+    // Absent flag is treated as "allowed" so a stale backend can't lock the form.
+    canAddPayment: summary.can_add_payment !== false,
+  };
+};
+
+// One installment record from `crew_payment_details` (newest first).
+const normalizeCrewPayment = (payment = {}) => ({
+  ...payment,
+  id: payment.id || payment._id || '',
+  amount: normalizeNumericValue(payment.amount),
+  paymentDate: payment.payment_date || payment.paymentDate || payment.created_at || '',
+  status: payment.status || '',
+  approvalStatus: payment.approval_status || payment.approvalStatus || '',
+  utr: payment.utr || payment.transaction_number || '',
+  bankName: payment.bank_name || payment.bankName || '',
+});
+
+const normalizeCrewPaymentList = (payments) =>
+  Array.isArray(payments) ? payments.map(normalizeCrewPayment) : [];
+
 const buildAddressPayload = (prefix, details) => ({
   address_line1: details[`${prefix}AddressLine1`],
   address_line2: details[`${prefix}AddressLine2`],
@@ -587,6 +621,17 @@ const normalizeProfileResponse = (responseData = {}) => {
   const permanentAddress = address?.permanent_address || {};
   const businessAddress = address?.business_address || {};
 
+  // Sale price can arrive either as a top-level field or inside payment_summary.
+  const summarySource = findFirstObjectByKeys(candidates, ['payment_summary']);
+  const paymentSummary = Object.keys(summarySource).length
+    ? normalizePaymentSummary(summarySource)
+    : null;
+  const salePriceValue = pickFirstDefined(
+    summarySource?.sale_price,
+    source?.sale_price,
+    payment?.sale_price
+  );
+
   const normalizedUser = {
     ...normalizeAuthUser(user),
     role: normalizeRoleValue(getRoleFromApiUser(user, source)),
@@ -599,7 +644,10 @@ const normalizeProfileResponse = (responseData = {}) => {
     documents,
     payment,
     vehicle,
+    paymentSummary,
     updatedAt: normalizedUser?.updatedAt || new Date().toISOString(),
+    // Flat key the ProfileCompletion form binds to (pre-fills on re-upload).
+    salePrice: salePriceValue ?? '',
     fullName: professional?.full_name || normalizedUser?.name || '',
     fatherName: professional?.father_name || '',
     dob: normalizeDobValue(professional?.dob),
@@ -1002,6 +1050,158 @@ export const apiGetOnboardingProgress = async (token) => {
     isProfileCompleted: Boolean(data?.is_profile_completed),
     sections: data?.sections || {},
     pendingDetails: data?.pending_details || {},
+    paymentSummary: normalizePaymentSummary(data?.payment_summary),
+    crewPaymentDetails: normalizeCrewPaymentList(data?.crew_payment_details),
+  };
+};
+
+/**
+ * Submit one installment payment.
+ * POST /api/payment/submit (multipart/form-data)
+ *
+ * Each call creates a NEW installment record — it is never an edit of a
+ * previous one. The response carries the recalculated payment_summary, so the
+ * caller should drive the UI off the returned summary rather than re-fetching.
+ *
+ * @param {{
+ *   token?: string,
+ *   utr: string,
+ *   accountNumber: string,
+ *   amount: number|string,
+ *   bankName: string,
+ *   paymentDate: string,
+ *   screenshot: File,
+ * }} params
+ * @returns {Promise<{ message: string, paymentSummary: object|null, payment: object|null }>}
+ */
+export const apiSubmitPayment = async ({
+  token,
+  utr,
+  accountNumber,
+  amount,
+  bankName,
+  paymentDate,
+  screenshot,
+} = {}) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  if (!authToken) {
+    throw new Error('Not authorized.');
+  }
+
+  const formData = new FormData();
+  formData.append('utr', `${utr ?? ''}`.trim());
+  formData.append('accountNumber', `${accountNumber ?? ''}`.trim());
+  formData.append('amount', Number(amount));
+  formData.append('bank_name', `${bankName ?? ''}`.trim());
+  formData.append('payment_date', paymentDate);
+  if (screenshot) {
+    formData.append('screenshot', screenshot);
+  }
+
+  let data;
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/payment/submit`, formData, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        // Do NOT set Content-Type — the browser adds the multipart boundary.
+      },
+    });
+    data = response.data;
+  } catch (error) {
+    // Surfaces the backend's own 400s verbatim, e.g. "Full sale price is
+    // already paid…" and "Amount (…) cannot exceed the pending amount (…)".
+    throw new Error(getApiErrorMessage(error, 'Payment submission failed.'));
+  }
+
+  const payload = data?.data || data || {};
+
+  return {
+    message: data?.message || 'Payment submitted successfully.',
+    paymentSummary: normalizePaymentSummary(payload?.payment_summary),
+    payment: payload?.payment || payload?.crew_payment || null,
+  };
+};
+
+/**
+ * Save the logged-in partner's own total sale price.
+ * POST /api/crew/profile (completeProfile)
+ *
+ * NOTE: this must be its own call — /auth/onboard ignores `sale_price`
+ * entirely. completeProfile explicitly supports a sale_price-only submission
+ * (no other section supplied) and responds with the recalculated summary.
+ *
+ * @param {{ token?: string, salePrice: number|string }} params
+ * @returns {Promise<{ message: string, paymentSummary: object|null }>}
+ */
+export const apiSaveSalePrice = async ({ token, salePrice } = {}) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  if (!authToken) {
+    throw new Error('Not authorized.');
+  }
+
+  const numericSalePrice = Number(salePrice);
+  if (!Number.isFinite(numericSalePrice) || numericSalePrice <= 0) {
+    throw new Error('sale_price must be a positive number.');
+  }
+
+  let data;
+  try {
+    const response = await apiClient.post(
+      '/crew/profile',
+      { sale_price: numericSalePrice },
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    data = response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Failed to save sale price.'));
+  }
+
+  return {
+    message: data?.message || 'Sale price saved.',
+    paymentSummary: normalizePaymentSummary(data?.payment_summary || data?.data?.payment_summary),
+  };
+};
+
+/**
+ * Set a partner's total sale price (approver role only).
+ * PATCH /api/payment/user/:userId/sale-price
+ *
+ * @param {{ token?: string, userId: string, salePrice: number|string }} params
+ * @returns {Promise<{ message: string, paymentSummary: object|null }>}
+ */
+export const apiSetUserSalePrice = async ({ token, userId, salePrice } = {}) => {
+  const authToken = token || localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+
+  if (!authToken) {
+    throw new Error('Not authorized.');
+  }
+
+  if (!userId) {
+    throw new Error('User is required to set a sale price.');
+  }
+
+  const numericSalePrice = Number(salePrice);
+  if (!Number.isFinite(numericSalePrice) || numericSalePrice <= 0) {
+    throw new Error('sale_price must be a positive number.');
+  }
+
+  let data;
+  try {
+    const response = await apiClient.patch(
+      `/payment/user/${userId}/sale-price`,
+      { sale_price: numericSalePrice },
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    data = response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Failed to update sale price.'));
+  }
+
+  return {
+    message: data?.message || 'Sale price updated.',
+    paymentSummary: normalizePaymentSummary(data?.data?.payment_summary || data?.payment_summary),
   };
 };
 
