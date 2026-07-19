@@ -360,15 +360,6 @@ const ApprovalsSection = () => {
         <EyeIcon />
       </button>
 
-      <button
-        className="icon-btn icon-btn--view"
-        title="Set sale price"
-        aria-label="Set sale price"
-        onClick={() => openSalePriceModal(p)}
-      >
-        ₹
-      </button>
-
       {p.approval_status === "approved" ? (
         <span className="status-tag status-tag--approved">Approved</span>
       ) : p.approval_status === "rejected" ? (
