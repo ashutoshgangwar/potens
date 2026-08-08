@@ -277,59 +277,14 @@ const PaymentsSection = () => {
           100% { opacity: 1; }
         }
 
-        /* ── Table ── */
+        /* Table skin lives in index.css alongside every other dashboard table —
+           only the spacing specific to this section is set here. */
         .payments-table-wrap {
-          width: 100%;
-          overflow-x: auto;
           margin-top: 24px;
-          border-radius: 10px;
-          box-shadow: 0 1px 6px rgba(0,0,0,0.07);
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .payments-table {
-          width: 100%;
-          border-collapse: collapse;
-          min-width: 800px;
-          background: #fff;
-          border: 1px solid #cdd5e8;
-        }
-
-        .payments-table th {
-          padding: 15px 14px;
-          background: #f5f7fa;
-          font-size: 0.78rem;
-          font-weight: 700;
-          color: #555;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          border-bottom: 2px solid #d3dbeb;
-          border-right: 1px solid #d3dbeb;
-          white-space: nowrap;
-          text-align: left;
         }
 
         .payments-table td {
-          padding: 12px 10px;
-          border-bottom: 1px solid #f0f0f0;
-          border-right: 1px solid #e3e8ee;
-          font-size: 0.9rem;
-          color: #333;
           white-space: nowrap;
-          vertical-align: middle;
-        }
-
-        .payments-table th:last-child,
-        .payments-table td:last-child {
-          border-right: none;
-        }
-
-        .payments-table tbody tr:last-child td {
-          border-bottom: none;
-        }
-
-        .payments-table tbody tr:hover td {
-          background: #fafbfc;
         }
 
         /* ── Mobile cards ── */
@@ -539,7 +494,7 @@ const PaymentsSection = () => {
           <table className="payments-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th>SR No</th>
                 <th>UTR Number</th>
                 <th>Account Number</th>
                 <th>Partner Name</th>
@@ -566,35 +521,27 @@ const PaymentsSection = () => {
                   const serialNumber = (currentPage - 1) * RECORDS_PER_PAGE + idx + 1;
                   return (
                     <tr key={id}>
-                      <td style={{ color: '#aaa', fontSize: '0.82rem' }}>{serialNumber}</td>
+                      <td className="table-cell-index">{serialNumber}</td>
                       <td>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#2d72d2' }}>
+                        <span className="table-cell-code">
                           {payment.transaction_number || '—'}
                         </span>
                       </td>
-                      <td style={{ fontFamily: 'monospace' }}>
+                      <td className="table-cell-mono">
                         {payment.accountNumber || payment.account_number || '—'}
                       </td>
-                      <td style={{ color: '#444' }}>{partnerName}</td>
-                      <td style={{ fontWeight: 600 }}>
+                      <td>{partnerName}</td>
+                      <td className="table-cell-amount">
                         {formatAmount(payment.amount)}
                       </td>
-                      <td style={{ color: '#666' }}>{formatDate(payment.payment_date || payment.date || payment.created_at)}</td>
-                      <td style={{ color: '#666' }}>{formatDate(payment.approval_action_at)}</td>
-                      <td style={{ color: '#666' }}>{payment.approved_by?.full_name || '—'}</td>
+                      <td className="table-cell-muted">{formatDate(payment.payment_date || payment.date || payment.created_at)}</td>
+                      <td className="table-cell-muted">{formatDate(payment.approval_action_at)}</td>
+                      <td className="table-cell-muted">{payment.approved_by?.full_name || '—'}</td>
                       <td>
                         {proofUrl ? (
                           <button
                             onClick={() => openProofModal(proofUrl)}
-                            style={{
-                              padding: '6px 10px',
-                              borderRadius: 6,
-                              border: '1px solid #d0d7de',
-                              background: '#fff',
-                              color: '#2d72d2',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
+                            className="table-cell-link-btn"
                           >
                             View
                           </button>

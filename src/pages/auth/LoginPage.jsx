@@ -663,14 +663,14 @@ const LoginPage = () => {
               />
 
               <div className="forgot-modal-actions">
-                <Button
+                {/* <Button
                   type="button"
                   variant="secondary"
                   onClick={closeForgotModal}
                   disabled={forgotLoading}
                 >
                   Cancel
-                </Button>
+                </Button> */}
                 <Button type="submit" loading={forgotLoading}>
                   Reset password
                 </Button>

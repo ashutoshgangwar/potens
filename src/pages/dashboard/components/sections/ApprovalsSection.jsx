@@ -501,7 +501,7 @@ const ApprovalsSection = () => {
               <tbody>
                 {paginatedPartners.map((p, idx) => (
                   <tr key={p._id}>
-                    <td className="sr-no-col">
+                    <td className="sr-no-col-td">
                       {(currentPage - 1) * RECORDS_PER_PAGE + idx + 1}
                     </td>
                     <td>{p.full_name}</td>

@@ -82,7 +82,7 @@
 .users-table tr:hover td { background: rgba(31,58,95,0.02); }
 
 .reports-list ul { list-style: none; padding: 0; margin: 0; }
-.reports-actions a { margin-left: 12px; color: var(--color-primary); }
+.reports-actions a { margin-left: 12px; color: var(--color-brand); }
 
 .admin-stats { display: flex; gap: 16px; align-items: stretch; }
 .admin-card { padding: 14px; border-radius: 10px; background: #fafafa; min-width: 140px; border: 1px solid #f1f5f9; }
@@ -129,7 +129,7 @@
     margin-bottom: 0.5rem;
     box-shadow: 0 1px 3px rgba(31,58,95,0.06);
     background: #f1f5f9;
-    color: #1a237e;
+    color: #14532d;
     border: none;
     transition: background 0.15s;
   }

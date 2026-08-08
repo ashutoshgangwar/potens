@@ -14,6 +14,7 @@ const DashboardSidebar = ({ items, activeSection, onSectionChange, user, onLogou
             event.currentTarget.src = '/favicon.svg';
           }}
         />
+        <h3 className="sidebar-logo-text">POTENS ENERGY</h3>
       </div>
 
       <nav className="sidebar-nav">

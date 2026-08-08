@@ -445,7 +445,7 @@ const PaymentModal = ({ onClose, accessToken }) => {
               style={{
                 width: '100%',
                 padding: '11px 0',
-                background: submitDisabled ? '#90a4ae' : '#2d72d2',
+                background: submitDisabled ? '#90a4ae' : '#15803d',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 6,

@@ -10,7 +10,7 @@
   font-weight: 700;
   font-size: 22px;
   margin: 0 0 4px;
-  color: #1a237e;
+  color: #14532d;
 }
 
 .approvals-subtitle {
@@ -144,13 +144,13 @@
 }
 
 .status-tab:hover:not(.is-active) {
-  color: #1a237e;
+  color: #14532d;
   background: #e3e8ee;
 }
 
 .status-tab.is-active {
   background: #fff;
-  color: #1a237e;
+  color: #14532d;
   box-shadow: 0 1px 4px rgba(60, 72, 88, 0.12);
 }
 
@@ -246,7 +246,7 @@
 
 .approvals-action-btn.view {
   background: #e3e8ee;
-  color: #1a237e;
+  color: #14532d;
 }
 
 .approvals-action-btn.view:hover:not(:disabled) {
@@ -271,69 +271,18 @@
   background: #c62828;
 }
 
-/* ─── Desktop table ────────────────────────────────────────────────────────── */
-.approvals-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.approvals-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: #fff;
-  border: 1px solid #d7deea;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 1px 6px rgba(60, 72, 88, 0.06);
-  table-layout: auto;
-}
-
-.approvals-table th,
-.approvals-table td {
-  padding: 13px 14px;
-  text-align: left;
-  font-size: 14px;
-  border-right: 1px solid #e3e8ee;
-}
-
-.approvals-table th:last-child,
-.approvals-table td:last-child {
-  border-right: none;
-}
-
 /* Serial-number column */
 .approvals-table .sr-no-col {
   width: 56px;
   text-align: center;
-  color: #64748b;
+  color: white;
   font-weight: 600;
 }
-
-.approvals-table th {
-  background: #f1f5f9;
-  font-weight: 700;
-  color: #1a237e;
-  border-bottom: 2px solid #e3e8ee;
-  white-space: nowrap;
-}
-
-.approvals-table tbody tr {
-  transition: background 0.15s;
-}
-
-.approvals-table tbody tr:hover {
-  background: #f5f7fa;
-}
-
-.approvals-table td {
-  border-bottom: 1px solid #e3e8ee;
-  vertical-align: top;
-}
-
-.approvals-table tbody tr:last-child td {
-  border-bottom: none;
+sr-no-col-td{
+  width: 56px;
+  text-align: center;
+  color: black;
+  font-weight: 600;
 }
 
 .actions-cell {
@@ -501,8 +450,8 @@
   height: 40px;
   min-width: 40px;
   border-radius: 50%;
-  background: #e8eaf6;
-  color: #1a237e;
+  background: #e6f4ea;
+  color: #14532d;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -518,7 +467,7 @@
 .partner-card__name {
   font-weight: 700;
   font-size: 15px;
-  color: #1a237e;
+  color: #14532d;
   margin: 0 0 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -608,7 +557,7 @@
   font-weight: 700;
   font-size: 18px;
   margin: 0 0 12px;
-  color: #1a237e;
+  color: #14532d;
 }
 
 .modal-body {

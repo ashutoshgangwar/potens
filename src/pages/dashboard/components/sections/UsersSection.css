@@ -19,7 +19,7 @@
 .users-section__title {
   font-size: 22px;
   font-weight: 700;
-  color: #1a237e;
+  color: #14532d;
   margin: 0 0 4px;
 }
 
@@ -33,23 +33,27 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 9px 19px;
   border-radius: 9px;
-  background: #3949ab;
+  background: #15803d;
   color: #fff;
   font-weight: 600;
   font-size: 14px;
-  border: none;
+  /* Border matches the fill, so the shape survives the white hover state */
+  border: 1px solid #15803d;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(57, 73, 171, 0.28);
-  transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(21, 128, 61, 0.28);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.05s;
   flex-shrink: 0;
 }
 
+/* Inverts on hover — white fill needs the label and the + to go green, or they
+   disappear against it. Both inherit this colour. */
 .users-create-btn:hover {
-  background: #283593;
-  box-shadow: 0 4px 14px rgba(40, 53, 147, 0.34);
+  background: #ffffff;
+  color: #15803d;
+  box-shadow: 0 4px 14px rgba(21, 128, 61, 0.24);
 }
 
 .users-create-btn:active {
@@ -60,6 +64,12 @@
   font-size: 18px;
   line-height: 1;
   font-weight: 700;
+}
+.users-create-btn__plus:active {
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 700;
+  color: #14532d;
 }
 
 /* ─── Toolbar (search + count) ─────────────────────────────────────────────── */
@@ -109,8 +119,8 @@
 }
 
 .users-search__input:focus {
-  border-color: #3949ab;
-  box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.12);
+  border-color: #14532d;
+  box-shadow: 0 0 0 3px rgba(20, 83, 45, 0.12);
 }
 
 .users-search__clear {
@@ -133,7 +143,7 @@
 
 .users-search__clear:hover {
   background: #e2e8f0;
-  color: #1a237e;
+  color: #14532d;
 }
 
 .users-count {
@@ -156,8 +166,8 @@
   display: inline-block;
   padding: 3px 10px;
   border-radius: 100px;
-  background: #e8eaf6;
-  color: #283593;
+  background: #e6f4ea;
+  color: #15803d;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -179,8 +189,8 @@
   height: 32px;
   min-width: 32px;
   border-radius: 50%;
-  background: #e8eaf6;
-  color: #283593;
+  background: #e6f4ea;
+  color: #15803d;
   font-weight: 700;
   font-size: 12px;
 }
@@ -188,81 +198,6 @@
 .user-name-cell__name {
   font-weight: 600;
   color: #1e293b;
-}
-
-/* ─── Desktop table ────────────────────────────────────────────────────────── */
-.users-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.users-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: #fff;
-  border: 1px solid #cdd5e8;
-  border-radius: 12px;
-  overflow: hidden;
-  font-size: 14px;
-  table-layout: auto;
-}
-
-.users-table th,
-.users-table td {
-  border-right: 1px solid #d3dbeb;
-}
-
-/* Header separators need a darker line to show against the tinted thead */
-.users-table th {
-  border-right: 1px solid #c5cae9;
-}
-
-.users-table th:last-child,
-.users-table td:last-child {
-  border-right: none;
-}
-
-.users-table thead tr {
-  background: #e3eafc;
-}
-
-.users-table th {
-  padding: 13px 16px;
-  font-weight: 700;
-  color: #283593;
-  text-align: left;
-  border-bottom: 2px solid #c5cae9;
-  white-space: nowrap;
-  font-size: 13px;
-}
-
-.users-table tbody tr {
-  transition: background 0.15s;
-}
-
-.users-table tbody tr:nth-child(even) {
-  background: #f7fafd;
-}
-
-.users-table tbody tr:hover {
-  background: #eef0fb;
-}
-
-.users-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e3eafc;
-  color: #1e293b;
-  vertical-align: middle;
-  max-width: 240px;
-  word-break: break-word;
-}
-
-.users-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 /* ─── Mobile card list (hidden on desktop) ─────────────────────────────────── */
@@ -293,8 +228,8 @@
   height: 42px;
   min-width: 42px;
   border-radius: 50%;
-  background: #e8eaf6;
-  color: #1a237e;
+  background: #e6f4ea;
+  color: #14532d;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -310,7 +245,7 @@
 .user-card__name {
   font-weight: 700;
   font-size: 15px;
-  color: #1a237e;
+  color: #14532d;
   margin: 0 0 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -391,7 +326,7 @@
 .modal-box__title {
   font-size: 18px;
   font-weight: 700;
-  color: #1a237e;
+  color: #14532d;
   margin: 0;
 }
 
@@ -407,7 +342,7 @@
 }
 
 .modal-box__close:hover {
-  color: #1a237e;
+  color: #14532d;
 }
 
 /* ─── Create user form ─────────────────────────────────────────────────────── */
@@ -450,7 +385,8 @@
 }
 
 .form-input:focus {
-  border-color: #3949ab;
+  border-color: #15803d;
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.12);
 }
 
 .form-error {
@@ -470,7 +406,7 @@
 .form-submit-btn {
   padding: 11px 0;
   border-radius: 8px;
-  background: #3949ab;
+  background: #15803d;
   color: #fff;
   font-weight: 600;
   font-size: 15px;
@@ -481,7 +417,7 @@
 }
 
 .form-submit-btn:hover:not(:disabled) {
-  background: #283593;
+  background: #0f5c2c;
 }
 
 .form-submit-btn:disabled {
