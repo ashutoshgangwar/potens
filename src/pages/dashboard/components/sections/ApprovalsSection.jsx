@@ -490,9 +490,9 @@ const ApprovalsSection = () => {
                   <th>Role</th>
                   <th>Status</th>
                   <th>City</th>
-                  <th>Sale Price</th>
-                  <th>Paid</th>
-                  <th>Pending</th>
+                  {/* <th>Sale Price</th> */}
+                  {/* <th>Paid</th> */}
+                  {/* <th>Pending</th> */}
                   <th>Field Officer</th>
                   <th>Reviewed By</th>
                   <th>Actions</th>
@@ -511,9 +511,9 @@ const ApprovalsSection = () => {
                       <StatusBadge status={p.approval_status} />
                     </td>
                     <td>{getCity(p)}</td>
-                    <td>{formatAmount(getPaymentFigures(p).salePrice)}</td>
+                    {/* <td>{formatAmount(getPaymentFigures(p).salePrice)}</td>
                     <td>{formatAmount(getPaymentFigures(p).paidAmount)}</td>
-                    <td><PendingAmount partner={p} /></td>
+                    <td><PendingAmount partner={p} /></td> */}
                     <td>{p.field_officer_name || "-"}</td>
                     <td>{p.approved_by || "-"}</td>
                     <td className="actions-cell">
@@ -559,7 +559,7 @@ const ApprovalsSection = () => {
                       {getCity(p)}
                     </span>
                   </div>
-                  <div className="partner-card__meta-row">
+                  {/* <div className="partner-card__meta-row">
                     <span className="partner-card__meta-label">Sale Price</span>
                     <span className="partner-card__meta-value">
                       {formatAmount(getPaymentFigures(p).salePrice)}
@@ -576,7 +576,7 @@ const ApprovalsSection = () => {
                     <span className="partner-card__meta-value">
                       <PendingAmount partner={p} />
                     </span>
-                  </div>
+                  </div> */}
                    <div className="partner-card__meta-row">
                     <span className="partner-card__meta-label">
                       Reviewed By
