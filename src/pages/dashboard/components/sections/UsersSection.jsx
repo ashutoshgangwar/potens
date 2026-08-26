@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiCreateUser } from '../../../../utils/apiCreateUser.js';
 import { fetchNonPartnerRoles } from '../../../../utils/apiNonPartnerRoles.js';
 import axios from 'axios';
@@ -44,29 +44,29 @@ const UsersSection = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setFetchLoading(true);
-      try {
-        const token = localStorage.getItem('POTENS_admin_access_token');
-        if (!token) return;
-        const response = await axios.get(`${API_BASE_URL}/api/auth/admin/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // console.log('Fetched users:', response.data);
-        setUsers(
-          Array.isArray(response.data)
-            ? response.data
-            : response.data?.users || []
-        );
-      } catch {
-        setUsers([]);
-      } finally {
-        setFetchLoading(false);
-      }
-    };
-    fetchUsers();
+  const fetchUsers = useCallback(async () => {
+    setFetchLoading(true);
+    try {
+      const token = localStorage.getItem('POTENS_admin_access_token');
+      if (!token) return;
+      const response = await axios.get(`${API_BASE_URL}/api/auth/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(
+        Array.isArray(response.data)
+          ? response.data
+          : response.data?.users || []
+      );
+    } catch {
+      setUsers([]);
+    } finally {
+      setFetchLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   useEffect(() => {
     if (modalOpen) {
@@ -92,6 +92,7 @@ const UsersSection = () => {
       setSuccess('User created successfully!');
       setForm(initialForm);
       setModalOpen(false);
+      fetchUsers();
     } catch (err) {
       setError(err.message || 'Failed to create user.');
     } finally {
@@ -145,6 +146,10 @@ const UsersSection = () => {
           Create User
         </button>
       </div>
+
+      {success && !modalOpen && (
+        <p className="form-success">{success}</p>
+      )}
 
       {/* ── Toolbar: search + count ── */}
       <div className="users-toolbar">
@@ -330,8 +335,8 @@ const UsersSection = () => {
                   <option value="" disabled>Select role</option>
                   {roles.map((role) => (
                     <option
-                      key={role.id || role._id || role.name}
-                      value={role.name || role.role}
+                      key={role._id || role.id || role.role}
+                      value={role._id || role.id}
                     >
                       {role.name || role.role}
                     </option>
